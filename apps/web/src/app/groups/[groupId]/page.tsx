@@ -37,7 +37,7 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
     return (
         <div className="pb-12 bg-gray-50 dark:bg-slate-900 min-h-screen">
             {/* Header Compacto Moderno */}
-            <div className="bg-gradient-to-b from-green-800 to-green-900 dark:from-slate-900 dark:to-slate-950 pb-12 pt-3 px-4 border-b border-green-700/50 dark:border-slate-800">
+            <div className="bg-gradient-to-b from-green-800 to-green-900 dark:from-slate-900 dark:to-slate-950 pb-12 sm:pb-24 pt-3 px-4 border-b border-green-700/50 dark:border-slate-800">
                 <div className="max-w-4xl mx-auto">
                     <div className="flex flex-col gap-2">
                         {/* Título e Descrição */}
