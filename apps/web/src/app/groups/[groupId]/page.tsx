@@ -35,36 +35,37 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
         .order('match_date', { ascending: true })
 
     return (
-        <div className="pb-12 bg-gray-50 dark:bg-slate-900">
-            <header className="bg-green-700 dark:bg-slate-900 pb-24 border-b border-green-600 dark:border-slate-800">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-                    <div className="flex justify-between items-start">
+        <div className="pb-12 bg-gray-50 dark:bg-slate-900 min-h-screen">
+            {/* Header Compacto Moderno */}
+            <div className="bg-gradient-to-b from-green-800 to-green-900 dark:from-slate-900 dark:to-slate-950 pb-12 pt-3 px-4 border-b border-green-700/50 dark:border-slate-800">
+                <div className="max-w-4xl mx-auto">
+                    <div className="flex flex-col gap-2">
+                        {/* Título e Descrição */}
                         <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-white">{group.name}</h1>
-                            <p className="text-green-100 mt-2">{group.description}</p>
+                            <h1 className="text-base sm:text-2xl font-bold tracking-tight text-white leading-tight">{group.name}</h1>
+                            {group.description && <p className="text-green-100/60 text-[10px] sm:text-sm line-clamp-1">{group.description}</p>}
                         </div>
-                    </div>
 
-                    <div className="mt-6 flex flex-wrap gap-4 text-sm text-green-100 bg-green-800/50 p-4 rounded-lg border border-green-600/30">
-                        <div className="flex items-center gap-2">
-                            <span role="img" aria-label="trophy">🏆</span>
-                            <span className="font-semibold">{group.events.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span role="img" aria-label="users">👥</span>
-                            <span>{group.group_members[0].count} participantes</span>
-                        </div>
-                        <div className="flex items-center gap-2 bg-green-900/50 px-3 py-1 rounded border border-green-600/30">
-                            <span role="img" aria-label="key">🔑</span>
-                            <button className="hover:text-white font-mono" title="Copiar código">
-                                {group.invite_code}
+                        {/* Stats Bar - Scrollable on Mobile */}
+                        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide text-[10px] sm:text-xs font-medium text-green-50/80">
+                            <div className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded-full whitespace-nowrap border border-white/5">
+                                <span>🏆</span>
+                                <span>{group.events.name}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded-full whitespace-nowrap border border-white/5">
+                                <span>👥</span>
+                                <span>{group.group_members[0].count}</span>
+                            </div>
+                            <button className="flex items-center gap-1.5 bg-green-500/10 px-2 py-0.5 rounded-full whitespace-nowrap border border-green-400/20 font-mono text-green-200">
+                                <span>🔑</span>
+                                <span>{group.invite_code}</span>
                             </button>
                         </div>
                     </div>
                 </div>
-            </header>
+            </div>
 
-            <main className="-mt-20 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <main className="-mt-12 sm:-mt-20 mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
                 <GroupTabs
                     groupId={groupId}
                     matches={matches || []}
