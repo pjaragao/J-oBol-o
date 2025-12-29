@@ -10,14 +10,14 @@ DECLARE
     group_admin_id UUID;
     group_name TEXT;
     joiner_name TEXT;
-    invited_email TEXT;
+    v_invited_email TEXT;
     invitation_exists BOOLEAN := FALSE;
 BEGIN
     -- Get group name
     SELECT name INTO group_name FROM public.groups WHERE id = NEW.group_id;
 
     -- Get joiner name and email
-    SELECT COALESCE(display_name, email), email INTO joiner_name, invited_email
+    SELECT COALESCE(display_name, email), email INTO joiner_name, v_invited_email
     FROM public.profiles WHERE id = NEW.user_id;
 
     -- Get group admin (the creator)
@@ -25,20 +25,20 @@ BEGIN
 
     -- Check if there's a pending invitation for this email and group
     SELECT EXISTS(
-        SELECT 1 FROM public.group_invitations
-        WHERE group_id = NEW.group_id
-          AND invited_email = invited_email
-          AND status = 'pending'
-          AND expires_at > NOW()
+        SELECT 1 FROM public.group_invitations gi
+        WHERE gi.group_id = NEW.group_id
+          AND gi.invited_email = v_invited_email
+          AND gi.status = 'pending'
+          AND gi.expires_at > NOW()
     ) INTO invitation_exists;
 
     -- If invitation exists, accept it
     IF invitation_exists THEN
-        UPDATE public.group_invitations
+        UPDATE public.group_invitations gi
         SET status = 'accepted', accepted_at = NOW()
-        WHERE group_id = NEW.group_id
-          AND invited_email = invited_email
-          AND status = 'pending';
+        WHERE gi.group_id = NEW.group_id
+          AND gi.invited_email = v_invited_email
+          AND gi.status = 'pending';
     END IF;
 
     -- Only notify if the joiner is NOT the admin himself AND admin has enabled this notification

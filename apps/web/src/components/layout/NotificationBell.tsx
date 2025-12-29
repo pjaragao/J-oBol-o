@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
-import { Bell, Check, Info, AlertTriangle, Trophy, Star, Settings } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Bell, Check, Info, AlertTriangle, Trophy, Star, Settings, X, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
@@ -15,6 +16,10 @@ interface Notification {
     type: 'info' | 'success' | 'warning' | 'group_invite' | 'points'
     is_read: boolean
     created_at: string
+    data?: {
+        group_id?: string
+        group_name?: string
+    }
 }
 
 export function NotificationBell({ userId }: { userId: string }) {
@@ -23,6 +28,7 @@ export function NotificationBell({ userId }: { userId: string }) {
     const [isOpen, setIsOpen] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
     const supabase = createClient()
+    const router = useRouter()
 
     useEffect(() => {
         if (!userId) return
@@ -100,12 +106,52 @@ export function NotificationBell({ userId }: { userId: string }) {
         }
     }
 
+    const acceptInvitation = async (notification: Notification) => {
+        if (!notification.data?.group_id) return
+
+        try {
+            // 1. Join group
+            const { error: joinError } = await supabase
+                .from('group_members')
+                .insert({
+                    group_id: notification.data.group_id,
+                    user_id: userId,
+                    role: 'member'
+                })
+
+            if (joinError) {
+                if (joinError.code === '23505') {
+                    alert('Você já é membro deste grupo!')
+                } else {
+                    throw joinError
+                }
+            }
+
+            // 2. Mark notification as read
+            await markAsRead(notification.id)
+
+            alert('Convite aceito com sucesso!')
+            setIsOpen(false)
+
+            // 3. Redirect to group page
+            router.push(`/groups/${notification.data.group_id}`)
+        } catch (error: any) {
+            console.error('Error accepting invitation:', error)
+            alert('Erro ao aceitar convite: ' + error.message)
+        }
+    }
+
+    const declineInvitation = async (notificationId: string) => {
+        await markAsRead(notificationId)
+        alert('Convite recusado.')
+    }
+
     const getIcon = (type: string) => {
         switch (type) {
             case 'success': return <Star className="h-4 w-4 text-green-500" />
             case 'warning': return <AlertTriangle className="h-4 w-4 text-amber-500" />
             case 'points': return <Trophy className="h-4 w-4 text-yellow-500" />
-            case 'group_invite': return <Star className="h-4 w-4 text-purple-500" />
+            case 'group_invite': return <Users className="h-4 w-4 text-purple-500" />
             default: return <Info className="h-4 w-4 text-blue-500" />
         }
     }
@@ -195,6 +241,31 @@ export function NotificationBell({ userId }: { userId: string }) {
                                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
                                                 {notification.message}
                                             </p>
+
+                                            {notification.type === 'group_invite' && !notification.is_read && (
+                                                <div className="mt-3 flex flex-wrap gap-2">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            acceptInvitation(notification)
+                                                        }}
+                                                        className="inline-flex items-center gap-1 rounded-md bg-green-600 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95"
+                                                    >
+                                                        <Check className="h-3 w-3" />
+                                                        Aceitar
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            declineInvitation(notification.id)
+                                                        }}
+                                                        className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 active:scale-95"
+                                                    >
+                                                        <X className="h-3 w-3" />
+                                                        Recusar
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                         {!notification.is_read && (
                                             <div className="mt-1.5 h-2 w-2 rounded-full bg-green-500 flex-shrink-0" />
