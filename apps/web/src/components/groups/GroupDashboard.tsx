@@ -390,26 +390,27 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                         const dateStr = format(matchDate, "dd/MM HH:mm", { locale: ptBR })
 
                                         return (
-                                            <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 p-3 shadow-sm">
-                                                <div className="text-[10px] text-slate-400 font-medium mb-2 flex justify-between">
-                                                    <span>{dateStr}</span>
+                                            <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 p-2 shadow-sm flex items-center gap-2">
+                                                <div className="flex flex-col items-center justify-center min-w-[35px] border-r border-slate-100 dark:border-slate-600 pr-2 my-1">
+                                                    <span className="text-[10px] text-slate-400 font-bold leading-tight">{format(matchDate, "dd/MM", { locale: ptBR })}</span>
+                                                    <span className="text-[10px] text-slate-500 dark:text-slate-300 font-black leading-tight">{format(matchDate, "HH:mm", { locale: ptBR })}</span>
                                                 </div>
 
-                                                <div className="flex items-center justify-between gap-1">
+                                                <div className="flex items-center justify-between gap-1 flex-1">
                                                     {/* Home Team */}
-                                                    <div className="flex items-center gap-2 flex-1 justify-end">
-                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{home.short_name}</span>
+                                                    <div className="flex items-center gap-1.5 flex-1 justify-end">
+                                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{home.short_name}</span>
                                                         <img src={home.logo_url} alt={home.short_name} className="w-5 h-5 object-contain" />
                                                     </div>
 
                                                     {/* Score Inputs */}
-                                                    <div className="flex items-center justify-center gap-2 min-w-[100px]">
+                                                    <div className="flex items-center justify-center gap-1">
                                                         {isEditing ? (
-                                                            <div className="flex items-center gap-1">
+                                                            <div className="relative">
                                                                 <input
                                                                     type="tel"
                                                                     inputMode="numeric"
-                                                                    className="w-8 h-8 text-center text-sm font-bold border rounded focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white"
+                                                                    className="w-7 h-7 text-center text-xs font-bold border rounded focus:ring-1 focus:ring-green-500 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white p-0"
                                                                     value={inlineBet.home}
                                                                     onChange={(e) => handleInlineBetChange(match.id, 'home', e.target.value)}
                                                                     onFocus={(e) => {
@@ -424,22 +425,22 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                     placeholder="-"
                                                                 />
                                                                 {savingMap[match.id] === 'saving' && (
-                                                                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-yellow-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(250,204,21,0.6)]" />
+                                                                    <div className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse" />
                                                                 )}
                                                             </div>
                                                         ) : (
-                                                            <div className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${hasBet ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-600 dark:text-slate-300'}`}>
+                                                            <div className={`w-7 h-7 flex items-center justify-center rounded text-xs font-mono font-bold ${hasBet ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-600 dark:text-slate-300'}`}>
                                                                 {hasBet ? match.user_bet?.home_score_bet : '-'}
                                                             </div>
                                                         )}
 
-                                                        <span className="text-xs text-slate-400">x</span>
+                                                        <span className="text-[10px] text-slate-400">x</span>
 
                                                         {isEditing ? (
                                                             <input
                                                                 type="tel"
                                                                 inputMode="numeric"
-                                                                className="w-8 h-8 text-center text-sm font-bold border rounded focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white"
+                                                                className="w-7 h-7 text-center text-xs font-bold border rounded focus:ring-1 focus:ring-green-500 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white p-0"
                                                                 value={inlineBet.away}
                                                                 onChange={(e) => handleInlineBetChange(match.id, 'away', e.target.value)}
                                                                 onFocus={(e) => {
@@ -454,45 +455,45 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                 placeholder="-"
                                                             />
                                                         ) : (
-                                                            <div className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${hasBet ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-600 dark:text-slate-300'}`}>
+                                                            <div className={`w-7 h-7 flex items-center justify-center rounded text-xs font-mono font-bold ${hasBet ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-600 dark:text-slate-300'}`}>
                                                                 {hasBet ? match.user_bet?.away_score_bet : '-'}
                                                             </div>
                                                         )}
                                                     </div>
 
                                                     {/* Away Team */}
-                                                    <div className="flex items-center gap-2 flex-1">
+                                                    <div className="flex items-center gap-1.5 flex-1">
                                                         <img src={away.logo_url} alt={away.short_name} className="w-5 h-5 object-contain" />
-                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{away.short_name}</span>
+                                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{away.short_name}</span>
                                                     </div>
 
                                                     {isEditing ? (
-                                                        <div className="flex items-center gap-1.5 min-w-[30px] justify-end">
+                                                        <div className="flex items-center justify-end w-[24px]">
                                                             {savingMap[match.id] === 'saved' ? (
-                                                                <span className="text-[10px] text-green-600 font-bold animate-in fade-in zoom-in duration-300">OK</span>
+                                                                <CheckCircle2 className="h-4 w-4 text-green-500" />
                                                             ) : (
                                                                 <button
                                                                     onClick={() => {
                                                                         setInlineBets(prev => { const n = { ...prev }; delete n[match.id]; return n })
                                                                         setSavingMap(prev => { const n = { ...prev }; delete n[match.id]; return n })
                                                                     }}
-                                                                    className="text-xs text-slate-400 px-1 py-1 hover:text-red-500 transition-colors"
+                                                                    className="text-slate-400 hover:text-red-500"
                                                                 >
-                                                                    ✕
+                                                                    <X className="h-4 w-4" />
                                                                 </button>
                                                             )}
                                                         </div>
                                                     ) : hasBet ? (
                                                         <button
                                                             onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: String(match.user_bet?.home_score_bet ?? ''), away: String(match.user_bet?.away_score_bet ?? '') } }))}
-                                                            className="text-xs text-slate-400 hover:text-green-600 px-1"
+                                                            className="text-slate-400 hover:text-green-600 w-[24px] flex justify-end"
                                                         >
                                                             ✏️
                                                         </button>
                                                     ) : (
                                                         <button
                                                             onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: '', away: '' } }))}
-                                                            className="text-[10px] text-green-600 dark:text-green-400 hover:underline px-1"
+                                                            className="text-[10px] text-green-600 dark:text-green-400 hover:underline w-[24px] flex justify-end"
                                                         >
                                                             Apostar
                                                         </button>
@@ -519,49 +520,49 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                         const away = getTeam(match.away_team)
                                         const bet = match.user_bet
                                         const matchDate = new Date(match.match_date)
-                                        const dateStr = format(matchDate, "dd/MM HH:mm", { locale: ptBR })
 
                                         return (
-                                            <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 p-3 shadow-sm opacity-90 hover:opacity-100 transition-opacity">
-                                                <div className="text-[10px] text-slate-400 font-medium mb-2 flex justify-between">
-                                                    <span>{dateStr}</span>
-                                                    {bet?.points !== undefined && (
-                                                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter ${bet.points > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-red-50 text-red-500 dark:bg-red-900/30 dark:text-red-400'}`}>
-                                                            {bet.points > 0 ? `+${bet.points} pts` : '0 pts'}
-                                                        </span>
-                                                    )}
+                                            <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 p-2 shadow-sm opacity-90 hover:opacity-100 transition-opacity flex items-center gap-2">
+                                                <div className="flex flex-col items-center justify-center min-w-[35px] border-r border-slate-100 dark:border-slate-600 pr-2 my-1">
+                                                    <span className="text-[10px] text-slate-400 font-bold leading-tight">{format(matchDate, "dd/MM", { locale: ptBR })}</span>
+                                                    <span className="text-[10px] text-slate-500 dark:text-slate-300 font-black leading-tight">{format(matchDate, "HH:mm", { locale: ptBR })}</span>
                                                 </div>
 
-                                                <div className="flex items-center justify-between gap-1 mb-2">
-                                                    {/* Home */}
-                                                    <div className="flex items-center gap-2 flex-1 justify-end">
-                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{home.short_name}</span>
-                                                        <img src={home.logo_url} className="w-5 h-5 object-contain" />
+                                                <div className="flex-1">
+                                                    <div className="flex items-center justify-between gap-1 mb-1">
+                                                        {/* Home */}
+                                                        <div className="flex items-center gap-1.5 flex-1 justify-end">
+                                                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{home.short_name}</span>
+                                                            <img src={home.logo_url} className="w-5 h-5 object-contain" />
+                                                        </div>
+
+                                                        {/* Score */}
+                                                        <div className="flex flex-col items-center">
+                                                            <div className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded flex items-center gap-1.5 scale-90">
+                                                                <span className="font-black text-xs text-slate-800 dark:text-slate-200">{match.home_score}</span>
+                                                                <span className="text-[9px] text-slate-400">x</span>
+                                                                <span className="font-black text-xs text-slate-800 dark:text-slate-200">{match.away_score}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Away */}
+                                                        <div className="flex items-center gap-1.5 flex-1">
+                                                            <img src={away.logo_url} className="w-5 h-5 object-contain" />
+                                                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{away.short_name}</span>
+                                                        </div>
                                                     </div>
 
-                                                    {/* Score */}
-                                                    <div className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded flex items-center gap-2">
-                                                        <span className="font-black text-sm text-slate-800 dark:text-slate-200">{match.home_score}</span>
-                                                        <span className="text-[10px] text-slate-400">x</span>
-                                                        <span className="font-black text-sm text-slate-800 dark:text-slate-200">{match.away_score}</span>
+                                                    <div className="flex items-center justify-between text-[9px] border-t dark:border-slate-600 pt-1">
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-slate-400">Palpite:</span>
+                                                            <span className="font-bold text-slate-600 dark:text-slate-300">{bet ? `${bet.home_score_bet} x ${bet.away_score_bet}` : '---'}</span>
+                                                        </div>
+                                                        {bet?.points !== undefined && (
+                                                            <span className={`font-black px-1 rounded uppercase tracking-tighter ${bet.points > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+                                                                {bet.points > 0 ? `+${bet.points} pts` : '0 pts'}
+                                                            </span>
+                                                        )}
                                                     </div>
-
-                                                    {/* Away */}
-                                                    <div className="flex items-center gap-2 flex-1">
-                                                        <img src={away.logo_url} className="w-5 h-5 object-contain" />
-                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{away.short_name}</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1 border-t dark:border-slate-600 pt-1.5 mt-1">
-                                                    <span className="font-medium">Meu palpite:</span>
-                                                    {bet ? (
-                                                        <span className="font-bold text-slate-600 dark:text-slate-300">
-                                                            {bet.home_score_bet} x {bet.away_score_bet}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="italic">Sem aposta</span>
-                                                    )}
                                                 </div>
                                             </div>
                                         )
@@ -592,40 +593,40 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                         const home = getTeam(match.home_team)
                                         const away = getTeam(match.away_team)
                                         const matchDate = new Date(match.match_date)
-                                        const dateStr = format(matchDate, "dd/MM HH:mm", { locale: ptBR })
 
                                         return (
-                                            <div key={match.id} className="flex flex-col gap-1.5 p-3 bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 shadow-sm">
-                                                <div className="text-[10px] text-slate-400 font-medium mb-1 flex justify-between">
-                                                    <span>{dateStr}</span>
+                                            <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 p-2 shadow-sm flex items-center gap-2">
+                                                <div className="flex flex-col items-center justify-center min-w-[35px] border-r border-slate-100 dark:border-slate-600 pr-2 my-1">
+                                                    <span className="text-[10px] text-slate-400 font-bold leading-tight">{format(matchDate, "dd/MM", { locale: ptBR })}</span>
+                                                    <span className="text-[10px] text-slate-500 dark:text-slate-300 font-black leading-tight">{format(matchDate, "HH:mm", { locale: ptBR })}</span>
                                                 </div>
 
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-3 flex-1">
-                                                        {/* Home */}
-                                                        <div className="flex items-center gap-2 justify-end">
-                                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{home.short_name}</span>
-                                                            <img src={home.logo_url} className="w-5 h-5 object-contain" />
-                                                        </div>
+                                                <div className="flex items-center justify-between gap-1 flex-1">
+                                                    {/* Home */}
+                                                    <div className="flex items-center gap-1.5 flex-1 justify-end">
+                                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{home.short_name}</span>
+                                                        <img src={home.logo_url} className="w-5 h-5 object-contain" />
+                                                    </div>
 
-                                                        <div className="flex items-center gap-1 text-xs font-bold text-slate-500">
-                                                            <span>{match.home_score}</span>
-                                                            <span className="text-[10px] mx-0.5">x</span>
-                                                            <span>{match.away_score}</span>
-                                                        </div>
+                                                    {/* Score */}
+                                                    <div className="px-1.5 py-0.5 bg-slate-50 dark:bg-slate-800 rounded flex items-center gap-1.5">
+                                                        <span className="font-bold text-xs text-slate-700 dark:text-slate-200">{match.home_score}</span>
+                                                        <span className="text-[9px] text-slate-400">x</span>
+                                                        <span className="font-bold text-xs text-slate-700 dark:text-slate-200">{match.away_score}</span>
+                                                    </div>
 
-                                                        {/* Away */}
-                                                        <div className="flex items-center gap-2">
-                                                            <img src={away.logo_url} className="w-5 h-5 object-contain" />
-                                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{away.short_name}</span>
-                                                        </div>
+                                                    {/* Away */}
+                                                    <div className="flex items-center gap-1.5 flex-1">
+                                                        <img src={away.logo_url} className="w-5 h-5 object-contain" />
+                                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{away.short_name}</span>
                                                     </div>
 
                                                     <button
                                                         onClick={() => handleViewBets(match.id, match.match_date)}
-                                                        className="ml-2 text-[10px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors whitespace-nowrap"
+                                                        className="ml-2 h-7 w-7 flex items-center justify-center rounded-md bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/50 hover:bg-green-100 transition-colors"
+                                                        title="Ver palpites"
                                                     >
-                                                        Ver palpites
+                                                        <Eye className="h-3.5 w-3.5" />
                                                     </button>
                                                 </div>
                                             </div>
@@ -648,45 +649,49 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                         const away = getTeam(match.away_team)
                                         const betCount = betCounts[match.id] || 0
                                         const matchDate = new Date(match.match_date)
-                                        const dateStr = format(matchDate, "dd/MM HH:mm", { locale: ptBR })
                                         const isLocked = new Date() < matchDate
 
                                         return (
-                                            <div key={match.id} className="flex flex-col gap-1.5 p-3 bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 shadow-sm">
-                                                <div className="text-[10px] text-slate-400 font-medium mb-1 flex justify-between">
-                                                    <span>{dateStr}</span>
+                                            <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 p-2 shadow-sm flex items-center gap-2">
+                                                <div className="flex flex-col items-center justify-center min-w-[35px] border-r border-slate-100 dark:border-slate-600 pr-2 my-1">
+                                                    <span className="text-[10px] text-slate-400 font-bold leading-tight">{format(matchDate, "dd/MM", { locale: ptBR })}</span>
+                                                    <span className="text-[10px] text-slate-500 dark:text-slate-300 font-black leading-tight">{format(matchDate, "HH:mm", { locale: ptBR })}</span>
                                                 </div>
 
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2 flex-1">
-                                                        <div className="flex items-center gap-2 justify-end">
-                                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{home.short_name}</span>
-                                                            <img src={home.logo_url} className="w-5 h-5 object-contain" />
-                                                        </div>
-                                                        <span className="text-[10px] font-bold dark:text-slate-300">vs</span>
-                                                        <div className="flex items-center gap-2">
-                                                            <img src={away.logo_url} className="w-5 h-5 object-contain" />
-                                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{away.short_name}</span>
-                                                        </div>
+                                                <div className="flex-1 flex items-center justify-between gap-1">
+                                                    {/* Teams */}
+                                                    <div className="flex items-center gap-1.5 flex-1 justify-end">
+                                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{home.short_name}</span>
+                                                        <img src={home.logo_url} className="w-5 h-5 object-contain" />
+                                                    </div>
+
+                                                    <span className="text-[10px] font-bold text-slate-300 lowercase px-1 text-center">vs</span>
+
+                                                    <div className="flex items-center gap-1.5 flex-1">
+                                                        <img src={away.logo_url} className="w-5 h-5 object-contain" />
+                                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{away.short_name}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex flex-col items-end leading-none">
+                                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">{betCount}</span>
+                                                        <span className="text-[8px] text-slate-400 uppercase">apostas</span>
                                                     </div>
 
                                                     <button
                                                         onClick={() => !isLocked && handleViewBets(match.id, match.match_date)}
                                                         disabled={isLocked}
-                                                        className={`flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-md transition-all border
+                                                        className={`h-7 w-7 flex items-center justify-center rounded-md transition-all border
                                                             ${isLocked
                                                                 ? 'bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800 dark:text-slate-600 dark:border-slate-700 cursor-not-allowed'
                                                                 : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40 border-green-100 dark:border-green-800/50'
                                                             }
                                                         `}
+                                                        title={isLocked ? "Bloqueado" : "Ver"}
                                                     >
-                                                        {isLocked ? <Lock className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                                                        VER
+                                                        {isLocked ? <Lock className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                                                     </button>
-                                                </div>
-                                                <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium tracking-tight">
-                                                    <MoreHorizontal className="h-3 w-3" />
-                                                    <span>{betCount} {betCount === 1 ? 'palpite realizado' : 'palpites realizados'}</span>
                                                 </div>
                                             </div>
                                         )
