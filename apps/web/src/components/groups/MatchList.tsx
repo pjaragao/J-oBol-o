@@ -32,9 +32,10 @@ function getPointsExplanation(betHome: number, betAway: number, realHome: number
 
 export function MatchList({ matches, groupId, userId }: MatchListProps) {
     const [bets, setBets] = useState<BetState>({})
-    const [saving, setSaving] = useState(false)
     const [initialBetsLoaded, setInitialBetsLoaded] = useState(false)
     const [hoveredPoints, setHoveredPoints] = useState<string | null>(null)
+    const [activeMatchId, setActiveMatchId] = useState<string | null>(null)
+    const [savingMap, setSavingMap] = useState<Record<string, 'saving' | 'saved'>>({})
 
     const getTeam = (team: any) => Array.isArray(team) ? team[0] : team
 
@@ -77,6 +78,65 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
             ...prev,
             [matchId]: { ...prev[matchId] || { home: '', away: '' }, [type]: finalValue, isDirty: true }
         }))
+        // Reset saved status when user starts typing again
+        if (savingMap[matchId] === 'saved') {
+            setSavingMap(prev => {
+                const next = { ...prev }
+                delete next[matchId]
+                return next
+            })
+        }
+    }
+
+    const handleFocus = (matchId: string, type: 'home' | 'away') => {
+        if (activeMatchId && activeMatchId !== matchId) {
+            saveOneBet(activeMatchId)
+        }
+        setActiveMatchId(matchId)
+
+        const currentBet = bets[matchId] || { home: '', away: '' }
+        const homeEmpty = currentBet.home === '' || currentBet.home === null
+        const awayEmpty = currentBet.away === '' || currentBet.away === null
+
+        if (homeEmpty && awayEmpty) {
+            setBets(prev => ({
+                ...prev,
+                [matchId]: {
+                    ...currentBet,
+                    [type === 'home' ? 'away' : 'home']: '0',
+                    [type]: '',
+                    isDirty: true
+                }
+            }))
+        }
+    }
+
+    const saveOneBet = async (matchId: string) => {
+        const bet = bets[matchId]
+        if (!bet || !bet.isDirty || bet.home === '' || bet.away === '') return
+
+        setSavingMap(prev => ({ ...prev, [matchId]: 'saving' }))
+
+        try {
+            const { error } = await supabase.from('bets').upsert({
+                user_id: userId,
+                group_id: groupId,
+                match_id: matchId,
+                home_score_bet: Number(bet.home),
+                away_score_bet: Number(bet.away),
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'user_id,group_id,match_id' })
+
+            if (!error) {
+                setBets(prev => ({
+                    ...prev,
+                    [matchId]: { ...prev[matchId], isDirty: false }
+                }))
+                setSavingMap(prev => ({ ...prev, [matchId]: 'saved' }))
+            }
+        } catch (error) {
+            console.error('Error saving bet:', error)
+        }
     }
 
     const isMatchLocked = (matchDate: string) => {
@@ -139,34 +199,8 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
         })
     }, [matches, bets, statusFilter, roundFilter, groupFilter, searchQuery])
 
-    const handleSaveAll = async () => {
-        setSaving(true)
-        const dirtyBets = Object.entries(bets).filter(([_, bet]) => bet.isDirty && bet.home !== '' && bet.away !== '')
-        if (dirtyBets.length === 0) { setSaving(false); return }
-
-        const betsToUpsert = dirtyBets.map(([matchId, bet]) => ({
-            user_id: userId, group_id: groupId, match_id: matchId,
-            home_score_bet: Number(bet.home), away_score_bet: Number(bet.away),
-            updated_at: new Date().toISOString()
-        }))
-
-        try {
-            const { error } = await supabase.from('bets').upsert(betsToUpsert, { onConflict: 'user_id,group_id,match_id' })
-            if (error) {
-                alert('Erro ao salvar algumas apostas.')
-            } else {
-                setBets(prev => {
-                    const next = { ...prev }
-                    dirtyBets.forEach(([id]) => { if (next[id]) next[id].isDirty = false })
-                    return next
-                })
-            }
-        } catch (error) {
-            alert('Erro inesperado ao salvar apostas.')
-        } finally {
-            setSaving(false)
-        }
-    }
+    // Unified save handled by individual match focus logic
+    const handleSaveAll = async () => { }
 
     if (!initialBetsLoaded) return <div className="text-center py-8 text-slate-500 dark:text-slate-400">Carregando apostas...</div>
 
@@ -288,6 +322,15 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                             )}
                                             value={bet?.home ?? ''}
                                             onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)}
+                                            onFocus={() => handleFocus(match.id, 'home')}
+                                            onBlur={() => {
+                                                // Small delay to allow activeMatchId to update if user tabbed to another match
+                                                setTimeout(() => {
+                                                    if (activeMatchId === match.id) {
+                                                        saveOneBet(match.id)
+                                                    }
+                                                }, 200)
+                                            }}
                                             disabled={locked}
                                             placeholder="-"
                                         />
@@ -301,6 +344,14 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                             )}
                                             value={bet?.away ?? ''}
                                             onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)}
+                                            onFocus={() => handleFocus(match.id, 'away')}
+                                            onBlur={() => {
+                                                setTimeout(() => {
+                                                    if (activeMatchId === match.id) {
+                                                        saveOneBet(match.id)
+                                                    }
+                                                }, 200)
+                                            }}
                                             disabled={locked}
                                             placeholder="-"
                                         />
@@ -317,6 +368,15 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                 {/* Footer: Real Score & Points - Boxed Footer */}
                                 {(hasRealScore || hasPoints) && (
                                     <div className="flex items-center justify-center gap-3 mt-2 px-3 py-1.5 -mx-2.5 -mb-2.5 rounded-b-xl border-t border-slate-100 bg-slate-50 dark:bg-slate-900/50 dark:border-slate-700/50">
+                                        {savingMap[match.id] && (
+                                            <span className={cn(
+                                                "text-[9px] font-bold uppercase tracking-widest",
+                                                savingMap[match.id] === 'saving' ? "text-yellow-600 animate-pulse" : "text-green-600"
+                                            )}>
+                                                {savingMap[match.id] === 'saving' ? '⏳ Salvando...' : '✓ Aposta Salva'}
+                                            </span>
+                                        )}
+
                                         {hasRealScore && (
                                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                                                 Placar Real: <span className="text-slate-700 dark:text-slate-200 ml-1">{match.home_score} - {match.away_score}</span>
@@ -357,13 +417,7 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                 </div>
 
                 {/* Floating Save Button */}
-                {dirtyCount > 0 && (
-                    <div className="fixed bottom-20 sm:bottom-6 left-1/2 transform -translate-x-1/2 z-30">
-                        <button onClick={handleSaveAll} disabled={saving} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full shadow-lg flex items-center gap-2">
-                            {saving ? 'Salvando...' : `Salvar ${dirtyCount} Aposta(s) ✓`}
-                        </button>
-                    </div>
-                )}
+                {/* Floating Save Button Removed */}
             </div>
         </>
     )

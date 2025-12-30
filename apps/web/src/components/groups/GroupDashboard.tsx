@@ -52,8 +52,9 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
     // New states for betting and viewing
     const [betsModal, setBetsModal] = useState<{ matchId: string; bets: BetWithUser[] } | null>(null)
-    const [inlineBets, setInlineBets] = useState<{ [matchId: string]: { home: string; away: string } }>({})
-    const [savingBet, setSavingBet] = useState<string | null>(null)
+    const [inlineBets, setInlineBets] = useState<{ [matchId: string]: { home: string; away: string; isDirty?: boolean } }>({})
+    const [savingMap, setSavingMap] = useState<Record<string, 'saving' | 'saved'>>({})
+    const [activeMatchId, setActiveMatchId] = useState<string | null>(null)
 
     const supabase = createClient()
 
@@ -156,27 +157,68 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
             .eq('group_id', groupId)
             .eq('match_id', matchId)
 
-        setBetsModal({ matchId, bets: (data || []) as BetWithUser[] })
+        setBetsModal({
+            matchId,
+            bets: (data || []).map((bet: any) => ({
+                ...bet,
+                profiles: Array.isArray(bet.profiles) ? bet.profiles[0] : bet.profiles
+            })) as BetWithUser[]
+        })
     }
 
     const handleInlineBetChange = (matchId: string, type: 'home' | 'away', value: string) => {
+        let finalValue = value
+        if (value !== '' && parseInt(value) < 0) finalValue = '0'
+
         setInlineBets(prev => ({
             ...prev,
             [matchId]: {
                 ...prev[matchId] || { home: '', away: '' },
-                [type]: value
+                [type]: finalValue,
+                isDirty: true
             }
         }))
+
+        // Reset saved status when user starts typing again
+        if (savingMap[matchId] === 'saved') {
+            setSavingMap(prev => {
+                const next = { ...prev }
+                delete next[matchId]
+                return next
+            })
+        }
+    }
+
+    const handleInlineFocus = (matchId: string, type: 'home' | 'away') => {
+        if (activeMatchId && activeMatchId !== matchId) {
+            handleSaveInlineBet(activeMatchId)
+        }
+        setActiveMatchId(matchId)
+
+        const currentBet = inlineBets[matchId] || { home: '', away: '' }
+        const homeEmpty = currentBet.home === '' || currentBet.home === null
+        const awayEmpty = currentBet.away === '' || currentBet.away === null
+
+        if (homeEmpty && awayEmpty) {
+            setInlineBets(prev => ({
+                ...prev,
+                [matchId]: {
+                    ...currentBet,
+                    [type === 'home' ? 'away' : 'home']: '0',
+                    [type]: '',
+                    isDirty: true
+                }
+            }))
+        }
     }
 
     const handleSaveInlineBet = async (matchId: string) => {
         const bet = inlineBets[matchId]
-        if (!bet || bet.home === '' || bet.away === '') {
-            alert("Preencha ambos os placares!")
+        if (!bet || !bet.isDirty || bet.home === '' || bet.away === '') {
             return
         }
 
-        setSavingBet(matchId)
+        setSavingMap(prev => ({ ...prev, [matchId]: 'saving' }))
         try {
             const { error } = await supabase
                 .from('bets')
@@ -189,9 +231,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                     updated_at: new Date().toISOString()
                 }, { onConflict: 'user_id,group_id,match_id' })
 
-            if (error) {
-                alert("Erro ao salvar aposta: " + error.message)
-            } else {
+            if (!error) {
                 // Update local state only (no full refresh)
                 setUpcomingMatches(prev => prev.map(m => {
                     if (m.id === matchId) {
@@ -206,18 +246,29 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                     }
                     return m
                 }))
-                // Clear inline bet
-                setInlineBets(prev => {
-                    const next = { ...prev }
-                    delete next[matchId]
-                    return next
-                })
+                // Mark as not dirty in inlineBets
+                setInlineBets(prev => ({
+                    ...prev,
+                    [matchId]: { ...prev[matchId], isDirty: false }
+                }))
+                setSavingMap(prev => ({ ...prev, [matchId]: 'saved' }))
+
+                // Clear inline bet after a delay to show saved status
+                setTimeout(() => {
+                    setInlineBets(prev => {
+                        const next = { ...prev }
+                        delete next[matchId]
+                        return next
+                    })
+                    setSavingMap(prev => {
+                        const next = { ...prev }
+                        delete next[matchId]
+                        return next
+                    })
+                }, 2000)
             }
         } catch (error) {
             console.error(error)
-            alert("Erro inesperado ao salvar aposta")
-        } finally {
-            setSavingBet(null)
         }
     }
 
@@ -299,14 +350,23 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                         <img src={home.logo_url} alt={home.short_name} className="w-5 h-5 object-contain" />
 
                                                         {isEditing ? (
-                                                            <input
-                                                                type="number"
-                                                                className="w-8 h-8 text-center text-sm font-bold border rounded focus:ring-2 focus:ring-green-500"
-                                                                value={inlineBet.home}
-                                                                onChange={(e) => handleInlineBetChange(match.id, 'home', e.target.value)}
-                                                                placeholder="-"
-                                                                min="0"
-                                                            />
+                                                            <div className="flex items-center gap-1">
+                                                                <input
+                                                                    type="tel"
+                                                                    inputMode="numeric"
+                                                                    className="w-8 h-8 text-center text-sm font-bold border rounded focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white"
+                                                                    value={inlineBet.home}
+                                                                    onChange={(e) => handleInlineBetChange(match.id, 'home', e.target.value)}
+                                                                    onFocus={() => handleInlineFocus(match.id, 'home')}
+                                                                    onBlur={() => {
+                                                                        setTimeout(() => {
+                                                                            if (activeMatchId === match.id) handleSaveInlineBet(match.id)
+                                                                        }, 200)
+                                                                    }}
+                                                                    placeholder="-"
+                                                                />
+                                                                {savingMap[match.id] === 'saving' && <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-yellow-400 rounded-full animate-ping" />}
+                                                            </div>
                                                         ) : (
                                                             <div className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${hasBet ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-600 dark:text-slate-300'}`}>
                                                                 {hasBet ? match.user_bet?.home_score_bet : '-'}
@@ -317,12 +377,18 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
                                                         {isEditing ? (
                                                             <input
-                                                                type="number"
-                                                                className="w-8 h-8 text-center text-sm font-bold border rounded focus:ring-2 focus:ring-green-500"
+                                                                type="tel"
+                                                                inputMode="numeric"
+                                                                className="w-8 h-8 text-center text-sm font-bold border rounded focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                                                                 value={inlineBet.away}
                                                                 onChange={(e) => handleInlineBetChange(match.id, 'away', e.target.value)}
+                                                                onFocus={() => handleInlineFocus(match.id, 'away')}
+                                                                onBlur={() => {
+                                                                    setTimeout(() => {
+                                                                        if (activeMatchId === match.id) handleSaveInlineBet(match.id)
+                                                                    }, 200)
+                                                                }}
                                                                 placeholder="-"
-                                                                min="0"
                                                             />
                                                         ) : (
                                                             <div className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${hasBet ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-600 dark:text-slate-300'}`}>
@@ -336,19 +402,19 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                     {/* Action Button */}
                                                     {isEditing ? (
                                                         <div className="flex items-center gap-1">
-                                                            <button
-                                                                onClick={() => handleSaveInlineBet(match.id)}
-                                                                disabled={savingBet === match.id}
-                                                                className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 disabled:opacity-50"
-                                                            >
-                                                                {savingBet === match.id ? '...' : '✓'}
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setInlineBets(prev => { const n = { ...prev }; delete n[match.id]; return n })}
-                                                                className="text-xs text-red-500 px-1 py-1 hover:text-red-700"
-                                                            >
-                                                                ✕
-                                                            </button>
+                                                            {savingMap[match.id] === 'saved' ? (
+                                                                <span className="text-[10px] text-green-600 font-bold">Salvo!</span>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setInlineBets(prev => { const n = { ...prev }; delete n[match.id]; return n })
+                                                                        setSavingMap(prev => { const n = { ...prev }; delete n[match.id]; return n })
+                                                                    }}
+                                                                    className="text-xs text-slate-400 px-1 py-1 hover:text-red-500"
+                                                                >
+                                                                    ✕
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     ) : hasBet ? (
                                                         <button
