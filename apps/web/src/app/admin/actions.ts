@@ -13,6 +13,16 @@ export async function manualUpdateMatches() {
     }
 }
 
+export async function manualUpdateLiveMatches() {
+    try {
+        const result = await updateMatches(true) // isLive = true
+        revalidatePath('/admin')
+        return { success: true, message: 'Partidas ao vivo atualizadas com sucesso!', details: result }
+    } catch (error: any) {
+        return { success: false, message: error.message }
+    }
+}
+
 export async function manualSendReminders() {
     try {
         const result = await sendReminders()

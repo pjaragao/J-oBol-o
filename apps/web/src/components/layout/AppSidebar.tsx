@@ -13,6 +13,7 @@ const sidebarItems = [
 ]
 
 const adminItems = [
+    { title: 'Início Admin', icon: LayoutDashboard, href: '/admin' },
     { title: 'Gerenciar Eventos', icon: Settings, href: '/admin/events' },
     { title: 'Gerenciar Times', icon: Crown, href: '/admin/teams' },
     { title: 'Logs de Sincronização', icon: ExternalLink, href: '/admin/logs' },
@@ -113,7 +114,9 @@ export function AppSidebar({ className, isOpen, setIsOpen, isAdmin }: SidebarPro
                             </div>
                             <div className="space-y-1 border-t border-slate-200 dark:border-slate-800 pt-4 mt-2">
                                 {adminItems.map((item) => {
-                                    const isActive = pathname.startsWith(item.href)
+                                    const isActive = item.href === '/admin'
+                                        ? pathname === '/admin'
+                                        : pathname.startsWith(item.href)
                                     return (
                                         <Link
                                             key={item.href}

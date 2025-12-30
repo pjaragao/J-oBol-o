@@ -143,13 +143,10 @@ class FootballDataClient {
         return data.matches
     }
 
-    /**
-     * Get matches for a date range
-     */
-    async getMatchesByDateRange(competitionCode: string, dateFrom: string, dateTo: string): Promise<Match[]> {
-        const data = await this.fetch<{ matches: Match[] }>(
-            `/competitions/${competitionCode}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`
-        )
+    async getMatchesByDateRange(competitionCode: string, dateFrom: string, dateTo: string, status?: string): Promise<Match[]> {
+        let endpoint = `/competitions/${competitionCode}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`
+        if (status) endpoint += `&status=${status}`
+        const data = await this.fetch<{ matches: Match[] }>(endpoint)
         return data.matches
     }
 }

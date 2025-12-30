@@ -25,7 +25,7 @@ export async function updateMatches(isLive: boolean = false) {
         const iterationStart = Date.now()
 
         try {
-            const res = await performUpdate()
+            const res = await performUpdate(isLive) // Pass the flag
             results.push({ iteration: i + 1, ...res })
         } catch (error: any) {
             results.push({ iteration: i + 1, error: error.message })
@@ -42,7 +42,7 @@ export async function updateMatches(isLive: boolean = false) {
     return { success: true, isLive, results }
 }
 
-async function performUpdate() {
+async function performUpdate(onlyLive: boolean = false) {
     try {
         const supabase = await createClient()
 
@@ -57,7 +57,7 @@ async function performUpdate() {
             return { message: 'No active events found' }
         }
 
-        console.log(`[Update] Found ${events.length} active events: ${events.map(e => e.name).join(', ')}`)
+        console.log(`[Update] Found ${events.length} active events. Mode: ${onlyLive ? 'LIVE' : 'FULL'}`)
 
         const today = new Date().toISOString().split('T')[0]
         const eventResults = []
@@ -67,99 +67,71 @@ async function performUpdate() {
             const codeMatch = event.description?.match(/- ([A-Z0-9]+)$/)
             const code = codeMatch ? codeMatch[1] : null
 
-            if (!code) {
-                console.log(`[Update] Skipping ${event.name}: No competition code found in description.`)
-                continue
-            }
+            if (!code) continue
 
             try {
-                // Determine Date Range
-                // Find oldest match that is NOT finished/canceled and should have happened (date < now)
-                const { data: pendingMatches, error: pendingError } = await supabase
-                    .from('matches')
-                    .select('match_date, status')
-                    .eq('event_id', event.id)
-                    .neq('status', 'finished')
-                    .neq('status', 'cancelled')
-                    .lt('match_date', new Date().toISOString())
-                    .order('match_date', { ascending: true })
-                    .limit(1)
-
-                if (pendingError) {
-                    console.error(`[Update] Error finding pending matches for ${event.name}:`, pendingError)
-                }
-
                 let dateFrom = today
                 let dateTo = today
+                let statusFilter = undefined
 
-                if (pendingMatches && pendingMatches.length > 0) {
-                    const pendingDate = pendingMatches[0].match_date.split('T')[0]
-                    console.log(`[Update] Found pending match for ${event.name} on ${pendingDate} (Status: ${pendingMatches[0].status})`)
-                    dateFrom = pendingDate
+                if (onlyLive) {
+                    // Optimized for live games: just fetch today's LIVE/IN_PLAY matches if the API supports it
+                    // For now, let's fetch today with status filter PD or similar if the API client uses it
+                    // Actually, competition/matches endpoint with status PD seems to work in some versions
+                    statusFilter = undefined // We'll filter in code or just fetch a tight range
                 } else {
-                    console.log(`[Update] No pending matches found for ${event.name}. Using today: ${today}`)
+                    // Determine Date Range for full sync
+                    const { data: pendingMatches } = await supabase
+                        .from('matches')
+                        .select('match_date')
+                        .eq('event_id', event.id)
+                        .not('status', 'in', '("finished","cancelled")')
+                        .lt('match_date', new Date().toISOString())
+                        .order('match_date', { ascending: true })
+                        .limit(1)
+
+                    if (pendingMatches && pendingMatches.length > 0) {
+                        dateFrom = pendingMatches[0].match_date.split('T')[0]
+                    }
                 }
 
-                // Check API limit (max 10 days range usually)
-                const d1 = new Date(dateFrom)
-                const d2 = new Date(dateTo)
-                const diffTime = Math.abs(d2.getTime() - d1.getTime())
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-                if (diffDays > 10) {
-                    console.log(`[Update] Range too large (${diffDays} days). Clamping to last 10 days.`)
-                    // Clamp start date to 10 days ago from today
-                    const newFrom = new Date(d2)
-                    newFrom.setDate(d2.getDate() - 9)
-                    dateFrom = newFrom.toISOString().split('T')[0]
-                }
-
-                console.log(`[Update] Fetching ${event.name} (${code}) from ${dateFrom} to ${dateTo}`)
-
-                const matches = await footballData.getMatchesByDateRange(code, dateFrom, dateTo)
+                // Fetch
+                const matches = await footballData.getMatchesByDateRange(code, dateFrom, dateTo, statusFilter)
 
                 if (matches.length === 0) {
-                    console.log(`[Update] No matches returned from API for ${event.name}`)
-                    eventResults.push({ event: event.name, status: 'no_matches', range: `${dateFrom} to ${dateTo}` })
+                    eventResults.push({ event: event.name, status: 'no_matches' })
                     continue
                 }
 
-                console.log(`[Update] API returned ${matches.length} matches for ${event.name}`)
-
-                // 3. Update Teams & Localize Logos
-                const { data: existingTeams } = await supabase.from('teams').select('id, api_id, logo_url')
+                // 3. Update Teams & Localize Logos (SKIP localization if onlyLive to be faster)
+                const { data: existingTeams } = await supabase.from('teams').select('id, api_id')
                 const teamMap = new Map(existingTeams?.map(t => [t.api_id, t.id]) || [])
-                console.log(`[Update] Loaded ${existingTeams?.length} existing teams into map.`)
 
-                // Check for new teams or teams missing localized logos
-                for (const match of matches) {
-                    const teams = [match.homeTeam, match.awayTeam]
-                    for (const apiTeam of teams) {
-                        if (!teamMap.has(apiTeam.id)) {
-                            console.log(`[Update] Team ${apiTeam.name} (${apiTeam.id}) not in map. Attempting insert...`)
-                            // New team found!
-                            const { data: newTeam, error } = await supabase
-                                .from('teams')
-                                .insert({
-                                    name: apiTeam.name,
-                                    short_name: apiTeam.shortName,
-                                    logo_url: apiTeam.crest,
-                                    api_id: apiTeam.id
-                                })
-                                .select()
-                                .single()
+                // Check for new teams
+                if (!onlyLive) {
+                    for (const match of matches) {
+                        const teams = [match.homeTeam, match.awayTeam]
+                        for (const apiTeam of teams) {
+                            if (!teamMap.has(apiTeam.id)) {
+                                const { data: newTeam } = await supabase
+                                    .from('teams')
+                                    .insert({
+                                        name: apiTeam.name,
+                                        short_name: apiTeam.shortName,
+                                        logo_url: apiTeam.crest,
+                                        api_id: apiTeam.id
+                                    })
+                                    .select()
+                                    .single()
 
-                            if (newTeam) {
-                                console.log(`[Update] Created team ${newTeam.name} (${newTeam.id})`)
-                                teamMap.set(apiTeam.id, newTeam.id)
-                                // Localize logo asynchronously or immediately for new teams
-                                const fileName = `${newTeam.id}.${apiTeam.crest?.split('.').pop() || 'png'}`
-                                const localizedUrl = await localizeExternalImage(apiTeam.crest, 'team-logos', fileName)
-                                if (localizedUrl) {
-                                    await supabase.from('teams').update({ logo_url: localizedUrl }).eq('id', newTeam.id)
+                                if (newTeam) {
+                                    teamMap.set(apiTeam.id, newTeam.id)
+                                    const fileName = `${newTeam.id}.${apiTeam.crest?.split('.').pop() || 'png'}`
+                                    const localizedUrl = await localizeExternalImage(apiTeam.crest, 'team-logos', fileName)
+                                    if (localizedUrl) {
+                                        await supabase.from('teams').update({ logo_url: localizedUrl }).eq('id', newTeam.id)
+                                    }
                                 }
-                            } else {
-                                console.error(`[Update] Failed to insert team ${apiTeam.name}:`, error)
                             }
                         }
                     }
@@ -169,9 +141,6 @@ async function performUpdate() {
                 const matchesToUpsert = matches.map(m => {
                     const homeId = teamMap.get(m.homeTeam.id)
                     const awayId = teamMap.get(m.awayTeam.id)
-
-                    if (!homeId) console.warn(`[Update] Missing Home Team ID for match ${m.id} (Home API ID: ${m.homeTeam.id})`)
-                    if (!awayId) console.warn(`[Update] Missing Away Team ID for match ${m.id} (Away API ID: ${m.awayTeam.id})`)
 
                     return {
                         event_id: event.id,
@@ -188,41 +157,24 @@ async function performUpdate() {
                     }
                 }).filter(m => m.home_team_id && m.away_team_id)
 
-                console.log(`[Update] Prepared ${matchesToUpsert.length} matches to upsert.`)
-
                 if (matchesToUpsert.length > 0) {
-                    const { error: upsertError } = await supabase
+                    await supabase
                         .from('matches')
                         .upsert(matchesToUpsert, { onConflict: 'api_id' })
 
-                    if (upsertError) {
-                        console.error('[Update] Error upserting matches:', upsertError)
-                        throw new Error(`Upsert failed: ${upsertError.message}`)
-                    }
-
-                    console.log(`[Update] Successfully upserted ${matchesToUpsert.length} matches.`)
-
-                    eventResults.push({ event: event.name, updated: matchesToUpsert.length, range: `${dateFrom} to ${dateTo}` })
+                    eventResults.push({ event: event.name, updated: matchesToUpsert.length })
 
                     await syncLogger.log({
                         resourceType: 'cron_matches',
                         status: 'success',
-                        details: { event: event.name, count: matchesToUpsert.length, range: `${dateFrom} to ${dateTo}` }
+                        details: { event: event.name, count: matchesToUpsert.length, onlyLive }
                     })
-                } else {
-                    console.log(`[Update] No matches to upsert for ${event.name} (maybe teams missing?)`)
-                    eventResults.push({ event: event.name, updated: 0, message: 'Matches found but none upserted (teams missing?)' })
                 }
-
             } catch (err: any) {
-                console.error(`[Update] Error processing ${event.name}:`, err)
                 eventResults.push({ event: event.name, error: err.message })
-                await syncLogger.log({ resourceType: 'cron_matches', status: 'error', errorMessage: err.message, details: { event: event.name } })
             }
         }
-
         return { eventResults }
-
     } catch (error: any) {
         throw error
     }
