@@ -93,22 +93,6 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
             saveOneBet(activeMatchId)
         }
         setActiveMatchId(matchId)
-
-        const currentBet = bets[matchId] || { home: '', away: '' }
-        const homeEmpty = currentBet.home === '' || currentBet.home === null
-        const awayEmpty = currentBet.away === '' || currentBet.away === null
-
-        if (homeEmpty && awayEmpty) {
-            setBets(prev => ({
-                ...prev,
-                [matchId]: {
-                    ...currentBet,
-                    [type === 'home' ? 'away' : 'home']: '0',
-                    [type]: '',
-                    isDirty: true
-                }
-            }))
-        }
     }
 
     const saveOneBet = async (matchId: string) => {
@@ -133,11 +117,32 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                     [matchId]: { ...prev[matchId], isDirty: false }
                 }))
                 setSavingMap(prev => ({ ...prev, [matchId]: 'saved' }))
+
+                // Keep "Salvo!" for 3 seconds before clearing
+                setTimeout(() => {
+                    setSavingMap(prev => {
+                        const next = { ...prev }
+                        if (next[matchId] === 'saved') delete next[matchId]
+                        return next
+                    })
+                }, 3000)
             }
         } catch (error) {
             console.error('Error saving bet:', error)
         }
     }
+
+    // Debounce save when both fields are filled
+    useEffect(() => {
+        if (!activeMatchId) return
+        const bet = bets[activeMatchId]
+        if (bet?.isDirty && bet.home !== '' && bet.away !== '') {
+            const timer = setTimeout(() => {
+                saveOneBet(activeMatchId)
+            }, 3000)
+            return () => clearTimeout(timer)
+        }
+    }, [bets, activeMatchId])
 
     const isMatchLocked = (matchDate: string) => {
         const date = new Date(matchDate)
@@ -318,7 +323,7 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                             inputMode="numeric"
                                             className={cn(
                                                 "w-8 h-8 sm:w-11 sm:h-11 text-center text-sm sm:text-base font-bold border rounded-md sm:rounded-lg transition-all focus:ring-1 sm:focus:ring-2 focus:ring-green-500 p-0",
-                                                bet?.isDirty ? "bg-yellow-50 border-yellow-300 text-yellow-900 shadow-sm scale-105" : "bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100"
+                                                bet?.isDirty ? "bg-yellow-50 border-yellow-300 text-yellow-900 shadow-sm" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                                             )}
                                             value={bet?.home ?? ''}
                                             onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)}
@@ -327,11 +332,8 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                                 e.target.select()
                                             }}
                                             onBlur={() => {
-                                                // Small delay to allow activeMatchId to update if user tabbed to another match
                                                 setTimeout(() => {
-                                                    if (activeMatchId === match.id) {
-                                                        saveOneBet(match.id)
-                                                    }
+                                                    if (activeMatchId === match.id) saveOneBet(match.id)
                                                 }, 200)
                                             }}
                                             disabled={locked}
@@ -343,7 +345,7 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                             inputMode="numeric"
                                             className={cn(
                                                 "w-8 h-8 sm:w-11 sm:h-11 text-center text-sm sm:text-base font-bold border rounded-md sm:rounded-lg transition-all focus:ring-1 sm:focus:ring-2 focus:ring-green-500 p-0",
-                                                bet?.isDirty ? "bg-yellow-50 border-yellow-300 text-yellow-900 shadow-sm scale-105" : "bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100"
+                                                bet?.isDirty ? "bg-yellow-50 border-yellow-300 text-yellow-900 shadow-sm" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                                             )}
                                             value={bet?.away ?? ''}
                                             onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)}
@@ -353,9 +355,7 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                             }}
                                             onBlur={() => {
                                                 setTimeout(() => {
-                                                    if (activeMatchId === match.id) {
-                                                        saveOneBet(match.id)
-                                                    }
+                                                    if (activeMatchId === match.id) saveOneBet(match.id)
                                                 }, 200)
                                             }}
                                             disabled={locked}
@@ -375,12 +375,15 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                 {(hasRealScore || hasPoints) && (
                                     <div className="flex items-center justify-center gap-3 mt-2 px-3 py-1.5 -mx-2.5 -mb-2.5 rounded-b-xl border-t border-slate-100 bg-slate-50 dark:bg-slate-900/50 dark:border-slate-700/50">
                                         {savingMap[match.id] && (
-                                            <span className={cn(
-                                                "text-[9px] font-bold uppercase tracking-widest",
-                                                savingMap[match.id] === 'saving' ? "text-yellow-600 animate-pulse" : "text-green-600"
-                                            )}>
-                                                {savingMap[match.id] === 'saving' ? '⏳ Salvando...' : '✓ Aposta Salva'}
-                                            </span>
+                                            <div className="flex items-center gap-1.5">
+                                                {savingMap[match.id] === 'saving' ? (
+                                                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(250,204,21,0.6)]" />
+                                                ) : (
+                                                    <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest animate-in fade-in zoom-in duration-300">
+                                                        ✓ Salvo!
+                                                    </span>
+                                                )}
+                                            </div>
                                         )}
 
                                         {hasRealScore && (

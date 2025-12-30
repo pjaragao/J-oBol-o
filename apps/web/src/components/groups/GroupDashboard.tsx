@@ -194,23 +194,19 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
             handleSaveInlineBet(activeMatchId)
         }
         setActiveMatchId(matchId)
-
-        const currentBet = inlineBets[matchId] || { home: '', away: '' }
-        const homeEmpty = currentBet.home === '' || currentBet.home === null
-        const awayEmpty = currentBet.away === '' || currentBet.away === null
-
-        if (homeEmpty && awayEmpty) {
-            setInlineBets(prev => ({
-                ...prev,
-                [matchId]: {
-                    ...currentBet,
-                    [type === 'home' ? 'away' : 'home']: '0',
-                    [type]: '',
-                    isDirty: true
-                }
-            }))
-        }
     }
+
+    // Debounce save when both fields are filled
+    useEffect(() => {
+        if (!activeMatchId) return
+        const bet = inlineBets[activeMatchId]
+        if (bet?.isDirty && bet.home !== '' && bet.away !== '') {
+            const timer = setTimeout(() => {
+                handleSaveInlineBet(activeMatchId)
+            }, 3000)
+            return () => clearTimeout(timer)
+        }
+    }, [inlineBets, activeMatchId])
 
     const handleSaveInlineBet = async (matchId: string) => {
         const bet = inlineBets[matchId]
@@ -368,7 +364,9 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                     }}
                                                                     placeholder="-"
                                                                 />
-                                                                {savingMap[match.id] === 'saving' && <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-yellow-400 rounded-full animate-ping" />}
+                                                                {savingMap[match.id] === 'saving' && (
+                                                                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-yellow-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(250,204,21,0.6)]" />
+                                                                )}
                                                             </div>
                                                         ) : (
                                                             <div className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${hasBet ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-600 dark:text-slate-300'}`}>
@@ -405,18 +403,17 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                         <img src={away.logo_url} alt={away.short_name} className="w-5 h-5 object-contain" />
                                                     </div>
 
-                                                    {/* Action Button */}
                                                     {isEditing ? (
-                                                        <div className="flex items-center gap-1">
+                                                        <div className="flex items-center gap-1.5 min-w-[40px] justify-end">
                                                             {savingMap[match.id] === 'saved' ? (
-                                                                <span className="text-[10px] text-green-600 font-bold">Salvo!</span>
+                                                                <span className="text-[10px] text-green-600 font-bold animate-in fade-in zoom-in duration-300">Salvo!</span>
                                                             ) : (
                                                                 <button
                                                                     onClick={() => {
                                                                         setInlineBets(prev => { const n = { ...prev }; delete n[match.id]; return n })
                                                                         setSavingMap(prev => { const n = { ...prev }; delete n[match.id]; return n })
                                                                     }}
-                                                                    className="text-xs text-slate-400 px-1 py-1 hover:text-red-500"
+                                                                    className="text-xs text-slate-400 px-1 py-1 hover:text-red-500 transition-colors"
                                                                 >
                                                                     ✕
                                                                 </button>
