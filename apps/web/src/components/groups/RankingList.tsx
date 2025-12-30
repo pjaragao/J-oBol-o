@@ -16,7 +16,7 @@ interface RankingItem {
     }
 }
 
-export function RankingList({ groupId }: { groupId: string }) {
+export function RankingList({ groupId, currentUserId }: { groupId: string, currentUserId?: string }) {
     const [ranking, setRanking] = useState<RankingItem[]>([])
     const [loading, setLoading] = useState(true)
     const supabase = createClient()
@@ -82,7 +82,7 @@ export function RankingList({ groupId }: { groupId: string }) {
                 const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
                 const userId = m.user_id
                 return {
-                    id: profile?.id,
+                    id: m.user_id, // Use user_id as stable id
                     display_name: profile?.display_name || 'Usuário',
                     avatar_url: profile?.avatar_url,
                     total_points: pointsMap.get(userId) || 0,
@@ -146,79 +146,87 @@ export function RankingList({ groupId }: { groupId: string }) {
                     </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200 dark:divide-slate-800">
-                    {ranking.map((user, index) => (
-                        <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
-                            {/* Position */}
-                            <td className="px-4 py-4 whitespace-nowrap">
-                                <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full font-bold text-sm ${index === 0 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-400' :
+                    {ranking.map((user, index) => {
+                        const isCurrentUser = user.id === currentUserId
+                        return (
+                            <tr key={user.id} className={`${isCurrentUser ? 'bg-green-50 dark:bg-green-900/10' : 'hover:bg-gray-50 dark:hover:bg-slate-800/50'} transition-colors`}>
+                                {/* Position */}
+                                <td className="px-4 py-4 whitespace-nowrap">
+                                    <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full font-bold text-sm ${index === 0 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-400' :
                                         index === 1 ? 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-300' :
                                             index === 2 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-400' :
                                                 'text-gray-500 dark:text-slate-500'
-                                    }`}>
-                                    {index + 1}
-                                </span>
-                            </td>
+                                        }`}>
+                                        {index + 1}
+                                    </span>
+                                </td>
 
-                            {/* Player */}
-                            <td className="px-4 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                    <div className="flex-shrink-0 h-10 w-10">
-                                        {user.avatar_url ? (
-                                            <img className="h-10 w-10 rounded-full border border-gray-200 dark:border-slate-700" src={user.avatar_url} alt="" />
-                                        ) : (
-                                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-400 dark:bg-slate-700">
-                                                <span className="font-medium leading-none text-white dark:text-slate-200">
-                                                    {user.display_name?.charAt(0).toUpperCase()}
+                                {/* Player */}
+                                <td className="px-4 py-4 whitespace-nowrap">
+                                    <div className="flex items-center">
+                                        <div className="flex-shrink-0 h-10 w-10">
+                                            {user.avatar_url ? (
+                                                <img className="h-10 w-10 rounded-full border border-gray-200 dark:border-slate-700" src={user.avatar_url} alt="" />
+                                            ) : (
+                                                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-400 dark:bg-slate-700">
+                                                    <span className="font-medium leading-none text-white dark:text-slate-200">
+                                                        {user.display_name?.charAt(0).toUpperCase()}
+                                                    </span>
                                                 </span>
-                                            </span>
-                                        )}
+                                            )}
+                                        </div>
+                                        <div className="ml-4">
+                                            <div className={`text-sm ${isCurrentUser ? 'font-bold text-green-800 dark:text-green-400' : 'font-medium text-slate-900 dark:text-slate-100'}`}>
+                                                {user.display_name} {isCurrentUser && '(Você)'}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="ml-4">
-                                        <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{user.display_name}</div>
+                                </td>
+
+                                {/* Total Points */}
+                                <td className="px-4 py-4 whitespace-nowrap text-center">
+                                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-base font-bold border ${isCurrentUser
+                                        ? 'bg-green-200 dark:bg-green-800 text-green-900 dark:text-green-200 border-green-300 dark:border-green-700'
+                                        : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800/50'
+                                        }`}>
+                                        {user.total_points}
+                                    </span>
+                                </td>
+
+                                {/* Exact Score (10pts) */}
+                                <td className="px-4 py-4 whitespace-nowrap text-center">
+                                    <div className="text-sm">
+                                        <div className="font-bold text-slate-900 dark:text-slate-100">{user.stats.exact}</div>
+                                        <div className="text-xs text-slate-500 dark:text-slate-400">({user.stats.exact * 10}pts)</div>
                                     </div>
-                                </div>
-                            </td>
+                                </td>
 
-                            {/* Total Points */}
-                            <td className="px-4 py-4 whitespace-nowrap text-center">
-                                <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-3 py-1 text-base font-bold text-green-800 dark:text-green-400 border border-green-200 dark:border-green-800/50">
-                                    {user.total_points}
-                                </span>
-                            </td>
+                                {/* Winner + Diff (7pts) */}
+                                <td className="px-4 py-4 whitespace-nowrap text-center">
+                                    <div className="text-sm">
+                                        <div className="font-bold text-slate-900 dark:text-slate-100">{user.stats.winnerDiff}</div>
+                                        <div className="text-xs text-slate-500 dark:text-slate-400">({user.stats.winnerDiff * 7}pts)</div>
+                                    </div>
+                                </td>
 
-                            {/* Exact Score (10pts) */}
-                            <td className="px-4 py-4 whitespace-nowrap text-center">
-                                <div className="text-sm">
-                                    <div className="font-bold text-slate-900 dark:text-slate-100">{user.stats.exact}</div>
-                                    <div className="text-xs text-slate-500 dark:text-slate-400">({user.stats.exact * 10}pts)</div>
-                                </div>
-                            </td>
+                                {/* Winner (5pts) */}
+                                <td className="px-4 py-4 whitespace-nowrap text-center">
+                                    <div className="text-sm">
+                                        <div className="font-bold text-slate-900 dark:text-slate-100">{user.stats.winner}</div>
+                                        <div className="text-xs text-slate-500 dark:text-slate-400">({user.stats.winner * 5}pts)</div>
+                                    </div>
+                                </td>
 
-                            {/* Winner + Diff (7pts) */}
-                            <td className="px-4 py-4 whitespace-nowrap text-center">
-                                <div className="text-sm">
-                                    <div className="font-bold text-slate-900 dark:text-slate-100">{user.stats.winnerDiff}</div>
-                                    <div className="text-xs text-slate-500 dark:text-slate-400">({user.stats.winnerDiff * 7}pts)</div>
-                                </div>
-                            </td>
-
-                            {/* Winner (5pts) */}
-                            <td className="px-4 py-4 whitespace-nowrap text-center">
-                                <div className="text-sm">
-                                    <div className="font-bold text-slate-900 dark:text-slate-100">{user.stats.winner}</div>
-                                    <div className="text-xs text-slate-500 dark:text-slate-400">({user.stats.winner * 5}pts)</div>
-                                </div>
-                            </td>
-
-                            {/* Consolation (2pts) */}
-                            <td className="px-4 py-4 whitespace-nowrap text-center">
-                                <div className="text-sm">
-                                    <div className="font-bold text-slate-900 dark:text-slate-100">{user.stats.consolation}</div>
-                                    <div className="text-xs text-slate-500 dark:text-slate-400">({user.stats.consolation * 2}pts)</div>
-                                </div>
-                            </td>
-                        </tr>
-                    ))}
+                                {/* Consolation (2pts) */}
+                                <td className="px-4 py-4 whitespace-nowrap text-center">
+                                    <div className="text-sm">
+                                        <div className="font-bold text-slate-900 dark:text-slate-100">{user.stats.consolation}</div>
+                                        <div className="text-xs text-slate-500 dark:text-slate-400">({user.stats.consolation * 2}pts)</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        )
+                    })}
                 </tbody>
             </table>
         </div>

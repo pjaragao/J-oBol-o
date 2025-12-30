@@ -62,6 +62,8 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
         fetchDashboardData()
     }, [groupId, eventId, userId, supabase])
 
+    const [betCounts, setBetCounts] = useState<Record<string, number>>({})
+
     const fetchDashboardData = async () => {
         setLoading(true)
 
@@ -100,18 +102,56 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
             .order('match_date', { ascending: false })
             .limit(3)
 
-        // Fetch user bets
-        const matchIds = [...(upcoming || []).map(m => m.id), ...(recent || []).map(m => m.id)]
+        // Fetch user data and all bets for ranking
+        const { data: members } = await supabase
+            .from('group_members')
+            .select('user_id, profiles(display_name, avatar_url)')
+            .eq('group_id', groupId)
 
+        const { data: allBets } = await supabase
+            .from('bets')
+            .select('user_id, match_id, points')
+            .eq('group_id', groupId)
+
+        if (members) {
+            // Aggregate Ranking
+            const pointsMap = new Map<string, number>()
+            allBets?.forEach(bet => {
+                const current = pointsMap.get(bet.user_id) || 0
+                pointsMap.set(bet.user_id, current + (bet.points || 0))
+            })
+
+            const fullRanking = members.map(m => {
+                const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
+                return {
+                    user_id: m.user_id,
+                    display_name: profile?.display_name || 'Usuário',
+                    avatar_url: profile?.avatar_url,
+                    total_points: pointsMap.get(m.user_id) || 0
+                }
+            }).sort((a, b) => b.total_points - a.total_points)
+
+            setTopRanking(fullRanking)
+
+            // Bet Counts for Upcoming
+            const counts: Record<string, number> = {}
+            upcoming?.forEach(m => {
+                counts[m.id] = allBets?.filter(b => b.match_id === m.id).length || 0
+            })
+            setBetCounts(counts)
+        }
+
+        // Fetch specific user bets for display
+        const matchIds = [...(upcoming || []).map(m => m.id), ...(recent || []).map(m => m.id)]
         if (matchIds.length > 0) {
-            const { data: bets } = await supabase
+            const { data: userBets } = await supabase
                 .from('bets')
                 .select('match_id, home_score_bet, away_score_bet, points')
                 .eq('group_id', groupId)
                 .eq('user_id', userId)
                 .in('match_id', matchIds)
 
-            const betsMap = new Map(bets?.map(b => [b.match_id, b]) || [])
+            const betsMap = new Map(userBets?.map(b => [b.match_id, b]) || [])
 
             if (upcoming) {
                 setUpcomingMatches(upcoming.map(m => ({ ...m, user_bet: betsMap.get(m.id) })) as any)
@@ -122,18 +162,6 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
         } else {
             if (upcoming) setUpcomingMatches(upcoming as any)
             if (recent) setRecentMatches(recent as any)
-        }
-
-        // 3. Fetch Top Ranking
-        const { data: rankingData } = await supabase
-            .from('group_rankings')
-            .select('user_id, display_name, avatar_url, total_points')
-            .eq('group_id', groupId)
-            .order('total_points', { ascending: false })
-            .limit(5)
-
-        if (rankingData) {
-            setTopRanking(rankingData)
         }
 
         setLoading(false)
@@ -289,27 +317,47 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                         <h3 className="font-bold text-lg">Ranking Resumido</h3>
                     </div>
 
-                    <div className="bg-white/50 dark:bg-black/20 rounded-lg p-4 min-h-[200px] flex flex-col justify-center">
+                    <div className="bg-white/50 dark:bg-black/20 rounded-lg p-4 min-h-[200px] flex flex-col">
                         {topRanking.length === 0 ? (
-                            <p className="text-center text-slate-500 dark:text-slate-400 text-sm">
-                                Nenhuma previsão feita ainda, ou o ranking ainda está calculando.
+                            <p className="text-center text-slate-500 dark:text-slate-400 text-sm my-auto">
+                                Nenhuma previsão feita ainda.
                             </p>
                         ) : (
                             <div className="space-y-3 w-full">
-                                {topRanking.map((user, idx) => (
-                                    <div key={user.user_id} className="flex items-center justify-between border-b border-green-50 dark:border-slate-700 pb-2 last:border-0 last:pb-0">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`
-                                                 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white
-                                                 ${idx === 0 ? 'bg-yellow-400' : idx === 1 ? 'bg-gray-400' : idx === 2 ? 'bg-orange-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}
-                                             `}>
-                                                {idx + 1}
+                                {(() => {
+                                    const userIndex = topRanking.findIndex(r => r.user_id === userId)
+                                    const showLimit = 5
+                                    const itemsToDisplay = topRanking.slice(0, showLimit)
+
+                                    // If current user is not in top 5, append them
+                                    if (userIndex >= showLimit) {
+                                        itemsToDisplay.push(topRanking[userIndex])
+                                    }
+
+                                    return itemsToDisplay.map((user) => {
+                                        const globalIdx = topRanking.findIndex(r => r.user_id === user.user_id)
+                                        const isCurrentUser = user.user_id === userId
+
+                                        return (
+                                            <div key={user.user_id} className={`flex items-center justify-between border-b border-green-50 dark:border-slate-700 pb-2 last:border-0 last:pb-0 ${isCurrentUser ? 'bg-green-50/50 dark:bg-green-900/10 -mx-2 px-2 rounded-md' : ''}`}>
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`
+                                                         w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white
+                                                         ${globalIdx === 0 ? 'bg-yellow-400' : globalIdx === 1 ? 'bg-gray-400' : globalIdx === 2 ? 'bg-orange-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}
+                                                     `}>
+                                                        {globalIdx + 1}
+                                                    </div>
+                                                    <span className={`text-sm truncate max-w-[120px] ${isCurrentUser ? 'font-bold text-green-700 dark:text-green-400' : 'font-medium dark:text-slate-200'}`}>
+                                                        {user.display_name} {isCurrentUser && '(Você)'}
+                                                    </span>
+                                                </div>
+                                                <span className={`font-bold text-sm ${isCurrentUser ? 'text-green-800 dark:text-green-300' : 'text-green-700 dark:text-green-400'}`}>
+                                                    {user.total_points} pts
+                                                </span>
                                             </div>
-                                            <span className="font-medium text-sm truncate max-w-[120px] dark:text-slate-200">{user.display_name}</span>
-                                        </div>
-                                        <span className="font-bold text-green-700 dark:text-green-400 text-sm">{user.total_points} pts</span>
-                                    </div>
-                                ))}
+                                        )
+                                    })
+                                })()}
                             </div>
                         )}
                     </div>
@@ -338,13 +386,24 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                         const hasBet = !!match.user_bet
                                         const inlineBet = inlineBets[match.id]
                                         const isEditing = !!inlineBet
+                                        const matchDate = new Date(match.match_date)
+                                        const dateStr = format(matchDate, "dd/MM HH:mm", { locale: ptBR })
 
                                         return (
                                             <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 p-3 shadow-sm">
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <div className="flex items-center gap-2 flex-1">
-                                                        <img src={home.logo_url} alt={home.short_name} className="w-5 h-5 object-contain" />
+                                                <div className="text-[10px] text-slate-400 font-medium mb-2 flex justify-between">
+                                                    <span>{dateStr}</span>
+                                                </div>
 
+                                                <div className="flex items-center justify-between gap-1">
+                                                    {/* Home Team */}
+                                                    <div className="flex items-center gap-2 flex-1 justify-end">
+                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{home.short_name}</span>
+                                                        <img src={home.logo_url} alt={home.short_name} className="w-5 h-5 object-contain" />
+                                                    </div>
+
+                                                    {/* Score Inputs */}
+                                                    <div className="flex items-center justify-center gap-2 min-w-[100px]">
                                                         {isEditing ? (
                                                             <div className="flex items-center gap-1">
                                                                 <input
@@ -399,14 +458,18 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                 {hasBet ? match.user_bet?.away_score_bet : '-'}
                                                             </div>
                                                         )}
+                                                    </div>
 
+                                                    {/* Away Team */}
+                                                    <div className="flex items-center gap-2 flex-1">
                                                         <img src={away.logo_url} alt={away.short_name} className="w-5 h-5 object-contain" />
+                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{away.short_name}</span>
                                                     </div>
 
                                                     {isEditing ? (
-                                                        <div className="flex items-center gap-1.5 min-w-[40px] justify-end">
+                                                        <div className="flex items-center gap-1.5 min-w-[30px] justify-end">
                                                             {savingMap[match.id] === 'saved' ? (
-                                                                <span className="text-[10px] text-green-600 font-bold animate-in fade-in zoom-in duration-300">Salvo!</span>
+                                                                <span className="text-[10px] text-green-600 font-bold animate-in fade-in zoom-in duration-300">OK</span>
                                                             ) : (
                                                                 <button
                                                                     onClick={() => {
@@ -422,14 +485,14 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                     ) : hasBet ? (
                                                         <button
                                                             onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: String(match.user_bet?.home_score_bet ?? ''), away: String(match.user_bet?.away_score_bet ?? '') } }))}
-                                                            className="text-xs text-slate-400 hover:text-green-600"
+                                                            className="text-xs text-slate-400 hover:text-green-600 px-1"
                                                         >
                                                             ✏️
                                                         </button>
                                                     ) : (
                                                         <button
                                                             onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: '', away: '' } }))}
-                                                            className="text-xs text-green-600 dark:text-green-400 hover:underline"
+                                                            className="text-[10px] text-green-600 dark:text-green-400 hover:underline px-1"
                                                         >
                                                             Apostar
                                                         </button>
@@ -454,20 +517,52 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                     {recentMatches.map(match => {
                                         const home = getTeam(match.home_team)
                                         const away = getTeam(match.away_team)
+                                        const bet = match.user_bet
+                                        const matchDate = new Date(match.match_date)
+                                        const dateStr = format(matchDate, "dd/MM HH:mm", { locale: ptBR })
+
                                         return (
-                                            <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 p-3 flex items-center justify-between shadow-sm opacity-80">
-                                                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                                                    <span>{home.short_name}</span>
-                                                    <span className="font-bold text-slate-800 dark:text-slate-200">{match.home_score}</span>
-                                                    <span>x</span>
-                                                    <span className="font-bold text-slate-800 dark:text-slate-200">{match.away_score}</span>
-                                                    <span>{away.short_name}</span>
+                                            <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 p-3 shadow-sm opacity-90 hover:opacity-100 transition-opacity">
+                                                <div className="text-[10px] text-slate-400 font-medium mb-2 flex justify-between">
+                                                    <span>{dateStr}</span>
+                                                    {bet?.points !== undefined && (
+                                                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter ${bet.points > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-red-50 text-red-500 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                                            {bet.points > 0 ? `+${bet.points} pts` : '0 pts'}
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                {match.user_bet?.points !== undefined && (
-                                                    <span className={`text-xs font-bold px-1.5 rounded ${match.user_bet.points > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-red-50 text-red-500 dark:bg-red-900/30 dark:text-red-400'}`}>
-                                                        {match.user_bet.points > 0 ? `+${match.user_bet.points}` : '0'} pts
-                                                    </span>
-                                                )}
+
+                                                <div className="flex items-center justify-between gap-1 mb-2">
+                                                    {/* Home */}
+                                                    <div className="flex items-center gap-2 flex-1 justify-end">
+                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{home.short_name}</span>
+                                                        <img src={home.logo_url} className="w-5 h-5 object-contain" />
+                                                    </div>
+
+                                                    {/* Score */}
+                                                    <div className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded flex items-center gap-2">
+                                                        <span className="font-black text-sm text-slate-800 dark:text-slate-200">{match.home_score}</span>
+                                                        <span className="text-[10px] text-slate-400">x</span>
+                                                        <span className="font-black text-sm text-slate-800 dark:text-slate-200">{match.away_score}</span>
+                                                    </div>
+
+                                                    {/* Away */}
+                                                    <div className="flex items-center gap-2 flex-1">
+                                                        <img src={away.logo_url} className="w-5 h-5 object-contain" />
+                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{away.short_name}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1 border-t dark:border-slate-600 pt-1.5 mt-1">
+                                                    <span className="font-medium">Meu palpite:</span>
+                                                    {bet ? (
+                                                        <span className="font-bold text-slate-600 dark:text-slate-300">
+                                                            {bet.home_score_bet} x {bet.away_score_bet}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="italic">Sem aposta</span>
+                                                    )}
+                                                </div>
                                             </div>
                                         )
                                     })}
@@ -496,21 +591,43 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                     {recentMatches.map(match => {
                                         const home = getTeam(match.home_team)
                                         const away = getTeam(match.away_team)
+                                        const matchDate = new Date(match.match_date)
+                                        const dateStr = format(matchDate, "dd/MM HH:mm", { locale: ptBR })
+
                                         return (
-                                            <div key={match.id} className="flex items-center justify-between text-sm py-2 px-3 bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600">
-                                                <div className="flex items-center gap-2">
-                                                    <img src={home.logo_url} className="w-4 h-4" />
-                                                    <span className="font-bold text-xs dark:text-slate-300">{home.short_name}</span>
-                                                    <span className="text-xs text-slate-600 dark:text-slate-400">{match.home_score}-{match.away_score}</span>
-                                                    <span className="font-bold text-xs dark:text-slate-300">{away.short_name}</span>
-                                                    <img src={away.logo_url} className="w-4 h-4" />
+                                            <div key={match.id} className="flex flex-col gap-1.5 p-3 bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 shadow-sm">
+                                                <div className="text-[10px] text-slate-400 font-medium mb-1 flex justify-between">
+                                                    <span>{dateStr}</span>
                                                 </div>
-                                                <button
-                                                    onClick={() => handleViewBets(match.id, match.match_date)}
-                                                    className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
-                                                >
-                                                    Ver palpites
-                                                </button>
+
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3 flex-1">
+                                                        {/* Home */}
+                                                        <div className="flex items-center gap-2 justify-end">
+                                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{home.short_name}</span>
+                                                            <img src={home.logo_url} className="w-5 h-5 object-contain" />
+                                                        </div>
+
+                                                        <div className="flex items-center gap-1 text-xs font-bold text-slate-500">
+                                                            <span>{match.home_score}</span>
+                                                            <span className="text-[10px] mx-0.5">x</span>
+                                                            <span>{match.away_score}</span>
+                                                        </div>
+
+                                                        {/* Away */}
+                                                        <div className="flex items-center gap-2">
+                                                            <img src={away.logo_url} className="w-5 h-5 object-contain" />
+                                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{away.short_name}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <button
+                                                        onClick={() => handleViewBets(match.id, match.match_date)}
+                                                        className="ml-2 text-[10px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors whitespace-nowrap"
+                                                    >
+                                                        Ver palpites
+                                                    </button>
+                                                </div>
                                             </div>
                                         )
                                     })}
@@ -529,16 +646,47 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                     {upcomingMatches.map(match => {
                                         const home = getTeam(match.home_team)
                                         const away = getTeam(match.away_team)
+                                        const betCount = betCounts[match.id] || 0
+                                        const matchDate = new Date(match.match_date)
+                                        const dateStr = format(matchDate, "dd/MM HH:mm", { locale: ptBR })
+                                        const isLocked = new Date() < matchDate
+
                                         return (
-                                            <div key={match.id} className="flex items-center justify-between text-sm py-2 px-3 bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600">
-                                                <div className="flex items-center gap-2">
-                                                    <img src={home.logo_url} className="w-5 h-5" />
-                                                    <span className="font-bold text-xs dark:text-slate-300">vs</span>
-                                                    <img src={away.logo_url} className="w-5 h-5" />
+                                            <div key={match.id} className="flex flex-col gap-1.5 p-3 bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 shadow-sm">
+                                                <div className="text-[10px] text-slate-400 font-medium mb-1 flex justify-between">
+                                                    <span>{dateStr}</span>
                                                 </div>
-                                                <div className="text-xs flex items-center gap-1 text-slate-500 dark:text-slate-400">
+
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2 flex-1">
+                                                        <div className="flex items-center gap-2 justify-end">
+                                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{home.short_name}</span>
+                                                            <img src={home.logo_url} className="w-5 h-5 object-contain" />
+                                                        </div>
+                                                        <span className="text-[10px] font-bold dark:text-slate-300">vs</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <img src={away.logo_url} className="w-5 h-5 object-contain" />
+                                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{away.short_name}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <button
+                                                        onClick={() => !isLocked && handleViewBets(match.id, match.match_date)}
+                                                        disabled={isLocked}
+                                                        className={`flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-md transition-all border
+                                                            ${isLocked
+                                                                ? 'bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800 dark:text-slate-600 dark:border-slate-700 cursor-not-allowed'
+                                                                : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40 border-green-100 dark:border-green-800/50'
+                                                            }
+                                                        `}
+                                                    >
+                                                        {isLocked ? <Lock className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                                                        VER
+                                                    </button>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium tracking-tight">
                                                     <MoreHorizontal className="h-3 w-3" />
-                                                    <span>Apostas</span>
+                                                    <span>{betCount} {betCount === 1 ? 'palpite realizado' : 'palpites realizados'}</span>
                                                 </div>
                                             </div>
                                         )
