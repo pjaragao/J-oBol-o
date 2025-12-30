@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X } from 'lucide-react'
+import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, RefreshCw } from 'lucide-react'
+import { calculateLivePoints } from '@/lib/utils/points'
 
 interface GroupDashboardProps {
     groupId: string
@@ -32,6 +33,8 @@ interface RankingItem {
     display_name: string
     avatar_url: string | null
     total_points: number
+    live_points?: number
+    rank_variation?: number
 }
 
 interface BetWithUser {
@@ -46,6 +49,7 @@ interface BetWithUser {
 
 export default function GroupDashboard({ groupId, eventId, userId }: GroupDashboardProps) {
     const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([])
+    const [liveMatches, setLiveMatches] = useState<Match[]>([])
     const [recentMatches, setRecentMatches] = useState<Match[]>([])
     const [topRanking, setTopRanking] = useState<RankingItem[]>([])
     const [loading, setLoading] = useState(true)
@@ -55,6 +59,9 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
     const [inlineBets, setInlineBets] = useState<{ [matchId: string]: { home: string; away: string; isDirty?: boolean } }>({})
     const [savingMap, setSavingMap] = useState<Record<string, 'saving' | 'saved'>>({})
     const [activeMatchId, setActiveMatchId] = useState<string | null>(null)
+    const [isRealtimeEnabled, setIsRealtimeEnabled] = useState(true)
+    const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+    const [isRefreshing, setIsRefreshing] = useState(false)
 
     const supabase = createClient()
 
@@ -62,12 +69,32 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
         fetchDashboardData()
     }, [groupId, eventId, userId, supabase])
 
+    // Real-time polling
+    useEffect(() => {
+        let intervalId: NodeJS.Timeout
+
+        if (isRealtimeEnabled) {
+            intervalId = setInterval(() => {
+                fetchDashboardData(true) // Silent update
+            }, 60000) // 1 minute
+        }
+
+        return () => {
+            if (intervalId) clearInterval(intervalId)
+        }
+    }, [isRealtimeEnabled, groupId, eventId, userId, supabase])
+
     const [betCounts, setBetCounts] = useState<Record<string, number>>({})
 
-    const fetchDashboardData = async () => {
-        setLoading(true)
 
-        // 1. Fetch Upcoming Matches (Next 3)
+    const fetchDashboardData = async (silent = false) => {
+        if (!silent) setLoading(true)
+        else setIsRefreshing(true)
+
+        const now = new Date().toISOString()
+        const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
+
+        // 1. Fetch Upcoming Matches (Next 3 strictly in future)
         const { data: upcoming } = await supabase
             .from('matches')
             .select(`
@@ -80,12 +107,31 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 away_team:teams!away_team_id(name, logo_url, short_name)
             `)
             .eq('event_id', eventId)
-            .in('status', ['scheduled', 'live', 'timed'])
-            .gte('match_date', new Date().toISOString())
+            .in('status', ['scheduled', 'timed'])
+            .gte('match_date', now)
             .order('match_date', { ascending: true })
             .limit(3)
 
-        // 2. Fetch Recent Matches (Last 3 Finished)
+        // 2. Fetch Live/InProgress Matches
+        // Criteria: status is 'live' OR (status is not finished AND date is in the last 3 hours or slightly future which started)
+        const { data: live } = await supabase
+            .from('matches')
+            .select(`
+                id,
+                match_date,
+                status,
+                home_score,
+                away_score,
+                home_team:teams!home_team_id(name, logo_url, short_name),
+                away_team:teams!away_team_id(name, logo_url, short_name)
+            `)
+            .eq('event_id', eventId)
+            .not('status', 'in', '("finished", "FT", "AET", "PEN")')
+            .lt('match_date', now)
+            .gt('match_date', threeHoursAgo)
+            .order('match_date', { ascending: true })
+
+        // 3. Fetch Recent Matches (Last 3 Finished)
         const { data: recent } = await supabase
             .from('matches')
             .select(`
@@ -110,26 +156,63 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
         const { data: allBets } = await supabase
             .from('bets')
-            .select('user_id, match_id, points')
+            .select('user_id, match_id, points, home_score_bet, away_score_bet')
             .eq('group_id', groupId)
 
         if (members) {
-            // Aggregate Ranking
-            const pointsMap = new Map<string, number>()
+            // Aggregate Ranking (both without and with live points)
+            const pointsMapBase = new Map<string, number>()
+            const pointsMapLiveTotal = new Map<string, number>()
+            const livePointsOnlyMap = new Map<string, number>()
+
+            const liveMatchesMap = new Map(live?.map(m => [m.id, m]) || [])
+
             allBets?.forEach(bet => {
-                const current = pointsMap.get(bet.user_id) || 0
-                pointsMap.set(bet.user_id, current + (bet.points || 0))
+                const basePoints = bet.points || 0
+                const userId = bet.user_id
+
+                pointsMapBase.set(userId, (pointsMapBase.get(userId) || 0) + basePoints)
+                pointsMapLiveTotal.set(userId, (pointsMapLiveTotal.get(userId) || 0) + basePoints)
+
+                // Calculate live points if this match is currently live
+                if (bet.points === null && liveMatchesMap.has(bet.match_id)) {
+                    const match = liveMatchesMap.get(bet.match_id)!
+                    const lp = calculateLivePoints(bet.home_score_bet, bet.away_score_bet, match.home_score || 0, match.away_score || 0)
+                    if (lp > 0) {
+                        pointsMapLiveTotal.set(userId, pointsMapLiveTotal.get(userId)! + lp)
+                        livePointsOnlyMap.set(userId, (livePointsOnlyMap.get(userId) || 0) + lp)
+                    }
+                }
             })
 
-            const fullRanking = members.map(m => {
+            // Calculate Initial Positions (Without Live)
+            const rankingWithoutLive = members.map(m => {
+                const userId = m.user_id
+                return { userId, points: pointsMapBase.get(userId) || 0 }
+            }).sort((a, b) => b.points - a.points)
+
+            const initialPosMap = new Map(rankingWithoutLive.map((item, idx) => [item.userId, idx]))
+
+            // Calculate Final Positions (With Live)
+            const fullRanking: RankingItem[] = members.map(m => {
                 const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
+                const userId = m.user_id
+                const totalWithLive = pointsMapLiveTotal.get(userId) || 0
                 return {
-                    user_id: m.user_id,
+                    user_id: userId,
                     display_name: profile?.display_name || 'Usuário',
                     avatar_url: profile?.avatar_url,
-                    total_points: pointsMap.get(m.user_id) || 0
+                    total_points: totalWithLive,
+                    live_points: livePointsOnlyMap.get(userId) || 0,
+                    rank_variation: 0
                 }
             }).sort((a, b) => b.total_points - a.total_points)
+
+            // Add rank variation
+            fullRanking.forEach((user, currentIdx) => {
+                const initialIdx = initialPosMap.get(user.user_id) ?? currentIdx
+                user.rank_variation = initialIdx - currentIdx // e.g., was 5th (idx 4), now 3rd (idx 2) -> variation = 2 (up)
+            })
 
             setTopRanking(fullRanking)
 
@@ -142,7 +225,11 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
         }
 
         // Fetch specific user bets for display
-        const matchIds = [...(upcoming || []).map(m => m.id), ...(recent || []).map(m => m.id)]
+        const matchIds = [
+            ...(upcoming || []).map(m => m.id),
+            ...(live || []).map(m => m.id),
+            ...(recent || []).map(m => m.id)
+        ]
         if (matchIds.length > 0) {
             const { data: userBets } = await supabase
                 .from('bets')
@@ -156,15 +243,24 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
             if (upcoming) {
                 setUpcomingMatches(upcoming.map(m => ({ ...m, user_bet: betsMap.get(m.id) })) as any)
             }
+            if (live) {
+                setLiveMatches(live.map(m => ({ ...m, user_bet: betsMap.get(m.id) })) as any)
+            }
             if (recent) {
                 setRecentMatches(recent.map(m => ({ ...m, user_bet: betsMap.get(m.id) })) as any)
             }
         } else {
             if (upcoming) setUpcomingMatches(upcoming as any)
+            if (live) setLiveMatches(live as any)
             if (recent) setRecentMatches(recent as any)
         }
 
-        setLoading(false)
+        setLastUpdated(new Date())
+
+        if (!silent) setLoading(false)
+        else {
+            setTimeout(() => setIsRefreshing(false), 500)
+        }
     }
 
     const handleViewBets = async (matchId: string, matchDate: string) => {
@@ -308,6 +404,101 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
     return (
         <>
+
+            {/* Jogos ao Vivo - Unificado */}
+            {liveMatches.length > 0 && (
+                <div className="mb-6 bg-white dark:bg-slate-800 border-2 border-red-500 rounded-xl p-4 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4 pb-4 border-b border-red-100 dark:border-red-900/20">
+                        <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                            <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
+                            <h3 className="font-bold text-lg uppercase tracking-tight">Jogos ao Vivo</h3>
+                        </div>
+
+                        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50 p-1 rounded-lg border border-red-50/50 dark:border-red-900/10">
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium px-2">
+                                {format(lastUpdated, "HH:mm:ss", { locale: ptBR })}
+                            </p>
+                            <button
+                                onClick={() => setIsRealtimeEnabled(!isRealtimeEnabled)}
+                                className={`flex items-center gap-2 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${isRealtimeEnabled
+                                    ? 'bg-green-500 text-white shadow-lg shadow-green-200 dark:shadow-none'
+                                    : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                    }`}
+                            >
+                                <div className={`w-1.5 h-1.5 rounded-full ${isRealtimeEnabled ? 'bg-white animate-pulse' : 'bg-slate-400'}`} />
+                                {isRealtimeEnabled ? 'Tempo Real: ON' : 'Tempo Real: OFF'}
+                            </button>
+
+                            <button
+                                onClick={() => fetchDashboardData(true)}
+                                disabled={isRefreshing}
+                                className="flex items-center justify-center p-1.5 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all disabled:opacity-50"
+                                title="Atualizar agora"
+                            >
+                                <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin text-green-500' : ''}`} />
+                            </button>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {liveMatches.map(match => {
+                            const home = getTeam(match.home_team)
+                            const away = getTeam(match.away_team)
+                            const bet = match.user_bet
+                            const livePoints = bet ? calculateLivePoints(bet.home_score_bet, bet.away_score_bet, match.home_score || 0, match.away_score || 0) : 0
+
+                            return (
+                                <div key={match.id} className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 border border-red-100 dark:border-red-900/20 flex items-center justify-between gap-3">
+                                    <div className="flex flex-col items-center justify-center min-w-[50px] border-r border-red-100 dark:border-red-900/20 pr-3 my-1">
+                                        <span className="text-[10px] text-red-500 font-extrabold leading-tight animate-pulse">LIVE</span>
+                                        <span className="text-xl font-black text-slate-800 dark:text-white tabular-nums">
+                                            {match.home_score ?? 0}:{match.away_score ?? 0}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-2 mb-2">
+                                            <div className="flex items-center gap-1.5 flex-1 justify-end truncate">
+                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 hidden sm:inline">{home.short_name}</span>
+                                                <img src={home.logo_url} className="w-6 h-6 object-contain" />
+                                            </div>
+                                            <span className="text-[10px] font-bold text-slate-300 uppercase">vs</span>
+                                            <div className="flex items-center gap-1.5 flex-1 truncate">
+                                                <img src={away.logo_url} className="w-6 h-6 object-contain" />
+                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 hidden sm:inline">{away.short_name}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-center gap-4 bg-white/60 dark:bg-black/20 rounded py-1 border border-slate-100 dark:border-slate-800">
+                                            <div className="flex flex-col items-center">
+                                                <span className="text-[8px] text-slate-400 uppercase font-bold">Meu Palpite</span>
+                                                <span className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300">
+                                                    {bet ? `${bet.home_score_bet} x ${bet.away_score_bet}` : '- x -'}
+                                                </span>
+                                            </div>
+                                            <div className="w-px h-6 bg-slate-100 dark:bg-slate-800" />
+                                            <div className="flex flex-col items-center">
+                                                <span className="text-[8px] text-slate-400 uppercase font-bold">Pontos</span>
+                                                <span className={`text-xs font-black ${livePoints > 0 ? 'text-green-600' : 'text-slate-400'}`}>
+                                                    +{livePoints}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={() => handleViewBets(match.id, match.match_date)}
+                                        className="h-10 w-10 flex items-center justify-center rounded-xl bg-green-500 hover:bg-green-600 text-white shadow-md shadow-green-200 dark:shadow-none transition-all hover:scale-105 shrink-0"
+                                        title="Ver palpites da galera"
+                                    >
+                                        <Eye className="h-5 w-5" />
+                                    </button>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-sans text-slate-800 dark:text-slate-100">
 
                 {/* Col 1: Ranking Resumido */}
@@ -341,19 +532,33 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                         return (
                                             <div key={user.user_id} className={`flex items-center justify-between border-b border-green-50 dark:border-slate-700 pb-2 last:border-0 last:pb-0 ${isCurrentUser ? 'bg-green-50/50 dark:bg-green-900/10 -mx-2 px-2 rounded-md' : ''}`}>
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`
-                                                         w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white
-                                                         ${globalIdx === 0 ? 'bg-yellow-400' : globalIdx === 1 ? 'bg-gray-400' : globalIdx === 2 ? 'bg-orange-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}
-                                                     `}>
-                                                        {globalIdx + 1}
+                                                    <div className="relative">
+                                                        <div className={`
+                                                             w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white
+                                                             ${globalIdx === 0 ? 'bg-yellow-400' : globalIdx === 1 ? 'bg-gray-400' : globalIdx === 2 ? 'bg-orange-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}
+                                                         `}>
+                                                            {globalIdx + 1}
+                                                        </div>
+                                                        {user.rank_variation !== 0 && (
+                                                            <div className={`absolute -top-1 -left-1 w-3 h-3 rounded-full flex items-center justify-center text-[8px] border border-white dark:border-slate-800 ${user.rank_variation! > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                                                                {user.rank_variation! > 0 ? <ArrowUp className="w-2 h-2" /> : <ArrowDown className="w-2 h-2" />}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <span className={`text-sm truncate max-w-[120px] ${isCurrentUser ? 'font-bold text-green-700 dark:text-green-400' : 'font-medium dark:text-slate-200'}`}>
                                                         {user.display_name} {isCurrentUser && '(Você)'}
                                                     </span>
                                                 </div>
-                                                <span className={`font-bold text-sm ${isCurrentUser ? 'text-green-800 dark:text-green-300' : 'text-green-700 dark:text-green-400'}`}>
-                                                    {user.total_points} pts
-                                                </span>
+                                                <div className="flex flex-col items-end">
+                                                    <span className={`font-bold text-sm ${isCurrentUser ? 'text-green-800 dark:text-green-300' : 'text-green-700 dark:text-green-400'}`}>
+                                                        {user.total_points} pts
+                                                    </span>
+                                                    {user.live_points! > 0 && (
+                                                        <span className="text-[10px] text-red-500 font-bold leading-none animate-pulse">
+                                                            (+{user.live_points}) live
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         )
                                     })

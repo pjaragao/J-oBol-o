@@ -91,7 +91,7 @@ export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTab
             {activeTab === 'ranking' && (
                 <>
                     <h2 className="text-xl font-bold mb-4 dark:text-white">Classificação Geral</h2>
-                    <RankingList groupId={groupId} currentUserId={userId} />
+                    <RankingList groupId={groupId} eventId={group.event_id} currentUserId={userId} />
                 </>
             )}
 
