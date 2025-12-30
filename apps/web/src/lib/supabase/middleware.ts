@@ -16,7 +16,7 @@ export async function updateSession(request: NextRequest) {
                 getAll() {
                     return request.cookies.getAll()
                 },
-                setAll(cookiesToSet) {
+                setAll(cookiesToSet: any[]) {
                     cookiesToSet.forEach(({ name, value, options }) =>
                         request.cookies.set(name, value)
                     )
@@ -48,7 +48,7 @@ export async function updateSession(request: NextRequest) {
     // TODO: Add admin role check logic here by fetching profile
 
     // Redirect to dashboard if logged in and trying to access auth pages
-    if ((request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup') && user) {
+    if ((request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup' || request.nextUrl.pathname === '/register') && user) {
         return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
