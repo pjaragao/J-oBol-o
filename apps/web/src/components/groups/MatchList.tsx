@@ -322,7 +322,10 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                             )}
                                             value={bet?.home ?? ''}
                                             onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)}
-                                            onFocus={() => handleFocus(match.id, 'home')}
+                                            onFocus={(e) => {
+                                                handleFocus(match.id, 'home')
+                                                e.target.select()
+                                            }}
                                             onBlur={() => {
                                                 // Small delay to allow activeMatchId to update if user tabbed to another match
                                                 setTimeout(() => {
@@ -344,7 +347,10 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                             )}
                                             value={bet?.away ?? ''}
                                             onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)}
-                                            onFocus={() => handleFocus(match.id, 'away')}
+                                            onFocus={(e) => {
+                                                handleFocus(match.id, 'away')
+                                                e.target.select()
+                                            }}
                                             onBlur={() => {
                                                 setTimeout(() => {
                                                     if (activeMatchId === match.id) {

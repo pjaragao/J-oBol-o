@@ -357,7 +357,10 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                     className="w-8 h-8 text-center text-sm font-bold border rounded focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                                                                     value={inlineBet.home}
                                                                     onChange={(e) => handleInlineBetChange(match.id, 'home', e.target.value)}
-                                                                    onFocus={() => handleInlineFocus(match.id, 'home')}
+                                                                    onFocus={(e) => {
+                                                                        handleInlineFocus(match.id, 'home')
+                                                                        e.target.select()
+                                                                    }}
                                                                     onBlur={() => {
                                                                         setTimeout(() => {
                                                                             if (activeMatchId === match.id) handleSaveInlineBet(match.id)
@@ -382,7 +385,10 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                 className="w-8 h-8 text-center text-sm font-bold border rounded focus:ring-2 focus:ring-green-500 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                                                                 value={inlineBet.away}
                                                                 onChange={(e) => handleInlineBetChange(match.id, 'away', e.target.value)}
-                                                                onFocus={() => handleInlineFocus(match.id, 'away')}
+                                                                onFocus={(e) => {
+                                                                    handleInlineFocus(match.id, 'away')
+                                                                    e.target.select()
+                                                                }}
                                                                 onBlur={() => {
                                                                     setTimeout(() => {
                                                                         if (activeMatchId === match.id) handleSaveInlineBet(match.id)
