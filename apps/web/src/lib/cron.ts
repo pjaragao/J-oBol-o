@@ -158,16 +158,32 @@ async function performUpdate(onlyLive: boolean = false) {
                 }).filter(m => m.home_team_id && m.away_team_id)
 
                 if (matchesToUpsert.length > 0) {
-                    await supabase
+                    const { data: upsertedMatches } = await supabase
                         .from('matches')
                         .upsert(matchesToUpsert, { onConflict: 'api_id' })
+                        .select('id, status, home_score, away_score')
 
-                    eventResults.push({ event: event.name, updated: matchesToUpsert.length })
+                    // Recalculate points for finished matches (trigger may not fire on upsert)
+                    const finishedMatches = upsertedMatches?.filter(m =>
+                        m.status === 'finished' && m.home_score !== null && m.away_score !== null
+                    ) || []
+
+                    let pointsRecalculated = 0
+                    for (const match of finishedMatches) {
+                        const { data: count } = await supabase.rpc('recalculate_match_points', { match_id: match.id })
+                        pointsRecalculated += count || 0
+                    }
+
+                    eventResults.push({
+                        event: event.name,
+                        updated: matchesToUpsert.length,
+                        pointsRecalculated
+                    })
 
                     await syncLogger.log({
                         resourceType: 'cron_matches',
                         status: 'success',
-                        details: { event: event.name, count: matchesToUpsert.length, onlyLive }
+                        details: { event: event.name, count: matchesToUpsert.length, onlyLive, pointsRecalculated }
                     })
                 }
             } catch (err: any) {

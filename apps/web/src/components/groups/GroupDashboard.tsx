@@ -35,6 +35,7 @@ interface RankingItem {
     total_points: number
     live_points?: number
     rank_variation?: number
+    exact_scores?: number
 }
 
 interface BetWithUser {
@@ -153,17 +154,20 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
             .from('group_members')
             .select('user_id, profiles(display_name, avatar_url)')
             .eq('group_id', groupId)
+            .limit(5000)
 
         const { data: allBets } = await supabase
             .from('bets')
             .select('user_id, match_id, points, home_score_bet, away_score_bet')
             .eq('group_id', groupId)
+            .limit(5000)
 
         if (members) {
             // Aggregate Ranking (both without and with live points)
             const pointsMapBase = new Map<string, number>()
             const pointsMapLiveTotal = new Map<string, number>()
             const livePointsOnlyMap = new Map<string, number>()
+            const exactScoresMap = new Map<string, number>()
 
             const liveMatchesMap = new Map(live?.map(m => [m.id, m]) || [])
 
@@ -174,13 +178,24 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 pointsMapBase.set(userId, (pointsMapBase.get(userId) || 0) + basePoints)
                 pointsMapLiveTotal.set(userId, (pointsMapLiveTotal.get(userId) || 0) + basePoints)
 
+                // Track exact scores (tie-breaker)
+                if (bet.points === 10) {
+                    exactScoresMap.set(userId, (exactScoresMap.get(userId) || 0) + 1)
+                }
+
                 // Calculate live points if this match is currently live
-                if (bet.points === null && liveMatchesMap.has(bet.match_id)) {
+                // Note: we check for null OR 0 to be safe before the DB migration propagates
+                if ((bet.points === null || bet.points === 0) && liveMatchesMap.has(bet.match_id)) {
                     const match = liveMatchesMap.get(bet.match_id)!
                     const lp = calculateLivePoints(bet.home_score_bet, bet.away_score_bet, match.home_score || 0, match.away_score || 0)
                     if (lp > 0) {
                         pointsMapLiveTotal.set(userId, pointsMapLiveTotal.get(userId)! + lp)
                         livePointsOnlyMap.set(userId, (livePointsOnlyMap.get(userId) || 0) + lp)
+
+                        // Also count live exact scores for live ranking tie-breaker
+                        if (lp === 10) {
+                            exactScoresMap.set(userId, (exactScoresMap.get(userId) || 0) + 1)
+                        }
                     }
                 }
             })
@@ -188,8 +203,12 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
             // Calculate Initial Positions (Without Live)
             const rankingWithoutLive = members.map(m => {
                 const userId = m.user_id
-                return { userId, points: pointsMapBase.get(userId) || 0 }
-            }).sort((a, b) => b.points - a.points)
+                return {
+                    userId,
+                    points: pointsMapBase.get(userId) || 0,
+                    exacts: exactScoresMap.get(userId) || 0
+                }
+            }).sort((a, b) => b.points - a.points || b.exacts - a.exacts)
 
             const initialPosMap = new Map(rankingWithoutLive.map((item, idx) => [item.userId, idx]))
 
@@ -204,9 +223,10 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                     avatar_url: profile?.avatar_url,
                     total_points: totalWithLive,
                     live_points: livePointsOnlyMap.get(userId) || 0,
+                    exact_scores: exactScoresMap.get(userId) || 0,
                     rank_variation: 0
                 }
-            }).sort((a, b) => b.total_points - a.total_points)
+            }).sort((a, b) => b.total_points - a.total_points || (b.exact_scores || 0) - (a.exact_scores || 0))
 
             // Add rank variation
             fullRanking.forEach((user, currentIdx) => {

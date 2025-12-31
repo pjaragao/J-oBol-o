@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Search, Filter, X, Info } from 'lucide-react'
+import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, Info, Search, Filter, ChevronDown, Check, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface MatchListProps {
@@ -49,24 +49,34 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
 
     useEffect(() => {
         const fetchBets = async () => {
-            if (!userId) return
-            const { data } = await supabase
-                .from('bets')
-                .select('match_id, home_score_bet, away_score_bet, points')
-                .eq('group_id', groupId)
-                .eq('user_id', userId)
+            if (!userId) {
+                setInitialBetsLoaded(true)
+                return
+            }
+            try {
+                const { data, error } = await supabase
+                    .from('bets')
+                    .select('match_id, home_score_bet, away_score_bet, points')
+                    .eq('group_id', groupId)
+                    .eq('user_id', userId)
 
-            const betsMap: BetState = {}
-            data?.forEach(bet => {
-                betsMap[bet.match_id] = {
-                    home: bet.home_score_bet,
-                    away: bet.away_score_bet,
-                    points: bet.points,
-                    isDirty: false
-                }
-            })
-            setBets(betsMap)
-            setInitialBetsLoaded(true)
+                if (error) throw error
+
+                const betsMap: BetState = {}
+                data?.forEach(bet => {
+                    betsMap[bet.match_id] = {
+                        home: bet.home_score_bet,
+                        away: bet.away_score_bet,
+                        points: bet.points,
+                        isDirty: false
+                    }
+                })
+                setBets(betsMap)
+            } catch (err) {
+                console.error('Error fetching bets:', err)
+            } finally {
+                setInitialBetsLoaded(true)
+            }
         }
         fetchBets()
     }, [groupId, userId, supabase])
@@ -284,7 +294,7 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
 
                         return (
                             <div key={match.id} className={cn(
-                                "border rounded-xl p-2.5 sm:p-0 sm:h-20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between sm:justify-center relative transition-colors bg-white dark:bg-slate-800",
+                                "border rounded-xl p-2.5 sm:p-0 flex flex-col items-stretch relative transition-colors bg-white dark:bg-slate-800",
                                 locked ? "bg-slate-50/50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800" : "hover:border-green-500/50 border-slate-200 dark:border-slate-700",
                                 hasExistingBet ? "border-l-4 border-l-green-500 shadow-sm" : ""
                             )}>
@@ -299,12 +309,16 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                 </div>
 
                                 {/* Desktop Info (Absolute) */}
-                                <div className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 flex-row gap-3 items-center">
-                                    <div className="text-right text-xs text-slate-400 dark:text-slate-500">
-                                        <div className="font-medium">{format(new Date(match.match_date), 'dd/MM HH:mm', { locale: ptBR })}</div>
-                                        {match.round && <div className="opacity-60 text-[10px]">{match.round}</div>}
+                                <div className="hidden sm:flex absolute right-4 top-4 flex-col items-end gap-0.5 pointer-events-none">
+                                    <div className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-tighter leading-none mb-1">
+                                        {match.round}
                                     </div>
-                                    {locked && <span className="text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded border border-red-100 dark:border-red-500/20">🔒</span>}
+                                    <div className="flex items-center gap-2">
+                                        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tabular-nums">
+                                            {format(new Date(match.match_date), 'dd/MM - HH:mm', { locale: ptBR })}
+                                        </div>
+                                        {locked && <span className="text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-500/10 px-1 py-0.5 rounded border border-red-100 dark:border-red-500/20 leading-none">🔒</span>}
+                                    </div>
                                 </div>
 
 
@@ -372,8 +386,8 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
 
 
                                 {/* Footer: Real Score & Points - Boxed Footer */}
-                                {(hasRealScore || hasPoints) && (
-                                    <div className="flex items-center justify-center gap-3 mt-2 px-3 py-1.5 -mx-2.5 -mb-2.5 rounded-b-xl border-t border-slate-100 bg-slate-50 dark:bg-slate-900/50 dark:border-slate-700/50">
+                                {(hasRealScore || hasPoints || savingMap[match.id]) && (
+                                    <div className="flex items-center justify-center gap-4 mt-2 px-3 py-1.5 sm:px-4 -mx-2.5 sm:mx-0 -mb-2.5 sm:mb-0 rounded-b-xl sm:rounded-none border-t border-slate-100 bg-slate-50 dark:bg-slate-900/50 dark:border-slate-700/50">
                                         {savingMap[match.id] && (
                                             <div className="flex items-center gap-1.5">
                                                 {savingMap[match.id] === 'saving' ? (
@@ -387,29 +401,36 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                         )}
 
                                         {hasRealScore && (
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                                Placar Real: <span className="text-slate-700 dark:text-slate-200 ml-1">{match.home_score} - {match.away_score}</span>
-                                            </span>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Placar Real</span>
+                                                <span className="text-base font-black text-slate-700 dark:text-slate-200 tabular-nums">
+                                                    {match.home_score} <span className="text-slate-300 mx-1">×</span> {match.away_score}
+                                                </span>
+                                            </div>
                                         )}
 
                                         {hasPoints && bet && (
                                             <>
-                                                <div className="h-3 w-px bg-slate-200 dark:bg-slate-700" />
+                                                <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
                                                 <div
                                                     className={cn(
-                                                        "flex items-center gap-1 text-[10px] font-bold transition-all relative group cursor-help",
+                                                        "flex items-center gap-2 text-xs font-bold transition-all relative group cursor-help",
                                                         (bet.points ?? 0) > 0 ? "text-green-600 dark:text-green-400" : "text-slate-400"
                                                     )}
                                                     onMouseEnter={() => setHoveredPoints(match.id)}
                                                     onMouseLeave={() => setHoveredPoints(null)}
                                                 >
-                                                    <span>{(bet.points ?? 0) > 0 ? '+' : ''}{bet?.points} pts</span>
-                                                    <Info className="h-2.5 w-2.5 opacity-50" />
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pontos:</span>
+                                                    <span className="text-base font-black">{(bet.points ?? 0) > 0 ? '+' : ''}{bet?.points}</span>
+                                                    <Info className="h-3 w-3 opacity-50" />
 
                                                     {hoveredPoints === match.id && (
-                                                        <div className="absolute right-0 bottom-full mb-2 z-[9999] w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl rounded-lg p-2 text-[10px] pointer-events-none">
-                                                            <div className="font-bold text-green-600 mb-1">+{bet.points} pontos</div>
-                                                            <div className="text-slate-500 leading-tight">
+                                                        <div className="absolute right-0 bottom-full mb-3 z-[9999] w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-xl p-3 text-xs pointer-events-none animate-in fade-in slide-in-from-bottom-2">
+                                                            <div className="font-bold text-green-600 dark:text-green-400 mb-1.5 flex items-center gap-1.5">
+                                                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                                                <span>+{bet.points} pontos ganhos</span>
+                                                            </div>
+                                                            <div className="text-slate-500 dark:text-slate-400 leading-snug">
                                                                 {getPointsExplanation(Number(bet.home), Number(bet.away), match.home_score, match.away_score, bet.points!)}
                                                             </div>
                                                         </div>
