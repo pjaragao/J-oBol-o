@@ -24,7 +24,8 @@ import {
     CampaignData,
     getEvents,
     searchUsers,
-    searchGroups
+    searchGroups,
+    getAdminGroups
 } from '../actions'
 import { cn } from '@/lib/utils'
 
@@ -39,6 +40,9 @@ export function CampaignForm() {
     const [searchResults, setSearchResults] = useState<{ id: string, name?: string, display_name?: string, email?: string }[]>([])
     const [searching, setSearching] = useState(false)
     const [selectedItems, setSelectedItems] = useState<{ id: string, name: string }[]>([])
+    const [adminGroups, setAdminGroups] = useState<{ id: string, name: string, eventId: string, eventName?: string }[]>([])
+    const [loadingAdminGroups, setLoadingAdminGroups] = useState(false)
+    const [adminGroupsFilter, setAdminGroupsFilter] = useState<string>('')
 
     const handleSearch = async (query: string) => {
         setSearchQuery(query)
@@ -66,15 +70,22 @@ export function CampaignForm() {
         setSearching(false)
     }
 
-    const toggleItem = (item: { id: string, name: string }) => {
+    const toggleItem = async (item: { id: string, name: string }) => {
         const isSelected = selectedItems.find(i => i.id === item.id)
         let newItems
         if (isSelected) {
             newItems = selectedItems.filter(i => i.id !== item.id)
+            if (filters.audience === 'admin_groups') {
+                setAdminGroups([])
+            }
         } else {
             // For admin_groups, we only allow one admin (to simplify UI/UX for now)
             if (filters.audience === 'admin_groups') {
                 newItems = [item]
+                setLoadingAdminGroups(true)
+                const result = await getAdminGroups(item.id)
+                if (result.success) setAdminGroups(result.data)
+                setLoadingAdminGroups(false)
             } else {
                 newItems = [...selectedItems, item]
             }
@@ -87,7 +98,7 @@ export function CampaignForm() {
         } else if (filters.audience === 'groups') {
             setFilters({ ...filters, groupIds: newItems.map(i => i.id) })
         } else if (filters.audience === 'admin_groups') {
-            setFilters({ ...filters, adminUserId: newItems[0]?.id })
+            setFilters({ ...filters, adminUserId: newItems[0]?.id, groupIds: [] }) // Reset specific groups when admin changes
         }
     }
 
@@ -99,9 +110,9 @@ export function CampaignForm() {
         targetGroupAdmins: false,
         isSystemAdmin: false,
         eventId: undefined,
-        smartTargetTab: 'bets',
-        smartMatchFilter: 'pending',
-        selectedUserIds: []
+        selectedUserIds: [],
+        groupIds: [],
+        adminUserId: undefined
     })
 
     const [data, setData] = useState<CampaignData>({
@@ -109,7 +120,9 @@ export function CampaignForm() {
         message: '',
         type: 'info',
         actionLinkType: 'fixed',
-        fixedLink: ''
+        fixedLink: '',
+        targetTab: 'bets',
+        matchFilter: 'pending'
     })
 
     useEffect(() => {
@@ -259,7 +272,7 @@ export function CampaignForm() {
                                 <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                                     <div className="flex flex-wrap gap-2">
                                         {selectedItems.map(item => (
-                                            <div key={item.id} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold border border-green-200 dark:border-green-800/50">
+                                            <div key={item.id} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold border border-green-200 dark:border-green-800/50 animate-in zoom-in-95">
                                                 {item.name}
                                                 <button onClick={() => toggleItem(item)} className="hover:text-green-900 dark:hover:text-green-200">
                                                     ×
@@ -267,6 +280,79 @@ export function CampaignForm() {
                                             </div>
                                         ))}
                                     </div>
+                                </div>
+                            )}
+
+                            {/* Admin Groups Selection (Specific for admin_groups audience) */}
+                            {filters.audience === 'admin_groups' && selectedItems.length > 0 && (
+                                <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700 space-y-4 animate-in fade-in slide-in-from-top-4">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Grupos deste Admin</label>
+                                        <select
+                                            value={adminGroupsFilter}
+                                            onChange={(e) => setAdminGroupsFilter(e.target.value)}
+                                            className="text-[10px] py-1 px-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none"
+                                        >
+                                            <option value="">Filtrar por Campeonato</option>
+                                            {[...new Set(adminGroups.map(g => g.eventName))].filter(Boolean).map(evtName => (
+                                                <option key={evtName} value={evtName!}>{evtName}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {loadingAdminGroups ? (
+                                        <div className="py-8 flex flex-col items-center justify-center gap-2 text-slate-400">
+                                            <Loader2 className="h-6 w-6 animate-spin" />
+                                            <p className="text-[10px]">Carregando grupos...</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1 pb-2">
+                                            {adminGroups
+                                                .filter(g => !adminGroupsFilter || g.eventName === adminGroupsFilter)
+                                                .map(group => {
+                                                    const isSelected = filters.groupIds?.includes(group.id)
+                                                    return (
+                                                        <button
+                                                            key={group.id}
+                                                            onClick={() => {
+                                                                const newIds = isSelected
+                                                                    ? (filters.groupIds || []).filter(id => id !== group.id)
+                                                                    : [...(filters.groupIds || []), group.id]
+                                                                setFilters({ ...filters, groupIds: newIds })
+                                                            }}
+                                                            className={cn(
+                                                                "flex items-center gap-3 p-2.5 rounded-xl border text-left transition-all",
+                                                                isSelected
+                                                                    ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-600/20"
+                                                                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-blue-500"
+                                                            )}
+                                                        >
+                                                            <div className={cn(
+                                                                "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+                                                                isSelected ? "bg-white/20" : "bg-slate-100 dark:bg-slate-800"
+                                                            )}>
+                                                                <Trophy className={cn("h-4 w-4", isSelected ? "text-white" : "text-slate-400")} />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-xs font-bold truncate">{group.name}</p>
+                                                                <p className={cn("text-[9px] uppercase font-medium", isSelected ? "text-blue-100" : "text-slate-500")}>
+                                                                    {group.eventName || 'Campeonato Indefinido'}
+                                                                </p>
+                                                            </div>
+                                                            {isSelected && <CheckCircle2 className="h-4 w-4" />}
+                                                        </button>
+                                                    )
+                                                })}
+                                            {adminGroups.length === 0 && (
+                                                <p className="col-span-full py-4 text-center text-[10px] text-slate-500 italic">
+                                                    Nenhum grupo encontrado para este administrador.
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                    <p className="text-[9px] text-slate-400 italic">
+                                        * Se nenhum grupo for selecionado acima, a campanha será enviada para TODOS os grupos deste administrador.
+                                    </p>
                                 </div>
                             )}
                         </div>
@@ -402,48 +488,6 @@ export function CampaignForm() {
                                             <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
                                         </label>
                                     </div>
-
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Aba de Destino</label>
-                                        <select
-                                            value={filters.smartTargetTab || 'bets'}
-                                            onChange={(e) => setFilters({ ...filters, smartTargetTab: e.target.value as any })}
-                                            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none"
-                                        >
-                                            <option value="dashboard">Dashboard</option>
-                                            <option value="bets">Apostas</option>
-                                            <option value="ranking">Ranking</option>
-                                            <option value="members">Membros</option>
-                                            <option value="settings">Configurações</option>
-                                        </select>
-                                    </div>
-
-                                    {filters.smartTargetTab === 'bets' && (
-                                        <div className="space-y-1.5 animate-in fade-in zoom-in-95 md:col-span-2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Filtro de Partidas</label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {[
-                                                    { id: 'all', label: 'Todas' },
-                                                    { id: 'pending', label: 'Pendentes' },
-                                                    { id: 'completed', label: 'Feitas' },
-                                                    { id: 'missed', label: 'Esquecidas' }
-                                                ].map(f => (
-                                                    <button
-                                                        key={f.id}
-                                                        onClick={() => setFilters({ ...filters, smartMatchFilter: f.id as any })}
-                                                        className={cn(
-                                                            "px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all border",
-                                                            filters.smartMatchFilter === f.id
-                                                                ? "bg-green-600 text-white border-green-600"
-                                                                : "bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"
-                                                        )}
-                                                    >
-                                                        {f.label}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         )}
@@ -470,10 +514,10 @@ export function CampaignForm() {
                                     >
                                         + {'{user_name}'}
                                     </button>
-                                    {filters.audience === 'smart_group' && (
+                                    {['smart_group', 'groups', 'admin_groups'].includes(filters.audience) && (
                                         <button
                                             onClick={() => setData({ ...data, title: data.title + '{group_name}' })}
-                                            className="text-[10px] bg-green-100 dark:bg-green-900/30 hover:bg-green-200 px-2 py-0.5 rounded font-mono text-green-700 dark:text-green-400"
+                                            className="text-[10px] bg-green-100 dark:bg-green-900/30 hover:bg-green-200 px-2 py-0.5 rounded font-mono text-green-700 dark:text-green-400 animate-in zoom-in-95"
                                         >
                                             + {'{group_name}'}
                                         </button>
@@ -484,7 +528,7 @@ export function CampaignForm() {
                                 type="text"
                                 value={data.title}
                                 onChange={(e) => setData({ ...data, title: e.target.value })}
-                                placeholder={filters.audience === 'smart_group' ? "Não esqueça seu palpite em {group_name}!" : "Grande partida hoje!"}
+                                placeholder={['smart_group', 'groups', 'admin_groups'].includes(filters.audience) ? "Não esqueça seu palpite em {group_name}!" : "Grande partida hoje!"}
                                 className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-green-500 outline-none transition-all"
                             />
                         </div>
@@ -501,10 +545,10 @@ export function CampaignForm() {
                                     >
                                         + {'{user_name}'}
                                     </button>
-                                    {filters.audience === 'smart_group' && (
+                                    {['smart_group', 'groups', 'admin_groups'].includes(filters.audience) && (
                                         <button
                                             onClick={() => setData({ ...data, message: data.message + '{group_name}' })}
-                                            className="text-[10px] bg-green-100 dark:bg-green-900/30 hover:bg-green-200 px-2 py-0.5 rounded font-mono text-green-700 dark:text-green-400"
+                                            className="text-[10px] bg-green-100 dark:bg-green-900/30 hover:bg-green-200 px-2 py-0.5 rounded font-mono text-green-700 dark:text-green-400 animate-in zoom-in-95"
                                         >
                                             + {'{group_name}'}
                                         </button>
@@ -520,7 +564,7 @@ export function CampaignForm() {
                             />
                             <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-1">
                                 <Info className="h-3 w-3" />
-                                Dica: Use as tags acima para personalizar a mensagem para cada usuário.
+                                Dica: Use {'{user_name}'} e {['smart_group', 'groups', 'admin_groups'].includes(filters.audience) ? '{group_name}' : ''} para personalizar a mensagem.
                             </p>
                         </div>
 
@@ -550,22 +594,17 @@ export function CampaignForm() {
                                     onChange={(e) => setData({ ...data, actionLinkType: e.target.value as any })}
                                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-green-500 outline-none"
                                 >
-                                    {filters.audience === 'smart_group' ? (
-                                        <option value="fixed">Página do Grupo (Automático)</option>
-                                    ) : (
-                                        <>
-                                            <option value="fixed">Link Fixo</option>
-                                            <option value="none">Nenhum</option>
-                                        </>
-                                    )}
+                                    <option value="fixed">Link Fixo</option>
+                                    <option value="dynamic">Página do Grupo (Dinâmico)</option>
+                                    <option value="none">Nenhum</option>
                                 </select>
                             </div>
                         </div>
 
-                        {data.actionLinkType === 'fixed' && filters.audience !== 'smart_group' && (
-                            <div>
+                        {data.actionLinkType === 'fixed' && (
+                            <div className="animate-in fade-in slide-in-from-top-2">
                                 <label className="block text-sm font-bold mb-1.5 text-slate-700 dark:text-slate-300">
-                                    URL do Link
+                                    URL do Link Fixo
                                 </label>
                                 <input
                                     type="text"
@@ -574,6 +613,66 @@ export function CampaignForm() {
                                     placeholder="/plans ou https://..."
                                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-green-500 outline-none"
                                 />
+                            </div>
+                        )}
+
+                        {data.actionLinkType === 'dynamic' && (
+                            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 space-y-4 animate-in fade-in zoom-in-95">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Target className="h-4 w-4 text-blue-600" />
+                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Configurações do Link Dinâmico</span>
+                                </div>
+
+                                {['all', 'tier', 'manual'].includes(filters.audience) && (
+                                    <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-500/5 text-[10px] text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50 flex gap-2">
+                                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                                        <p>O link dinâmico requer um contexto de grupo (Smart, Grupos Específicos ou Por Admin). Para esta audiência, ele pode não funcionar como esperado.</p>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Aba de Destino</label>
+                                        <select
+                                            value={data.targetTab || 'bets'}
+                                            onChange={(e) => setData({ ...data, targetTab: e.target.value as any })}
+                                            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none"
+                                        >
+                                            <option value="dashboard">Dashboard</option>
+                                            <option value="bets">Apostas</option>
+                                            <option value="ranking">Ranking</option>
+                                            <option value="members">Membros</option>
+                                            <option value="settings">Configurações</option>
+                                        </select>
+                                    </div>
+
+                                    {data.targetTab === 'bets' && (
+                                        <div className="space-y-1.5 animate-in fade-in zoom-in-95">
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Filtro de Partidas</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {[
+                                                    { id: 'all', label: 'Todas' },
+                                                    { id: 'pending', label: 'Pendentes' },
+                                                    { id: 'completed', label: 'Feitas' },
+                                                    { id: 'missed', label: 'Esquecidas' }
+                                                ].map(f => (
+                                                    <button
+                                                        key={f.id}
+                                                        onClick={() => setData({ ...data, matchFilter: f.id as any })}
+                                                        className={cn(
+                                                            "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border",
+                                                            data.matchFilter === f.id
+                                                                ? "bg-blue-600 text-white border-blue-600"
+                                                                : "bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"
+                                                        )}
+                                                    >
+                                                        {f.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>

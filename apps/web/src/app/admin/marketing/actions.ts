@@ -11,8 +11,6 @@ export interface CampaignFilters {
     targetGroupAdmins?: boolean
     isSystemAdmin?: boolean
     eventId?: string
-    smartTargetTab?: 'dashboard' | 'bets' | 'ranking' | 'members' | 'settings'
-    smartMatchFilter?: 'all' | 'pending' | 'completed' | 'missed'
     selectedUserIds?: string[]
     groupIds?: string[]
     adminUserId?: string
@@ -22,8 +20,33 @@ export interface CampaignData {
     title: string
     message: string
     type: 'info' | 'success' | 'warning' | 'group_invite' | 'points'
-    actionLinkType: 'fixed'
+    actionLinkType: 'fixed' | 'dynamic' | 'none'
     fixedLink?: string
+    targetTab?: 'dashboard' | 'bets' | 'ranking' | 'members' | 'settings'
+    matchFilter?: 'all' | 'pending' | 'completed' | 'missed'
+}
+
+export async function getAdminGroups(userId: string) {
+    try {
+        const supabase = await createClient()
+        const { data, error } = await supabase
+            .from('group_members')
+            .select('group_id, groups(id, name, event_id, events(name))')
+            .eq('user_id', userId)
+            .eq('role', 'admin')
+
+        if (error) throw error
+        return {
+            success: true, data: (data || []).map((m: any) => ({
+                id: m.groups.id,
+                name: m.groups.name,
+                eventId: m.groups.event_id,
+                eventName: m.groups.events?.name
+            }))
+        }
+    } catch (error: any) {
+        return { success: false, message: error.message, data: [] }
+    }
 }
 
 export async function getEvents() {
@@ -178,16 +201,20 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
             const { data: users, error } = await query
             if (error) throw error
 
-            notificationsToInsert = users.map(u => ({
-                user_id: u.id,
-                title: data.title.replace(/{user_name}/g, u.display_name || 'Usuário'),
-                message: data.message.replace(/{user_name}/g, u.display_name || 'Usuário'),
-                type: data.type,
-                is_read: false,
-                data: data.actionLinkType === 'fixed' ? { link: data.fixedLink } : {}
-            }))
+            notificationsToInsert = users.map(u => {
+                const userName = u.display_name || 'Usuário'
+                return {
+                    user_id: u.id,
+                    title: data.title.replace(/{user_name}/g, userName),
+                    message: data.message.replace(/{user_name}/g, userName),
+                    type: data.type,
+                    is_read: false,
+                    data: {
+                        link: data.actionLinkType === 'fixed' ? data.fixedLink : undefined
+                    }
+                }
+            })
         } else if (filters.audience === 'manual') {
-            // Fetch user names for manual selection too
             const { data: users, error } = await supabase
                 .from('profiles')
                 .select('id, display_name')
@@ -195,14 +222,19 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
 
             if (error) throw error
 
-            notificationsToInsert = users.map(u => ({
-                user_id: u.id,
-                title: data.title.replace(/{user_name}/g, u.display_name || 'Usuário'),
-                message: data.message.replace(/{user_name}/g, u.display_name || 'Usuário'),
-                type: data.type,
-                is_read: false,
-                data: data.actionLinkType === 'fixed' ? { link: data.fixedLink } : {}
-            }))
+            notificationsToInsert = users.map(u => {
+                const userName = u.display_name || 'Usuário'
+                return {
+                    user_id: u.id,
+                    title: data.title.replace(/{user_name}/g, userName),
+                    message: data.message.replace(/{user_name}/g, userName),
+                    type: data.type,
+                    is_read: false,
+                    data: {
+                        link: data.actionLinkType === 'fixed' ? data.fixedLink : undefined
+                    }
+                }
+            })
         } else if (filters.audience === 'groups' || filters.audience === 'admin_groups') {
             let targetGroupIds: string[] = []
 
@@ -210,39 +242,54 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
                 targetGroupIds = filters.groupIds || []
             } else {
                 // admin_groups
-                const { data: adminGroups } = await supabase
-                    .from('group_members')
-                    .select('group_id')
-                    .eq('user_id', filters.adminUserId || '')
-                    .eq('role', 'admin')
-                targetGroupIds = (adminGroups || []).map(g => g.group_id)
+                // If filters.groupIds is provided, use it (it means user selected specific groups from admin)
+                // If not, fetch all groups from this admin
+                if (filters.groupIds && filters.groupIds.length > 0) {
+                    targetGroupIds = filters.groupIds
+                } else {
+                    const { data: adminGroups } = await supabase
+                        .from('group_members')
+                        .select('group_id')
+                        .eq('user_id', filters.adminUserId || '')
+                        .eq('role', 'admin')
+                    targetGroupIds = (adminGroups || []).map(g => g.group_id)
+                }
             }
 
             if (targetGroupIds.length > 0) {
+                // To support {group_name} and dynamic links per group, we should send one per group-user pair
                 const { data: members, error } = await supabase
                     .from('group_members')
-                    .select('user_id, profiles(id, display_name)')
+                    .select('user_id, group_id, groups(name), profiles(id, display_name)')
                     .in('group_id', targetGroupIds)
 
                 if (error) throw error
 
-                // Unique users
-                const uniqueUsers = Array.from(new Map((members as any[]).map(m => [m.profiles.id, m.profiles])).values())
+                notificationsToInsert = (members as any[]).map(m => {
+                    const userName = m.profiles.display_name || 'Usuário'
+                    const groupName = m.groups.name
+                    const groupId = m.group_id
 
-                notificationsToInsert = uniqueUsers.map((u: any) => ({
-                    user_id: u.id,
-                    title: data.title.replace(/{user_name}/g, u.display_name || 'Usuário'),
-                    message: data.message.replace(/{user_name}/g, u.display_name || 'Usuário'),
-                    type: data.type,
-                    is_read: false,
-                    data: {
-                        link: targetGroupIds.length === 1 ? `/groups/${targetGroupIds[0]}` : data.fixedLink
+                    let link = data.actionLinkType === 'fixed' ? data.fixedLink : undefined
+                    if (data.actionLinkType === 'dynamic') {
+                        link = `/groups/${groupId}?tab=${data.targetTab || 'dashboard'}${data.targetTab === 'bets' ? `&filter=${data.matchFilter || 'all'}` : ''}`
                     }
-                }))
+
+                    return {
+                        user_id: m.user_id,
+                        title: data.title.replace(/{user_name}/g, userName).replace(/{group_name}/g, groupName),
+                        message: data.message.replace(/{user_name}/g, userName).replace(/{group_name}/g, groupName),
+                        type: data.type,
+                        is_read: false,
+                        data: {
+                            group_id: groupId,
+                            group_name: groupName,
+                            link
+                        }
+                    }
+                })
             }
         } else if (filters.audience === 'smart_group') {
-            // Smart logic: Get specific group notifications
-            // Join with profiles to get user_name
             const { data: targets, error } = await supabase.rpc('get_smart_campaign_targets', {
                 p_days_ahead: filters.daysNextMatches || null,
                 p_only_admins: filters.targetGroupAdmins || false,
@@ -250,26 +297,28 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
             })
             if (error) throw error
 
-            // Fetch user names for these targets
             const userIds = [...new Set((targets as any[]).map(t => t.user_id))]
             const { data: users } = await supabase.from('profiles').select('id, display_name').in('id', userIds)
             const userMap = Object.fromEntries((users || []).map(u => [u.id, u.display_name]))
 
             notificationsToInsert = (targets as any[]).map(t => {
                 const userName = userMap[t.user_id] || 'Usuário'
-                let finalTitle = data.title.replace(/{user_name}/g, userName).replace(/{group_name}/g, t.group_name)
-                let finalMessage = data.message.replace(/{user_name}/g, userName).replace(/{group_name}/g, t.group_name)
+
+                let link = data.actionLinkType === 'fixed' ? data.fixedLink : undefined
+                if (data.actionLinkType === 'dynamic') {
+                    link = `/groups/${t.group_id}?tab=${data.targetTab || 'dashboard'}${data.targetTab === 'bets' ? `&filter=${data.matchFilter || 'all'}` : ''}`
+                }
 
                 return {
                     user_id: t.user_id,
-                    title: finalTitle,
-                    message: finalMessage,
+                    title: data.title.replace(/{user_name}/g, userName).replace(/{group_name}/g, t.group_name),
+                    message: data.message.replace(/{user_name}/g, userName).replace(/{group_name}/g, t.group_name),
                     type: data.type,
                     is_read: false,
                     data: {
                         group_id: t.group_id,
                         group_name: t.group_name,
-                        link: `/groups/${t.group_id}?tab=${filters.smartTargetTab || 'bets'}${filters.smartTargetTab === 'bets' ? `&filter=${filters.smartMatchFilter || 'pending'}` : ''}`
+                        link
                     }
                 }
             })
