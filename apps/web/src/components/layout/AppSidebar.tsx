@@ -3,7 +3,7 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Crown, LayoutDashboard, Trophy, Ticket, Settings, Menu, X, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Crown, LayoutDashboard, Trophy, Ticket, Settings, Menu, X, ExternalLink, ChevronLeft, ChevronRight, Megaphone } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const sidebarItems = [
@@ -16,6 +16,7 @@ const adminItems = [
     { title: 'Início Admin', icon: LayoutDashboard, href: '/admin' },
     { title: 'Gerenciar Eventos', icon: Settings, href: '/admin/events' },
     { title: 'Gerenciar Times', icon: Crown, href: '/admin/teams' },
+    { title: 'Marketing', icon: Megaphone, href: '/admin/marketing' },
     { title: 'Logs de Sincronização', icon: ExternalLink, href: '/admin/logs' },
 ]
 
