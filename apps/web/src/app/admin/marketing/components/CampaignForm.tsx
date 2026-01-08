@@ -410,7 +410,5 @@ export function CampaignForm() {
             </div>
 
         </div>
-            </div >
-        </div >
     )
 }
