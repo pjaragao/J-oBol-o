@@ -22,7 +22,9 @@ import {
     sendCampaign,
     CampaignFilters,
     CampaignData,
-    getEvents
+    getEvents,
+    searchUsers,
+    searchGroups
 } from '../actions'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +35,61 @@ export function CampaignForm() {
     const [previewCount, setPreviewCount] = useState<number | null>(null)
     const [events, setEvents] = useState<{ id: string, name: string }[]>([])
     const [useSmartDays, setUseSmartDays] = useState(true)
+    const [searchQuery, setSearchQuery] = useState('')
+    const [searchResults, setSearchResults] = useState<{ id: string, name?: string, display_name?: string, email?: string }[]>([])
+    const [searching, setSearching] = useState(false)
+    const [selectedItems, setSelectedItems] = useState<{ id: string, name: string }[]>([])
+
+    const handleSearch = async (query: string) => {
+        setSearchQuery(query)
+        if (query.length < 2) {
+            setSearchResults([])
+            return
+        }
+
+        setSearching(true)
+        let result
+        if (filters.audience === 'manual' || filters.audience === 'admin_groups') {
+            result = await searchUsers(query)
+        } else if (filters.audience === 'groups') {
+            result = await searchGroups(query)
+        }
+
+        if (result?.success) {
+            setSearchResults(result.data.map((item: any) => ({
+                id: item.id,
+                name: item.display_name || item.name || item.email,
+                email: item.email
+            })))
+        }
+        setSearching(true)
+        setSearching(false)
+    }
+
+    const toggleItem = (item: { id: string, name: string }) => {
+        const isSelected = selectedItems.find(i => i.id === item.id)
+        let newItems
+        if (isSelected) {
+            newItems = selectedItems.filter(i => i.id !== item.id)
+        } else {
+            // For admin_groups, we only allow one admin (to simplify UI/UX for now)
+            if (filters.audience === 'admin_groups') {
+                newItems = [item]
+            } else {
+                newItems = [...selectedItems, item]
+            }
+        }
+        setSelectedItems(newItems)
+
+        // Sync with filters
+        if (filters.audience === 'manual') {
+            setFilters({ ...filters, selectedUserIds: newItems.map(i => i.id) })
+        } else if (filters.audience === 'groups') {
+            setFilters({ ...filters, groupIds: newItems.map(i => i.id) })
+        } else if (filters.audience === 'admin_groups') {
+            setFilters({ ...filters, adminUserId: newItems[0]?.id })
+        }
+    }
 
     const [filters, setFilters] = useState<CampaignFilters>({
         audience: 'all',
@@ -119,55 +176,101 @@ export function CampaignForm() {
                         <h2 className="text-lg font-bold">1. Selecionar Audiência</h2>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <button
-                            onClick={() => setFilters({ ...filters, audience: 'all' })}
-                            className={cn(
-                                "p-4 rounded-xl border-2 text-left transition-all",
-                                filters.audience === 'all'
-                                    ? "border-green-600 bg-green-50/50 dark:bg-green-500/10"
-                                    : "border-slate-100 dark:border-slate-800 hover:border-slate-200"
-                            )}
-                        >
-                            <div className="font-bold flex items-center justify-between">
-                                Todos os Usuários
-                                {filters.audience === 'all' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-                            </div>
-                            <p className="text-xs text-slate-500 mt-1">Envia para toda a base cadastrada.</p>
-                        </button>
-
-                        <button
-                            onClick={() => setFilters({ ...filters, audience: 'tier', tier: 'free' })}
-                            className={cn(
-                                "p-4 rounded-xl border-2 text-left transition-all",
-                                filters.audience === 'tier'
-                                    ? "border-green-600 bg-green-50/50 dark:bg-green-500/10"
-                                    : "border-slate-100 dark:border-slate-800 hover:border-slate-200"
-                            )}
-                        >
-                            <div className="font-bold flex items-center justify-between">
-                                Por Plano (Assinatura)
-                                {filters.audience === 'tier' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-                            </div>
-                            <p className="text-xs text-slate-500 mt-1">Filtre por Free, Premium ou Pro.</p>
-                        </button>
-
-                        <button
-                            onClick={() => setFilters({ ...filters, audience: 'smart_group', daysNextMatches: 3 })}
-                            className={cn(
-                                "p-4 rounded-xl border-2 text-left transition-all",
-                                filters.audience === 'smart_group'
-                                    ? "border-green-600 bg-green-50/50 dark:bg-green-500/10"
-                                    : "border-slate-100 dark:border-slate-800 hover:border-slate-200"
-                            )}
-                        >
-                            <div className="font-bold flex items-center justify-between font-mono">
-                                Campanha Inteligente ✨
-                                {filters.audience === 'smart_group' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-                            </div>
-                            <p className="text-xs text-slate-500 mt-1">Lembretes automáticos por grupo.</p>
-                        </button>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {[
+                            { id: 'all', label: 'Todos os Usuários', icon: Users, desc: 'Toda a base' },
+                            { id: 'tier', label: 'Por Plano', icon: Star, desc: 'Free/Premium/Pro' },
+                            { id: 'smart_group', label: 'Campanha Inteligente', icon: Gamepad2, desc: 'Lembretes por grupo' },
+                            { id: 'groups', label: 'Grupos Específicos', icon: Trophy, desc: 'Selecionar grupos' },
+                            { id: 'admin_groups', label: 'Por Admin', icon: Shield, desc: 'Grupos de um admin' },
+                            { id: 'manual', label: 'Usuários Específicos', icon: Target, desc: 'Seleção individual' }
+                        ].map((btn) => (
+                            <button
+                                key={btn.id}
+                                onClick={() => {
+                                    setFilters({ ...filters, audience: btn.id as any })
+                                    setSelectedItems([])
+                                    setSearchResults([])
+                                    setSearchQuery('')
+                                }}
+                                className={cn(
+                                    "p-3 rounded-xl border-2 text-left transition-all",
+                                    filters.audience === btn.id
+                                        ? "border-green-600 bg-green-50/50 dark:bg-green-500/10"
+                                        : "border-slate-100 dark:border-slate-800 hover:border-slate-200"
+                                )}
+                            >
+                                <div className="font-bold text-xs flex items-center justify-between">
+                                    <div className="flex items-center gap-1.5">
+                                        <btn.icon className={cn("h-3.5 w-3.5", filters.audience === btn.id ? "text-green-600" : "text-slate-400")} />
+                                        {btn.label}
+                                    </div>
+                                    {filters.audience === btn.id && <CheckCircle2 className="h-3 w-3 text-green-600" />}
+                                </div>
+                                <p className="text-[10px] text-slate-500 mt-1">{btn.desc}</p>
+                            </button>
+                        ))}
                     </div>
+
+                    {/* Manual / Group / Admin Search Section */}
+                    {(filters.audience === 'manual' || filters.audience === 'groups' || filters.audience === 'admin_groups') && (
+                        <div className="mt-6 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-top-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">
+                                {filters.audience === 'manual' ? 'Buscar Usuários' : filters.audience === 'groups' ? 'Buscar Grupos' : 'Buscar Admin do Grupo'}
+                            </label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => handleSearch(e.target.value)}
+                                    placeholder="Digite para buscar..."
+                                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                                />
+                                {searching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-green-600" />}
+                            </div>
+
+                            {/* Search Results */}
+                            {searchResults.length > 0 && (
+                                <div className="mt-3 grid grid-cols-1 gap-1 max-h-48 overflow-y-auto pr-1">
+                                    {searchResults.map(item => (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => toggleItem({ id: item.id, name: item.name! })}
+                                            className={cn(
+                                                "w-full px-3 py-2 rounded-lg text-left text-xs transition-all flex items-center justify-between",
+                                                selectedItems.find(i => i.id === item.id)
+                                                    ? "bg-green-600 text-white"
+                                                    : "bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                                            )}
+                                        >
+                                            <div>
+                                                <p className="font-bold">{item.name}</p>
+                                                {item.email && <p className={cn("text-[9px]", selectedItems.find(i => i.id === item.id) ? "text-green-100" : "text-slate-500")}>{item.email}</p>}
+                                            </div>
+                                            {selectedItems.find(i => i.id === item.id) ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Layers className="h-3.5 w-3.5 opacity-20" />}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Selected Items Tags */}
+                            {selectedItems.length > 0 && (
+                                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedItems.map(item => (
+                                            <div key={item.id} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold border border-green-200 dark:border-green-800/50">
+                                                {item.name}
+                                                <button onClick={() => toggleItem(item)} className="hover:text-green-900 dark:hover:text-green-200">
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Conditional Options */}
                     <div className="mt-6 pt-6 border-t border-dashed border-slate-100 dark:border-slate-800 space-y-6">
