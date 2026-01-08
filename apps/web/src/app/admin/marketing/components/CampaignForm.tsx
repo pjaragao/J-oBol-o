@@ -10,23 +10,52 @@ import {
     Trophy,
     Star,
     CheckCircle2,
-    Calendar,
-    Layers,
-    Search,
-    Loader2
-} from 'lucide-react'
+import {
+        Users,
+        Target,
+        Send,
+        Info,
+        AlertTriangle,
+        Trophy,
+        Star,
+        CheckCircle2,
+        Calendar,
+        Layers,
+        Search,
+        Loader2,
+        Gamepad2,
+        Shield
+    } from 'lucide-react'
 import {
     getAudiencePreview,
     sendCampaign,
     CampaignFilters,
-    CampaignData
+    CampaignData,
+    getEvents
 } from '../actions'
 import { cn } from '@/lib/utils'
 
 export function CampaignForm() {
+    const [loadingPreview, setLoadingPreview] = useState(false)
+    const [sending, setSending] = useState(false)
+    const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null)
+    const [previewCount, setPreviewCount] = useState<number | null>(null)
+    const [events, setEvents] = useState<{ id: string, name: string }[]>([])
+    const [useSmartDays, setUseSmartDays] = useState(true)
+
     const [filters, setFilters] = useState<CampaignFilters>({
         audience: 'all',
+        tier: 'free',
+        daysNextMatches: 3,
+        daysInactive: 7,
+        targetGroupAdmins: false,
+        isSystemAdmin: false,
+        eventId: undefined,
+        smartTargetTab: 'bets',
+        smartMatchFilter: 'pending',
+        selectedUserIds: []
     })
+
     const [data, setData] = useState<CampaignData>({
         title: '',
         message: '',
@@ -35,10 +64,13 @@ export function CampaignForm() {
         fixedLink: ''
     })
 
-    const [previewCount, setPreviewCount] = useState<number | null>(null)
-    const [loadingPreview, setLoadingPreview] = useState(false)
-    const [sending, setSending] = useState(false)
-    const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null)
+    useEffect(() => {
+        async function loadEvents() {
+            const { success, data } = await getEvents()
+            if (success && data) setEvents(data)
+        }
+        loadEvents()
+    }, [])
 
     // Update preview when filters change
     useEffect(() => {
@@ -144,7 +176,7 @@ export function CampaignForm() {
                     </div>
 
                     {/* Conditional Options */}
-                    <div className="mt-6 pt-6 border-t border-dashed border-slate-100 dark:border-slate-800">
+                    <div className="mt-6 pt-6 border-t border-dashed border-slate-100 dark:border-slate-800 space-y-6">
                         {filters.audience === 'tier' && (
                             <div className="flex gap-2">
                                 {['free', 'premium', 'pro'].map((t) => (
@@ -164,32 +196,104 @@ export function CampaignForm() {
                             </div>
                         )}
 
-                        {filters.audience === 'smart_group' && (
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-4">
-                                    <label className="text-sm font-semibold text-slate-600 dark:text-slate-400">
-                                        Jogos nos próximos (dias):
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={filters.daysNextMatches}
-                                        onChange={(e) => setFilters({ ...filters, daysNextMatches: parseInt(e.target.value) })}
-                                        className="w-20 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:ring-2 focus:ring-green-500 outline-none"
-                                    />
+                        {/* Additional Filters: Event & System Admin (Shared by most audiences) */}
+                        {(filters.audience === 'all' || filters.audience === 'tier' || filters.audience === 'smart_group') && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Filtrar por Campeonato</label>
+                                    <div className="relative">
+                                        <Trophy className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                                        <select
+                                            value={filters.eventId || ''}
+                                            onChange={(e) => setFilters({ ...filters, eventId: e.target.value || undefined })}
+                                            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none appearance-none"
+                                        >
+                                            <option value="">Todos os Campeonatos</option>
+                                            {events.map(ev => (
+                                                <option key={ev.id} value={ev.id}>{ev.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
+                                {(filters.audience === 'all' || filters.audience === 'tier') && (
+                                    <div className="flex items-center gap-3 bg-slate-50/50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-1.5">
+                                                <Shield className="h-3.5 w-3.5 text-blue-600" />
+                                                <span className="text-sm font-bold">Apenas Admins do Sistema</span>
+                                            </div>
+                                            <p className="text-[10px] text-slate-500">Apenas usuários com 'is_admin = true'.</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={filters.isSystemAdmin}
+                                                onChange={(e) => setFilters({ ...filters, isSystemAdmin: e.target.checked })}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {filters.audience === 'smart_group' && (
+                            <div className="space-y-4 pt-2">
                                 <div className="p-3 rounded-lg bg-blue-50/50 dark:bg-blue-500/5 text-[11px] text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/50 flex gap-2">
                                     <Info className="h-4 w-4 shrink-0" />
-                                    <p>Esta campanha gerará notificações individuais para cada grupo onde o usuário tem apostas pendentes. O link será dinâmico para cada grupo.</p>
+                                    <p>Esta campanha gerará notificações individuais para cada grupo que atenda aos filtros.</p>
                                 </div>
 
-                                <div className="space-y-4 pt-2">
-                                    <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                                        <div className="flex-1">
+                                <div className="flex flex-col gap-4 p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Gamepad2 className="h-4 w-4 text-green-600" />
+                                            <span className="text-sm font-bold">Critério de Jogos Próximos</span>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={useSmartDays}
+                                                onChange={(e) => {
+                                                    setUseSmartDays(e.target.checked)
+                                                    setFilters({ ...filters, daysNextMatches: e.target.checked ? 3 : undefined })
+                                                }}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                                        </label>
+                                    </div>
+
+                                    {useSmartDays && (
+                                        <div className="flex items-center gap-4 animate-in fade-in slide-in-from-top-1">
+                                            <label className="text-xs font-bold text-slate-500 uppercase shrink-0">Jogos nos próximos:</label>
                                             <div className="flex items-center gap-2">
-                                                <Target className="h-4 w-4 text-green-600" />
-                                                <span className="text-sm font-bold">Apenas Administradores</span>
+                                                <input
+                                                    type="number"
+                                                    className="w-16 px-2 py-1 bg-white dark:bg-slate-800 border rounded-md text-sm outline-none"
+                                                    value={filters.daysNextMatches || ''}
+                                                    onChange={(e) => setFilters({ ...filters, daysNextMatches: parseInt(e.target.value) || 0 })}
+                                                />
+                                                <span className="text-xs text-slate-500">dias</span>
                                             </div>
-                                            <p className="text-[10px] text-slate-500 mt-0.5">Enviar apenas para donos e moderadores do grupo.</p>
+                                        </div>
+                                    )}
+                                    <p className="text-[10px] text-slate-500">
+                                        {useSmartDays
+                                            ? "Notifica usuários que esqueceram de apostar em jogos próximos."
+                                            : "Notifica todos os membros dos grupos filtrados."}
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+                                    <div className="flex items-center gap-3 bg-slate-50/50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-1.5">
+                                                <Target className="h-4 w-4 text-green-600" />
+                                                <span className="text-sm font-bold">Apenas Admins</span>
+                                            </div>
+                                            <p className="text-[10px] text-slate-500">Apenas donos de grupo.</p>
                                         </div>
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input
@@ -202,34 +306,47 @@ export function CampaignForm() {
                                         </label>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Aba de Destino</label>
-                                            <select
-                                                value={filters.smartTargetTab || 'bets'}
-                                                onChange={(e) => setFilters({ ...filters, smartTargetTab: e.target.value as any })}
-                                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none"
-                                            >
-                                                <option value="dashboard">Dashboard</option>
-                                                <option value="bets">Apostas</option>
-                                            </select>
-                                        </div>
-                                        {filters.smartTargetTab === 'bets' && (
-                                            <div className="space-y-1.5">
-                                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Filtro de Partidas</label>
-                                                <select
-                                                    value={filters.smartMatchFilter || 'pending'}
-                                                    onChange={(e) => setFilters({ ...filters, smartMatchFilter: e.target.value as any })}
-                                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none"
-                                                >
-                                                    <option value="pending">Pendentes</option>
-                                                    <option value="all">Todas</option>
-                                                    <option value="completed">Feitas</option>
-                                                    <option value="missed">Esquecidas</option>
-                                                </select>
-                                            </div>
-                                        )}
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Aba de Destino</label>
+                                        <select
+                                            value={filters.smartTargetTab || 'bets'}
+                                            onChange={(e) => setFilters({ ...filters, smartTargetTab: e.target.value as any })}
+                                            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none"
+                                        >
+                                            <option value="dashboard">Dashboard</option>
+                                            <option value="bets">Apostas</option>
+                                            <option value="ranking">Ranking</option>
+                                            <option value="members">Membros</option>
+                                            <option value="settings">Configurações</option>
+                                        </select>
                                     </div>
+
+                                    {filters.smartTargetTab === 'bets' && (
+                                        <div className="space-y-1.5 animate-in fade-in zoom-in-95 md:col-span-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Filtro de Partidas</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {[
+                                                    { id: 'all', label: 'Todas' },
+                                                    { id: 'pending', label: 'Pendentes' },
+                                                    { id: 'completed', label: 'Feitas' },
+                                                    { id: 'missed', label: 'Esquecidas' }
+                                                ].map(f => (
+                                                    <button
+                                                        key={f.id}
+                                                        onClick={() => setFilters({ ...filters, smartMatchFilter: f.id as any })}
+                                                        className={cn(
+                                                            "px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all border",
+                                                            filters.smartMatchFilter === f.id
+                                                                ? "bg-green-600 text-white border-green-600"
+                                                                : "bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"
+                                                        )}
+                                                    >
+                                                        {f.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

@@ -9,7 +9,9 @@ export interface CampaignFilters {
     daysNextMatches?: number
     daysInactive?: number
     targetGroupAdmins?: boolean
-    smartTargetTab?: 'dashboard' | 'bets'
+    isSystemAdmin?: boolean
+    eventId?: string
+    smartTargetTab?: 'dashboard' | 'bets' | 'ranking' | 'members' | 'settings'
     smartMatchFilter?: 'all' | 'pending' | 'completed' | 'missed'
     selectedUserIds?: string[]
 }
@@ -22,22 +24,50 @@ export interface CampaignData {
     fixedLink?: string
 }
 
+export async function getEvents() {
+    try {
+        const supabase = await createClient()
+        const { data, error } = await supabase
+            .from('events')
+            .select('id, name')
+            .eq('is_active', true)
+            .order('name')
+        if (error) throw error
+        return { success: true, data }
+    } catch (error: any) {
+        return { success: false, message: error.message, data: [] }
+    }
+}
+
 export async function getAudiencePreview(filters: CampaignFilters) {
     try {
         const supabase = await createClient()
         let count = 0
 
-        if (filters.audience === 'all') {
-            const { count: c, error } = await supabase
-                .from('profiles')
-                .select('*', { count: 'exact', head: true })
-            if (error) throw error
-            count = c || 0
-        } else if (filters.audience === 'tier') {
-            const { count: c, error } = await supabase
-                .from('profiles')
-                .select('*', { count: 'exact', head: true })
-                .eq('subscription_tier', filters.tier || 'free')
+        if (filters.audience === 'all' || filters.audience === 'tier') {
+            let query = supabase.from('profiles').select('*', { count: 'exact', head: true })
+
+            if (filters.audience === 'tier') {
+                query = query.eq('subscription_tier', filters.tier || 'free')
+            }
+
+            if (filters.isSystemAdmin) {
+                query = query.eq('is_admin', true)
+            }
+
+            if (filters.eventId) {
+                // To filter profiles by event, we need a join or subquery. 
+                // Using nested select via supabase client:
+                const { data: userIdsInEvent } = await supabase
+                    .from('group_members')
+                    .select('user_id, groups!inner(event_id)')
+                    .eq('groups.event_id', filters.eventId)
+
+                const ids = [...new Set((userIdsInEvent || []).map(m => m.user_id))]
+                query = query.in('id', ids)
+            }
+
+            const { count: c, error } = await query
             if (error) throw error
             count = c || 0
         } else if (filters.audience === 'manual') {
@@ -52,8 +82,9 @@ export async function getAudiencePreview(filters: CampaignFilters) {
                 // Complex query: Find (user, group) pairs where there are matches in next X days but no bet
                 // This is hard to do in a single count. We'll do a simplified count of target user-group pairs.
                 const { data, error } = await supabase.rpc('get_smart_campaign_preview', {
-                    p_days_ahead: filters.daysNextMatches,
-                    p_only_admins: filters.targetGroupAdmins || false
+                    p_days_ahead: filters.daysNextMatches || null,
+                    p_only_admins: filters.targetGroupAdmins || false,
+                    p_event_id: filters.eventId || null
                 })
                 if (error) throw error
                 count = data || 0
@@ -73,8 +104,23 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
 
         if (filters.audience === 'all' || filters.audience === 'tier') {
             let query = supabase.from('profiles').select('id, display_name')
+
             if (filters.audience === 'tier') {
                 query = query.eq('subscription_tier', filters.tier || 'free')
+            }
+
+            if (filters.isSystemAdmin) {
+                query = query.eq('is_admin', true)
+            }
+
+            if (filters.eventId) {
+                const { data: userIdsInEvent } = await supabase
+                    .from('group_members')
+                    .select('user_id, groups!inner(event_id)')
+                    .eq('groups.event_id', filters.eventId)
+
+                const ids = [...new Set((userIdsInEvent || []).map(m => m.user_id))]
+                query = query.in('id', ids)
             }
 
             const { data: users, error } = await query
@@ -109,8 +155,9 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
             // Smart logic: Get specific group notifications
             // Join with profiles to get user_name
             const { data: targets, error } = await supabase.rpc('get_smart_campaign_targets', {
-                p_days_ahead: filters.daysNextMatches || 3,
-                p_only_admins: filters.targetGroupAdmins || false
+                p_days_ahead: filters.daysNextMatches || null,
+                p_only_admins: filters.targetGroupAdmins || false,
+                p_event_id: filters.eventId || null
             })
             if (error) throw error
 
