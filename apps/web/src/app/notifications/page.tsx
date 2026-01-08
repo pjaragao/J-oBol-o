@@ -357,11 +357,18 @@ function NotificationsContent() {
                                     notifications.map((notification) => (
                                         <div
                                             key={notification.id}
+                                            onClick={() => {
+                                                if (!notification.is_read) markAsRead(notification.id, false)
+                                                if (notification.data?.link) {
+                                                    router.push(notification.data.link)
+                                                }
+                                            }}
                                             className={cn(
-                                                "group relative flex gap-4 rounded-xl border p-4 transition-all duration-200",
+                                                "group relative flex gap-4 rounded-xl border p-4 transition-all duration-200 cursor-pointer",
                                                 notification.is_read
                                                     ? "bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800"
-                                                    : "bg-green-50/50 border-green-100 dark:bg-green-950/10 dark:border-green-900/30 shadow-sm"
+                                                    : "bg-green-50/50 border-green-100 dark:bg-green-950/10 dark:border-green-900/30 shadow-sm",
+                                                notification.data?.link && "hover:border-green-500 dark:hover:border-green-500"
                                             )}
                                         >
                                             <div className="mt-1 flex-shrink-0">
@@ -392,14 +399,20 @@ function NotificationsContent() {
                                                 {notification.type === 'group_invite' && !notification.is_read && (
                                                     <div className="mt-4 flex flex-wrap gap-2">
                                                         <button
-                                                            onClick={() => acceptInvitation(notification)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                acceptInvitation(notification)
+                                                            }}
                                                             className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95"
                                                         >
                                                             <Check className="h-3.5 w-3.5" />
                                                             Aceitar Convite
                                                         </button>
                                                         <button
-                                                            onClick={() => declineInvitation(notification.id)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                declineInvitation(notification.id)
+                                                            }}
                                                             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 active:scale-95"
                                                         >
                                                             <CloseIcon className="h-3.5 w-3.5" />
@@ -407,11 +420,24 @@ function NotificationsContent() {
                                                         </button>
                                                     </div>
                                                 )}
+
+                                                {notification.data?.link && notification.type !== 'group_invite' && (
+                                                    <div className="mt-4">
+                                                        <button
+                                                            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all hover:bg-slate-200 dark:hover:bg-slate-700"
+                                                        >
+                                                            Ver Detalhes
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="flex flex-shrink-0 items-start gap-1 ml-2">
                                                 <button
-                                                    onClick={() => markAsRead(notification.id, notification.is_read)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        markAsRead(notification.id, notification.is_read)
+                                                    }}
                                                     className={cn(
                                                         "p-2 rounded-lg transition-colors",
                                                         notification.is_read
@@ -423,7 +449,10 @@ function NotificationsContent() {
                                                     {notification.is_read ? <Bell className="h-4 w-4" /> : <Check className="h-4 w-4" />}
                                                 </button>
                                                 <button
-                                                    onClick={() => deleteNotification(notification.id)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        deleteNotification(notification.id)
+                                                    }}
                                                     className="p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 rounded-lg transition-colors"
                                                     title="Excluir"
                                                 >

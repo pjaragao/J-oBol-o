@@ -195,9 +195,27 @@ export function CampaignForm() {
 
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-bold mb-1.5 text-slate-700 dark:text-slate-300">
-                                Título
-                            </label>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                                    Título
+                                </label>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setData({ ...data, title: data.title + '{user_name}' })}
+                                        className="text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 px-2 py-0.5 rounded font-mono text-slate-600 dark:text-slate-400"
+                                    >
+                                        + {'{user_name}'}
+                                    </button>
+                                    {filters.audience === 'smart_group' && (
+                                        <button
+                                            onClick={() => setData({ ...data, title: data.title + '{group_name}' })}
+                                            className="text-[10px] bg-green-100 dark:bg-green-900/30 hover:bg-green-200 px-2 py-0.5 rounded font-mono text-green-700 dark:text-green-400"
+                                        >
+                                            + {'{group_name}'}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                             <input
                                 type="text"
                                 value={data.title}
@@ -205,15 +223,30 @@ export function CampaignForm() {
                                 placeholder={filters.audience === 'smart_group' ? "Não esqueça seu palpite em {group_name}!" : "Grande partida hoje!"}
                                 className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-green-500 outline-none transition-all"
                             />
-                            {filters.audience === 'smart_group' && (
-                                <p className="text-[10px] text-slate-400 mt-1">Use <code>{'{group_name}'}</code> para o nome do grupo.</p>
-                            )}
                         </div>
 
                         <div>
-                            <label className="block text-sm font-bold mb-1.5 text-slate-700 dark:text-slate-300">
-                                Mensagem
-                            </label>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                                    Mensagem
+                                </label>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setData({ ...data, message: data.message + '{user_name}' })}
+                                        className="text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 px-2 py-0.5 rounded font-mono text-slate-600 dark:text-slate-400"
+                                    >
+                                        + {'{user_name}'}
+                                    </button>
+                                    {filters.audience === 'smart_group' && (
+                                        <button
+                                            onClick={() => setData({ ...data, message: data.message + '{group_name}' })}
+                                            className="text-[10px] bg-green-100 dark:bg-green-900/30 hover:bg-green-200 px-2 py-0.5 rounded font-mono text-green-700 dark:text-green-400"
+                                        >
+                                            + {'{group_name}'}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                             <textarea
                                 value={data.message}
                                 onChange={(e) => setData({ ...data, message: e.target.value })}
@@ -221,6 +254,10 @@ export function CampaignForm() {
                                 placeholder="Escreva aqui o texto da notificação..."
                                 className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-green-500 outline-none transition-all resize-none"
                             />
+                            <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-1">
+                                <Info className="h-3 w-3" />
+                                Dica: Use as tags acima para personalizar a mensagem para cada usuário.
+                            </p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -250,11 +287,11 @@ export function CampaignForm() {
                                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-green-500 outline-none"
                                 >
                                     {filters.audience === 'smart_group' ? (
-                                        <option value="dynamic_group">Página do Grupo (Dinâmico)</option>
+                                        <option value="fixed">Página do Grupo (Automático)</option>
                                     ) : (
                                         <>
                                             <option value="fixed">Link Fixo</option>
-                                            <option value="none" disabled>Nenhum</option>
+                                            <option value="none">Nenhum</option>
                                         </>
                                     )}
                                 </select>
@@ -280,84 +317,100 @@ export function CampaignForm() {
             </div>
 
             {/* Right: Preview & Send */}
-            <div className="space-y-6">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 sticky top-24">
-                    <div className="flex items-center gap-2 mb-6">
-                        <Send className="h-5 w-5 text-green-600" />
-                        <h2 className="text-lg font-bold">3. Revisão e Envio</h2>
-                    </div>
+            <div className="flex flex-col gap-6">
+                <div className="sticky top-24 space-y-6">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-2 mb-6">
+                            <Send className="h-5 w-5 text-green-600" />
+                            <h2 className="text-lg font-bold">3. Revisão e Envio</h2>
+                        </div>
 
-                    <div className="space-y-4">
-                        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                            <span className="text-xs uppercase tracking-wider font-bold text-slate-400">Total de Destinatários</span>
-                            <div className="flex items-center gap-3 mt-1 text-2xl font-black">
-                                {loadingPreview ? (
-                                    <Loader2 className="h-6 w-6 animate-spin text-green-600" />
-                                ) : (
-                                    <span>{previewCount ?? 0}</span>
+                        <div className="space-y-4">
+                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                                <span className="text-xs uppercase tracking-wider font-bold text-slate-400">Total de Destinatários</span>
+                                <div className="flex items-center gap-3 mt-1 text-2xl font-black">
+                                    {loadingPreview ? (
+                                        <Loader2 className="h-6 w-6 animate-spin text-green-600" />
+                                    ) : (
+                                        <span>{previewCount ?? 0}</span>
+                                    )}
+                                    <Users className="h-6 w-6 text-slate-300" />
+                                </div>
+                            </div>
+
+                            {status && (
+                                <div className={cn(
+                                    "p-4 rounded-xl flex gap-3 text-sm font-medium",
+                                    status.type === 'success'
+                                        ? "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400 border border-green-100 dark:border-green-900/50"
+                                        : "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400 border border-red-100 dark:border-red-900/50"
+                                )}>
+                                    {status.type === 'success' ? <CheckCircle2 className="h-5 w-5 shrink-0" /> : <AlertTriangle className="h-5 w-5 shrink-0" />}
+                                    {status.message}
+                                </div>
+                            )}
+
+                            <button
+                                onClick={handleSend}
+                                disabled={sending || previewCount === 0 || !data.title || !data.message}
+                                className={cn(
+                                    "w-full py-4 rounded-xl font-black flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg",
+                                    sending || previewCount === 0 || !data.title || !data.message
+                                        ? "bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-slate-800"
+                                        : "bg-green-600 text-white hover:bg-green-700 shadow-green-600/20"
                                 )}
-                                <Users className="h-6 w-6 text-slate-300" />
-                            </div>
+                            >
+                                {sending ? (
+                                    <>
+                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                        Enviando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Send className="h-5 w-5" />
+                                        Enviar Campanha
+                                    </>
+                                )}
+                            </button>
+
+                            <p className="text-[10px] text-center text-slate-400 px-4">
+                                Ao clicar em enviar, as notificações serão processadas e aparecerão em tempo real para os usuários ativos.
+                            </p>
                         </div>
-
-                        {status && (
-                            <div className={cn(
-                                "p-4 rounded-xl flex gap-3 text-sm font-medium",
-                                status.type === 'success'
-                                    ? "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400 border border-green-100 dark:border-green-900/50"
-                                    : "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400 border border-red-100 dark:border-red-900/50"
-                            )}>
-                                {status.type === 'success' ? <CheckCircle2 className="h-5 w-5 shrink-0" /> : <AlertTriangle className="h-5 w-5 shrink-0" />}
-                                {status.message}
-                            </div>
-                        )}
-
-                        <button
-                            onClick={handleSend}
-                            disabled={sending || previewCount === 0 || !data.title || !data.message}
-                            className={cn(
-                                "w-full py-4 rounded-xl font-black flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg",
-                                sending || previewCount === 0 || !data.title || !data.message
-                                    ? "bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-slate-800"
-                                    : "bg-green-600 text-white hover:bg-green-700 shadow-green-600/20"
-                            )}
-                        >
-                            {sending ? (
-                                <>
-                                    <Loader2 className="h-5 w-5 animate-spin" />
-                                    Enviando...
-                                </>
-                            ) : (
-                                <>
-                                    <Send className="h-5 w-5" />
-                                    Enviar Campanha
-                                </>
-                            )}
-                        </button>
-
-                        <p className="text-[10px] text-center text-slate-400 px-4">
-                            Ao clicar em enviar, as notificações serão processadas e aparecerão em tempo real para os usuários ativos.
-                        </p>
                     </div>
-                </div>
 
-                {/* Mockup Preview */}
-                <div className="bg-slate-50 dark:bg-black/20 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">Preview no App</span>
-                    <div className="bg-white dark:bg-slate-900 rounded-xl p-3 shadow-sm border border-slate-100 dark:border-slate-800 flex gap-3 animate-pulse">
-                        <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                            {data.type === 'info' && <Info className="h-4 w-4 text-blue-500" />}
-                            {data.type === 'success' && <Star className="h-4 w-4 text-green-500" />}
-                            {data.type === 'warning' && <AlertTriangle className="h-4 w-4 text-amber-500" />}
-                            {data.type === 'points' && <Trophy className="h-4 w-4 text-yellow-500" />}
-                        </div>
-                        <div className="flex-1 space-y-1">
-                            <div className="h-3 w-3/4 bg-slate-100 dark:bg-slate-800 rounded" />
-                            <div className="h-2 w-full bg-slate-50 dark:bg-slate-800/50 rounded" />
+                    {/* Mockup Preview Inside Sticky */}
+                    <div className="bg-slate-50 dark:bg-black/20 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">Preview no App</span>
+                        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 shadow-sm border border-slate-100 dark:border-slate-800 flex gap-3">
+                            <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                                {data.type === 'info' && <Info className="h-4 w-4 text-blue-500" />}
+                                {data.type === 'success' && <Star className="h-4 w-4 text-green-500" />}
+                                {data.type === 'warning' && <AlertTriangle className="h-4 w-4 text-amber-500" />}
+                                {data.type === 'points' && <Trophy className="h-4 w-4 text-yellow-500" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                    {data.title.replace(/{user_name}/g, 'Paulo').replace(/{group_name}/g, 'Amigos do Futebol') || 'Título da Notificação'}
+                                </p>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                                    {data.message.replace(/{user_name}/g, 'Paulo').replace(/{group_name}/g, 'Amigos do Futebol') || 'Sua mensagem aparecerá aqui após ser digitada...'}
+                                </p>
+                                {data.actionLinkType !== 'none' && (
+                                    <div className="mt-2">
+                                        <div className="inline-flex items-center gap-1 rounded-md bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                                            Ver Detalhes
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
         </div>
+            </div >
+        </div >
     )
 }

@@ -15,7 +15,7 @@ export interface CampaignData {
     title: string
     message: string
     type: 'info' | 'success' | 'warning' | 'group_invite' | 'points'
-    actionLinkType: 'fixed' | 'dynamic_group'
+    actionLinkType: 'fixed'
     fixedLink?: string
 }
 
@@ -68,7 +68,7 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
         let notificationsToInsert: any[] = []
 
         if (filters.audience === 'all' || filters.audience === 'tier') {
-            let query = supabase.from('profiles').select('id')
+            let query = supabase.from('profiles').select('id, display_name')
             if (filters.audience === 'tier') {
                 query = query.eq('subscription_tier', filters.tier || 'free')
             }
@@ -78,40 +78,60 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
 
             notificationsToInsert = users.map(u => ({
                 user_id: u.id,
-                title: data.title,
-                message: data.message,
+                title: data.title.replace(/{user_name}/g, u.display_name || 'Usuário'),
+                message: data.message.replace(/{user_name}/g, u.display_name || 'Usuário'),
                 type: data.type,
                 is_read: false,
                 data: data.actionLinkType === 'fixed' ? { link: data.fixedLink } : {}
             }))
         } else if (filters.audience === 'manual') {
-            notificationsToInsert = (filters.selectedUserIds || []).map(userId => ({
-                user_id: userId,
-                title: data.title,
-                message: data.message,
+            // Fetch user names for manual selection too
+            const { data: users, error } = await supabase
+                .from('profiles')
+                .select('id, display_name')
+                .in('id', filters.selectedUserIds || [])
+
+            if (error) throw error
+
+            notificationsToInsert = users.map(u => ({
+                user_id: u.id,
+                title: data.title.replace(/{user_name}/g, u.display_name || 'Usuário'),
+                message: data.message.replace(/{user_name}/g, u.display_name || 'Usuário'),
                 type: data.type,
                 is_read: false,
                 data: data.actionLinkType === 'fixed' ? { link: data.fixedLink } : {}
             }))
         } else if (filters.audience === 'smart_group') {
             // Smart logic: Get specific group notifications
+            // Join with profiles to get user_name
             const { data: targets, error } = await supabase.rpc('get_smart_campaign_targets', {
                 p_days_ahead: filters.daysNextMatches || 3
             })
             if (error) throw error
 
-            notificationsToInsert = (targets as any[]).map(t => ({
-                user_id: t.user_id,
-                title: data.title.replace('{group_name}', t.group_name),
-                message: data.message.replace('{group_name}', t.group_name),
-                type: data.type,
-                is_read: false,
-                data: {
-                    group_id: t.group_id,
-                    group_name: t.group_name,
-                    link: `/groups/${t.group_id}`
+            // Fetch user names for these targets
+            const userIds = [...new Set((targets as any[]).map(t => t.user_id))]
+            const { data: users } = await supabase.from('profiles').select('id, display_name').in('id', userIds)
+            const userMap = Object.fromEntries((users || []).map(u => [u.id, u.display_name]))
+
+            notificationsToInsert = (targets as any[]).map(t => {
+                const userName = userMap[t.user_id] || 'Usuário'
+                let finalTitle = data.title.replace(/{user_name}/g, userName).replace(/{group_name}/g, t.group_name)
+                let finalMessage = data.message.replace(/{user_name}/g, userName).replace(/{group_name}/g, t.group_name)
+
+                return {
+                    user_id: t.user_id,
+                    title: finalTitle,
+                    message: finalMessage,
+                    type: data.type,
+                    is_read: false,
+                    data: {
+                        group_id: t.group_id,
+                        group_name: t.group_name,
+                        link: `/groups/${t.group_id}`
+                    }
                 }
-            }))
+            })
         }
 
         if (notificationsToInsert.length === 0) {

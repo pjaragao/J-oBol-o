@@ -19,6 +19,7 @@ interface Notification {
     data?: {
         group_id?: string
         group_name?: string
+        link?: string
     }
 }
 
@@ -217,10 +218,17 @@ export function NotificationBell({ userId }: { userId: string }) {
                                 notifications.map((notification) => (
                                     <div
                                         key={notification.id}
-                                        onClick={() => !notification.is_read && markAsRead(notification.id)}
+                                        onClick={() => {
+                                            if (!notification.is_read) markAsRead(notification.id)
+                                            if (notification.data?.link) {
+                                                router.push(notification.data.link)
+                                                setIsOpen(false)
+                                            }
+                                        }}
                                         className={cn(
                                             "flex gap-3 p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors border-b border-slate-100/50 dark:border-slate-800/30",
-                                            !notification.is_read && "bg-green-50/30 dark:bg-green-500/5"
+                                            !notification.is_read && "bg-green-50/30 dark:bg-green-500/5",
+                                            notification.data?.link && "hover:border-l-4 hover:border-l-green-500"
                                         )}
                                     >
                                         <div className="mt-1 flex-shrink-0">
@@ -263,6 +271,16 @@ export function NotificationBell({ userId }: { userId: string }) {
                                                     >
                                                         <X className="h-3 w-3" />
                                                         Recusar
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {notification.data?.link && notification.type !== 'group_invite' && (
+                                                <div className="mt-3">
+                                                    <button
+                                                        className="inline-flex items-center gap-1 rounded-md bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-[10px] font-bold text-slate-700 dark:text-slate-300 transition-all hover:bg-slate-200 dark:hover:bg-slate-700"
+                                                    >
+                                                        Ver Detalhes
                                                     </button>
                                                 </div>
                                             )}
