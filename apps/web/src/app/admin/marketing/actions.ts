@@ -8,6 +8,9 @@ export interface CampaignFilters {
     tier?: 'free' | 'premium' | 'pro'
     daysNextMatches?: number
     daysInactive?: number
+    targetGroupAdmins?: boolean
+    smartTargetTab?: 'dashboard' | 'bets'
+    smartMatchFilter?: 'all' | 'pending' | 'completed' | 'missed'
     selectedUserIds?: string[]
 }
 
@@ -49,7 +52,8 @@ export async function getAudiencePreview(filters: CampaignFilters) {
                 // Complex query: Find (user, group) pairs where there are matches in next X days but no bet
                 // This is hard to do in a single count. We'll do a simplified count of target user-group pairs.
                 const { data, error } = await supabase.rpc('get_smart_campaign_preview', {
-                    p_days_ahead: filters.daysNextMatches
+                    p_days_ahead: filters.daysNextMatches,
+                    p_only_admins: filters.targetGroupAdmins || false
                 })
                 if (error) throw error
                 count = data || 0
@@ -105,7 +109,8 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
             // Smart logic: Get specific group notifications
             // Join with profiles to get user_name
             const { data: targets, error } = await supabase.rpc('get_smart_campaign_targets', {
-                p_days_ahead: filters.daysNextMatches || 3
+                p_days_ahead: filters.daysNextMatches || 3,
+                p_only_admins: filters.targetGroupAdmins || false
             })
             if (error) throw error
 
@@ -128,7 +133,7 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
                     data: {
                         group_id: t.group_id,
                         group_name: t.group_name,
-                        link: `/groups/${t.group_id}`
+                        link: `/groups/${t.group_id}?tab=${filters.smartTargetTab || 'bets'}${filters.smartTargetTab === 'bets' ? `&filter=${filters.smartMatchFilter || 'pending'}` : ''}`
                     }
                 }
             })

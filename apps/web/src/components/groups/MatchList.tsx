@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -39,11 +40,32 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
 
     const getTeam = (team: any) => Array.isArray(team) ? team[0] : team
 
-    const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed' | 'missed'>('all')
+    const searchParams = useSearchParams()
+    const router = useRouter()
+
+    const filterFromUrl = searchParams.get('filter') as any
+    const validFilters = ['all', 'pending', 'completed', 'missed']
+    const initialFilter = validFilters.includes(filterFromUrl) ? filterFromUrl : 'all'
+
+    const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed' | 'missed'>(initialFilter)
     const [roundFilter, setRoundFilter] = useState<string>('all')
     const [groupFilter, setGroupFilter] = useState<string>('all')
     const [searchQuery, setSearchQuery] = useState('')
     const [showFilters, setShowFilters] = useState(false)
+
+    // Sync filter from URL
+    useEffect(() => {
+        if (filterFromUrl && validFilters.includes(filterFromUrl) && filterFromUrl !== statusFilter) {
+            setStatusFilter(filterFromUrl)
+        }
+    }, [filterFromUrl])
+
+    const handleFilterChange = (f: typeof statusFilter) => {
+        setStatusFilter(f)
+        const params = new URLSearchParams(searchParams.toString())
+        params.set('filter', f)
+        router.replace(`?${params.toString()}`, { scroll: false })
+    }
 
     const supabase = createClient()
 
@@ -249,7 +271,7 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                             {['all', 'pending', 'completed', 'missed'].map(f => (
                                 <button
                                     key={f}
-                                    onClick={() => setStatusFilter(f as any)}
+                                    onClick={() => handleFilterChange(f as any)}
                                     className={cn(
                                         "px-2.5 py-1 text-[10px] font-bold rounded-md whitespace-nowrap transition-all flex-1 sm:flex-none uppercase tracking-tight",
                                         statusFilter === f

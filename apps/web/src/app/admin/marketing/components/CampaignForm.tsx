@@ -181,6 +181,56 @@ export function CampaignForm() {
                                     <Info className="h-4 w-4 shrink-0" />
                                     <p>Esta campanha gerará notificações individuais para cada grupo onde o usuário tem apostas pendentes. O link será dinâmico para cada grupo.</p>
                                 </div>
+
+                                <div className="space-y-4 pt-2">
+                                    <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <Target className="h-4 w-4 text-green-600" />
+                                                <span className="text-sm font-bold">Apenas Administradores</span>
+                                            </div>
+                                            <p className="text-[10px] text-slate-500 mt-0.5">Enviar apenas para donos e moderadores do grupo.</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={filters.targetGroupAdmins}
+                                                onChange={(e) => setFilters({ ...filters, targetGroupAdmins: e.target.checked })}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                                        </label>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Aba de Destino</label>
+                                            <select
+                                                value={filters.smartTargetTab || 'bets'}
+                                                onChange={(e) => setFilters({ ...filters, smartTargetTab: e.target.value as any })}
+                                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none"
+                                            >
+                                                <option value="dashboard">Dashboard</option>
+                                                <option value="bets">Apostas</option>
+                                            </select>
+                                        </div>
+                                        {filters.smartTargetTab === 'bets' && (
+                                            <div className="space-y-1.5">
+                                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Filtro de Partidas</label>
+                                                <select
+                                                    value={filters.smartMatchFilter || 'pending'}
+                                                    onChange={(e) => setFilters({ ...filters, smartMatchFilter: e.target.value as any })}
+                                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none"
+                                                >
+                                                    <option value="pending">Pendentes</option>
+                                                    <option value="all">Todas</option>
+                                                    <option value="completed">Feitas</option>
+                                                    <option value="missed">Esquecidas</option>
+                                                </select>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>

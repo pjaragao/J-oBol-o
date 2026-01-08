@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { MatchList } from './MatchList'
 import { RankingList } from './RankingList'
 import { MemberList } from './MemberList'
@@ -17,7 +18,30 @@ interface GroupTabsProps {
 }
 
 export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTabsProps) {
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'bets' | 'ranking' | 'members' | 'settings'>('dashboard')
+    const searchParams = useSearchParams()
+    const router = useRouter()
+
+    // Get tab from URL or fallback to dashboard
+    const tabFromUrl = searchParams.get('tab') as any
+    const validTabs = ['dashboard', 'bets', 'ranking', 'members', 'settings']
+    const initialTab = validTabs.includes(tabFromUrl) ? tabFromUrl : 'dashboard'
+
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'bets' | 'ranking' | 'members' | 'settings'>(initialTab)
+
+    // Sync state with URL when it changes (for notifications/links)
+    useEffect(() => {
+        if (tabFromUrl && validTabs.includes(tabFromUrl) && tabFromUrl !== activeTab) {
+            setActiveTab(tabFromUrl)
+        }
+    }, [tabFromUrl])
+
+    const handleTabChange = (tab: typeof activeTab) => {
+        setActiveTab(tab)
+        // Update URL without full reload
+        const params = new URLSearchParams(searchParams.toString())
+        params.set('tab', tab)
+        router.replace(`?${params.toString()}`, { scroll: false })
+    }
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm px-3 py-4 sm:px-6 sm:py-6 min-h-[400px] mb-20 sm:mb-0">
@@ -42,7 +66,7 @@ export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTab
                     Apostas
                 </button>
                 <button
-                    onClick={() => setActiveTab('ranking')}
+                    onClick={() => handleTabChange('ranking')}
                     className={`pb-3 border-b-2 transition-colors ${activeTab === 'ranking'
                         ? 'border-green-600 text-green-700 dark:text-green-400'
                         : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
@@ -51,7 +75,7 @@ export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTab
                     Ranking
                 </button>
                 <button
-                    onClick={() => setActiveTab('members')}
+                    onClick={() => handleTabChange('members')}
                     className={`pb-3 border-b-2 transition-colors ${activeTab === 'members'
                         ? 'border-green-600 text-green-700 dark:text-green-400'
                         : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
@@ -107,7 +131,7 @@ export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTab
             )}
 
             {/* Mobile Bottom Navigation */}
-            <GroupBottomNav activeTab={activeTab} setActiveTab={setActiveTab} isAdmin={isAdmin} />
+            <GroupBottomNav activeTab={activeTab} setActiveTab={handleTabChange} isAdmin={isAdmin} />
         </div>
     )
 }
