@@ -1,12 +1,25 @@
 'use client'
 
-import { useState } from 'react'
-import { manualUpdateMatches, manualUpdateLiveMatches, manualSendReminders } from '@/app/admin/actions'
-import { RefreshCw, Zap, Bell, CheckCircle2, AlertCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { manualUpdateMatches, manualUpdateLiveMatches, manualSendReminders, getPendingBetsCount, recalculateAllPendingBets } from '@/app/admin/actions'
+import { RefreshCw, Zap, Bell, CheckCircle2, AlertCircle, Calculator } from 'lucide-react'
 
 export function CronControls() {
     const [loading, setLoading] = useState<string | null>(null)
     const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null)
+    const [pendingCount, setPendingCount] = useState<number>(0)
+
+    // Check for pending bets on mount
+    useEffect(() => {
+        checkPendingBets()
+    }, [])
+
+    const checkPendingBets = async () => {
+        const result = await getPendingBetsCount()
+        if (result.success) {
+            setPendingCount(result.count)
+        }
+    }
 
     const handleAction = async (actionName: string, actionFn: () => Promise<any>) => {
         setLoading(actionName)
@@ -15,6 +28,8 @@ export function CronControls() {
             const res = await actionFn()
             if (res.success) {
                 setStatus({ type: 'success', message: res.message })
+                // Refresh pending count after any action
+                checkPendingBets()
             } else {
                 setStatus({ type: 'error', message: res.message })
             }
@@ -30,6 +45,32 @@ export function CronControls() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-3">
+                {/* Pending Bets Alert & Recalculate Button */}
+                {pendingCount > 0 && (
+                    <div className="animate-in slide-in-from-top-2 duration-300">
+                        <button
+                            onClick={() => handleAction('recalculate', recalculateAllPendingBets)}
+                            disabled={!!loading}
+                            className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl hover:from-orange-600 hover:to-red-600 transition-all shadow-lg shadow-orange-200 dark:shadow-orange-900/20 disabled:opacity-50"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 bg-white/20 rounded-lg flex items-center justify-center">
+                                    <Calculator className={`h-4 w-4 ${loading === 'recalculate' ? 'animate-spin' : ''}`} />
+                                </div>
+                                <div className="text-left">
+                                    <p className="text-sm font-bold">Recalcular Pontos Pendentes</p>
+                                    <p className="text-[10px] text-orange-100">
+                                        {pendingCount} aposta(s) não processada(s) encontrada(s)
+                                    </p>
+                                </div>
+                            </div>
+                            <span className="bg-white/20 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                {pendingCount}
+                            </span>
+                        </button>
+                    </div>
+                )}
+
                 {/* Full Sync */}
                 <button
                     onClick={() => handleAction('matches', manualUpdateMatches)}
@@ -85,8 +126,8 @@ export function CronControls() {
             {/* Status Message */}
             {status && (
                 <div className={`flex items-center gap-2 p-3 rounded-lg border text-sm animate-in slide-in-from-top-2 duration-300 ${status.type === 'success'
-                        ? 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800 text-green-700 dark:text-green-300'
-                        : 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800 text-red-700 dark:text-red-300'
+                    ? 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800 text-green-700 dark:text-green-300'
+                    : 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800 text-red-700 dark:text-red-300'
                     }`}>
                     {status.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                     {status.message}
@@ -95,3 +136,4 @@ export function CronControls() {
         </div>
     )
 }
+

@@ -170,7 +170,7 @@ async function performUpdate(onlyLive: boolean = false) {
 
                     let pointsRecalculated = 0
                     for (const match of finishedMatches) {
-                        const { data: count } = await supabase.rpc('recalculate_match_points', { match_id: match.id })
+                        const { data: count } = await supabase.rpc('recalculate_match_points', { p_match_id: match.id })
                         pointsRecalculated += count || 0
                     }
 
