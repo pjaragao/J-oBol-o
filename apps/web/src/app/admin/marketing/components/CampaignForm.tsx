@@ -63,13 +63,16 @@ export function CampaignForm() {
         loadEvents()
     }, [])
 
-    // Update preview when filters change
     useEffect(() => {
         const fetchPreview = async () => {
             setLoadingPreview(true)
             const result = await getAudiencePreview(filters)
             if (result.success) {
                 setPreviewCount(result.count)
+                setStatus(null)
+            } else {
+                setPreviewCount(0)
+                setStatus({ type: 'error', message: `Erro no Preview: ${result.message}` })
             }
             setLoadingPreview(false)
         }

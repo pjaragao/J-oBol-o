@@ -73,22 +73,13 @@ export async function getAudiencePreview(filters: CampaignFilters) {
         } else if (filters.audience === 'manual') {
             count = filters.selectedUserIds?.length || 0
         } else if (filters.audience === 'smart_group') {
-            // Logic for smart group is more complex as it returns notifications count (potentially multiple per user)
-            // For preview, we'll return number of *expected notifications*
-            if (filters.daysNextMatches) {
-                const now = new Date().toISOString()
-                const future = new Date(Date.now() + (filters.daysNextMatches * 24 * 60 * 60 * 1000)).toISOString()
-
-                // Complex query: Find (user, group) pairs where there are matches in next X days but no bet
-                // This is hard to do in a single count. We'll do a simplified count of target user-group pairs.
-                const { data, error } = await supabase.rpc('get_smart_campaign_preview', {
-                    p_days_ahead: filters.daysNextMatches || null,
-                    p_only_admins: filters.targetGroupAdmins || false,
-                    p_event_id: filters.eventId || null
-                })
-                if (error) throw error
-                count = data || 0
-            }
+            const { data, error } = await supabase.rpc('get_smart_campaign_preview', {
+                p_days_ahead: filters.daysNextMatches || null,
+                p_only_admins: filters.targetGroupAdmins || false,
+                p_event_id: filters.eventId || null
+            })
+            if (error) throw error
+            count = data || 0
         }
 
         return { success: true, count }
