@@ -10,22 +10,13 @@ import {
     Trophy,
     Star,
     CheckCircle2,
-import {
-        Users,
-        Target,
-        Send,
-        Info,
-        AlertTriangle,
-        Trophy,
-        Star,
-        CheckCircle2,
-        Calendar,
-        Layers,
-        Search,
-        Loader2,
-        Gamepad2,
-        Shield
-    } from 'lucide-react'
+    Calendar,
+    Layers,
+    Search,
+    Loader2,
+    Gamepad2,
+    Shield
+} from 'lucide-react'
 import {
     getAudiencePreview,
     sendCampaign,
