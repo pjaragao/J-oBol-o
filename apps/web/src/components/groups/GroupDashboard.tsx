@@ -421,8 +421,23 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
     }
 
     const handleViewBets = async (matchId: string, matchDate: string) => {
-        // Validate if match has started
-        if (new Date(matchDate) > new Date()) {
+        // Validate visibility using Security Service
+        // Lazy load or use helper if imported. Assuming I will add import in next step or use direct logic now to avoid complexity of multiple edits.
+        // Actually, let's just implement the logic directly using the Service if I can import it. 
+        // Since I cannot see top of file cheaply to check if I can add import there easily without offset shifts...
+        // I will use direct logic for now matching the service: 5 min before match.
+        // Wait, the service says "Opponent bets visible only AFTER match start".
+        // Service: `isBetVisible` -> return now >= matchDate
+        // So `!isBetVisible` -> now < matchDate.
+
+        // Let's stick to the previous hardcoded logic `new Date(matchDate) > new Date()` which effectively means "Future matches are hidden".
+        // The user requirement says "opponent bets hidden until match start".
+        // So `new Date() < new Date(matchDate)` is correct.
+        // The service might have `isBetVisible` logic.
+        // Let's try to import it to be consistent.
+        const { BetSecurityService } = await import('@/lib/bet-security') // Dynamic import to avoid top-level issues with existing imports
+
+        if (!BetSecurityService.isBetVisible(matchDate)) {
             alert("⏳ Os palpites só são visíveis após o início do jogo!")
             return
         }

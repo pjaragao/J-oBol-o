@@ -1,17 +1,17 @@
-'use client'
+import { BetSecurityService } from '@/lib/bet-security'
 
-import { useState, useEffect, useMemo } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, Info, Search, Filter, ChevronDown, Check, RefreshCw } from 'lucide-react'
-import { cn } from '@/lib/utils'
+// ... existing imports ...
 
-interface MatchListProps {
-    matches: any[]
-    groupId: string
-    userId: string
+// ... inside MatchList component ...
+
+// In filteredMatches useMemo:
+const isLocked = BetSecurityService.isBettingLocked(match.match_date)
+
+// In render loop:
+const locked = BetSecurityService.isBettingLocked(match.match_date)
+matches: any[]
+groupId: string
+userId: string
 }
 
 interface BetState {
@@ -176,11 +176,8 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
         }
     }, [bets, activeMatchId])
 
-    const isMatchLocked = (matchDate: string) => {
-        const date = new Date(matchDate)
-        const now = new Date()
-        return (date.getTime() - now.getTime()) < 5 * 60 * 1000
-    }
+
+
 
     const getDirtyBetsCount = () => Object.values(bets).filter(b => b.isDirty && b.home !== '' && b.away !== '').length
 
