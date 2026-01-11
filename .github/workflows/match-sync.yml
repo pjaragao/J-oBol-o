@@ -1,0 +1,16 @@
+name: Match Sync Cron
+
+on:
+  schedule:
+    - cron: '*/20 * * * *' # Runs every 20 minutes
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  trigger-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Update Matches API
+        run: |
+          curl -X GET "${{ secrets.APP_URL }}/api/cron/update-matches?type=live" \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+          -H "Content-Type: application/json"

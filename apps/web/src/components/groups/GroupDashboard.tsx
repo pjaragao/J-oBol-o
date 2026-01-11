@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, RefreshCw } from 'lucide-react'
 import { calculateLivePoints } from '@/lib/utils/points'
+import { manualUpdateLiveMatches } from '@/app/admin/actions'
 
 interface GroupDashboardProps {
     groupId: string
@@ -130,13 +131,39 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 home_score,
                 away_score,
                 home_team:teams!home_team_id(name, logo_url, short_name),
-                away_team:teams!away_team_id(name, logo_url, short_name)
+                away_team:teams!away_team_id(name, logo_url, short_name),
+                updated_at
             `)
             .eq('event_id', eventId)
             .not('status', 'in', '("finished", "FT", "AET", "PEN")')
             .lt('match_date', now)
             .gt('match_date', threeHoursAgo)
             .order('match_date', { ascending: true })
+
+        // 3. SMART SYNC CHECK (Client trigger)
+        // If there are live matches, check if the data is stale (older than 2 mins)
+        if (live && live.length > 0) {
+            const lastLiveUpdate = live.reduce((latest, match) => {
+                const matchTime = new Date(match.updated_at).getTime()
+                return matchTime > latest ? matchTime : latest
+            }, 0)
+
+            const twoMinutesAgo = Date.now() - 2 * 60 * 1000
+
+            // If the latest update is older than 2 minutes, trigger a background refresh
+            if (lastLiveUpdate < twoMinutesAgo) {
+                console.log('[SmartSync] Data is stale. Triggering background update...')
+                // We call the server action without awaiting to not block the UI render
+                manualUpdateLiveMatches().then(res => {
+                    if (res.success) {
+                        console.log('[SmartSync] Triggered successfully. Will refresh in next poll.')
+                        // Optionally set a flag to refresh sooner
+                    } else {
+                        console.log('[SmartSync] Skipped:', res.message)
+                    }
+                })
+            }
+        }
 
         // 3. Fetch Recent Matches (Last 3 Finished)
         const { data: recent } = await supabase

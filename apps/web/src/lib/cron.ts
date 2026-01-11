@@ -15,6 +15,26 @@ function mapStatus(apiStatus: string): string {
 }
 
 export async function updateMatches(isLive: boolean = false) {
+    const supabase = await createClient()
+
+    // 0. THROTTLING CHECK
+    // Prevent updates if a successful one happened less than 2 minutes ago
+    const THROTTLE_MINUTES = 2
+    const twoMinutesAgo = new Date(Date.now() - THROTTLE_MINUTES * 60 * 1000).toISOString()
+
+    const { data: recentLogs } = await supabase
+        .from('sync_logs')
+        .select('created_at, status')
+        .eq('reosurce_type', 'cron_matches') // Note: using the typo 'reosurce_type' as per existing schema
+        .eq('status', 'success')
+        .gt('created_at', twoMinutesAgo)
+        .limit(1)
+
+    if (recentLogs && recentLogs.length > 0) {
+        console.log(`[Update] Throttled: A successful update occurred recently (${recentLogs[0].created_at}). Skipping.`)
+        return { success: true, throttled: true, message: 'Throttled: Data is fresh.' }
+    }
+
     // If it's live, we loop for ~50 seconds with 10s intervals
     const iterations = isLive ? 5 : 1
     const delay = 10000 // 10 seconds
