@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { CronControls } from '@/components/admin/CronControls'
-import { format } from 'date-fns'
+import { formatInTimeZone } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
 import { Trophy, Users, Calendar, Activity, AlertCircle, Clock } from 'lucide-react'
 
@@ -118,7 +118,7 @@ export default async function AdminDashboard() {
                                         <p className="text-xs text-slate-700 dark:text-slate-300 font-medium flex items-center justify-end gap-1.5 mt-0.5">
                                             <Clock className="h-3 w-3 text-slate-400" />
                                             {event.lastUpdate
-                                                ? format(event.lastUpdate, "dd/MM 'às' HH:mm", { locale: ptBR })
+                                                ? formatInTimeZone(event.lastUpdate, 'America/Sao_Paulo', "dd/MM 'às' HH:mm", { locale: ptBR })
                                                 : 'Nunca'}
                                         </p>
                                     </div>

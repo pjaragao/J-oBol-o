@@ -151,54 +151,164 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
     }
 
     return (
-        <div className="overflow-x-auto bg-white dark:bg-slate-900 shadow sm:rounded-lg border border-gray-100 dark:border-slate-800">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
-                <thead className="bg-slate-50 dark:bg-slate-800">
-                    <tr>
-                        <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                            Pos
-                        </th>
-                        <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                            Jogador
-                        </th>
-                        <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-green-700 dark:text-green-400 uppercase tracking-wider">
-                            Total
-                        </th>
-                        <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                            <div className="flex flex-col items-center">
-                                <span>🎯 Cravadas</span>
-                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(10pts)</span>
-                            </div>
-                        </th>
-                        <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                            <div className="flex flex-col items-center">
-                                <span>📊 Venc+Diff</span>
-                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(7pts)</span>
-                            </div>
-                        </th>
-                        <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                            <div className="flex flex-col items-center">
-                                <span>✓ Vencedor</span>
-                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(5pts)</span>
-                            </div>
-                        </th>
-                        <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                            <div className="flex flex-col items-center">
-                                <span>~ Consolação</span>
-                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(2pts)</span>
-                            </div>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200 dark:divide-slate-800">
-                    {ranking.map((user, index) => {
-                        const isCurrentUser = user.id === currentUserId
-                        return (
-                            <tr key={user.id} className={`${isCurrentUser ? 'bg-green-50 dark:bg-green-900/10' : 'hover:bg-gray-50 dark:hover:bg-slate-800/50'} transition-colors`}>
-                                {/* Position */}
-                                <td className="px-4 py-4 whitespace-nowrap">
-                                    <div className="flex flex-col items-center justify-center">
-                                        <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full font-bold text-sm ${index === 0 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-400' :
+        <div className="space-y-4">
+            {/* Desktop View - Table */}
+            <div className="hidden md:block overflow-x-auto bg-white dark:bg-slate-900 shadow sm:rounded-lg border border-gray-100 dark:border-slate-800">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
+                    <thead className="bg-slate-50 dark:bg-slate-800">
+                        <tr>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                Pos
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                Jogador
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-green-700 dark:text-green-400 uppercase tracking-wider">
+                                Total
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                <div className="flex flex-col items-center">
+                                    <span>🎯 Cravadas</span>
+                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(10pts)</span>
+                                </div>
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                <div className="flex flex-col items-center">
+                                    <span>📊 Venc+Diff</span>
+                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(7pts)</span>
+                                </div>
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                <div className="flex flex-col items-center">
+                                    <span>✓ Vencedor</span>
+                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(5pts)</span>
+                                </div>
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                <div className="flex flex-col items-center">
+                                    <span>~ Consolação</span>
+                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(2pts)</span>
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200 dark:divide-slate-800">
+                        {ranking.map((user, index) => {
+                            const isCurrentUser = user.id === currentUserId
+                            return (
+                                <tr key={user.id} className={`${isCurrentUser ? 'bg-green-50 dark:bg-green-900/10' : 'hover:bg-gray-50 dark:hover:bg-slate-800/50'} transition-colors`}>
+                                    {/* Position */}
+                                    <td className="px-4 py-4 whitespace-nowrap">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full font-bold text-sm ${index === 0 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-400' :
+                                                index === 1 ? 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-300' :
+                                                    index === 2 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-400' :
+                                                        'text-gray-500 dark:text-slate-500'
+                                                }`}>
+                                                {index + 1}
+                                            </span>
+                                            {user.rank_variation !== 0 && (
+                                                <div className={`mt-1 flex items-center gap-0.5 text-[10px] font-bold ${user.rank_variation! > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                                    {user.rank_variation! > 0 ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
+                                                    {Math.abs(user.rank_variation!)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </td>
+
+                                    {/* Player */}
+                                    <td className="px-4 py-4 whitespace-nowrap">
+                                        <div className="flex items-center">
+                                            <div className="flex-shrink-0 h-10 w-10">
+                                                {user.avatar_url ? (
+                                                    <img className="h-10 w-10 rounded-full border border-gray-200 dark:border-slate-700" src={user.avatar_url} alt="" />
+                                                ) : (
+                                                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-400 dark:bg-slate-700">
+                                                        <span className="font-medium leading-none text-white dark:text-slate-200">
+                                                            {user.display_name?.charAt(0).toUpperCase()}
+                                                        </span>
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="ml-4">
+                                                <div className={`text-sm ${isCurrentUser ? 'font-bold text-green-800 dark:text-green-400' : 'font-medium text-slate-900 dark:text-slate-100'}`}>
+                                                    {user.display_name} {isCurrentUser && '(Você)'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    {/* Total Points */}
+                                    <td className="px-4 py-4 whitespace-nowrap text-center">
+                                        <div className="flex flex-col items-center">
+                                            <span className={`inline-flex items-center rounded-full px-3 py-1 text-base font-bold border ${isCurrentUser
+                                                ? 'bg-green-200 dark:bg-green-800 text-green-900 dark:text-green-200 border-green-300 dark:border-green-700'
+                                                : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800/50'
+                                                }`}>
+                                                {user.total_points}
+                                            </span>
+                                            {user.live_points! > 0 && (
+                                                <span className="text-[10px] text-red-500 font-bold animate-pulse mt-0.5">
+                                                    (+{user.live_points}) live
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
+
+                                    {/* Exact Score (10pts) */}
+                                    <td className="px-4 py-4 whitespace-nowrap text-center">
+                                        <div className="text-sm">
+                                            <div className="font-bold text-slate-900 dark:text-slate-100">{user.stats.exact}</div>
+                                            <div className="text-xs text-slate-500 dark:text-slate-400">({user.stats.exact * 10}pts)</div>
+                                        </div>
+                                    </td>
+
+                                    {/* Winner + Diff (7pts) */}
+                                    <td className="px-4 py-4 whitespace-nowrap text-center">
+                                        <div className="text-sm">
+                                            <div className="font-bold text-slate-900 dark:text-slate-100">{user.stats.winnerDiff}</div>
+                                            <div className="text-xs text-slate-500 dark:text-slate-400">({user.stats.winnerDiff * 7}pts)</div>
+                                        </div>
+                                    </td>
+
+                                    {/* Winner (5pts) */}
+                                    <td className="px-4 py-4 whitespace-nowrap text-center">
+                                        <div className="text-sm">
+                                            <div className="font-bold text-slate-900 dark:text-slate-100">{user.stats.winner}</div>
+                                            <div className="text-xs text-slate-500 dark:text-slate-400">({user.stats.winner * 5}pts)</div>
+                                        </div>
+                                    </td>
+
+                                    {/* Consolation (2pts) */}
+                                    <td className="px-4 py-4 whitespace-nowrap text-center">
+                                        <div className="text-sm">
+                                            <div className="font-bold text-slate-900 dark:text-slate-100">{user.stats.consolation}</div>
+                                            <div className="text-xs text-slate-500 dark:text-slate-400">({user.stats.consolation * 2}pts)</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )
+                        })}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Mobile View - List Cards */}
+            <div className="block md:hidden space-y-2">
+                {ranking.map((user, index) => {
+                    const isCurrentUser = user.id === currentUserId
+                    return (
+                        <div
+                            key={user.id}
+                            className={`px-3 py-2.5 rounded-xl border shadow-sm transition-all ${isCurrentUser
+                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                                : 'bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800'
+                                }`}
+                        >
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="flex flex-col items-center">
+                                        <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full font-bold text-xs ${index === 0 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-400' :
                                             index === 1 ? 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-300' :
                                                 index === 2 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-400' :
                                                     'text-gray-500 dark:text-slate-500'
@@ -206,89 +316,114 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
                                             {index + 1}
                                         </span>
                                         {user.rank_variation !== 0 && (
-                                            <div className={`mt-1 flex items-center gap-0.5 text-[10px] font-bold ${user.rank_variation! > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                                {user.rank_variation! > 0 ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
+                                            <div className={`mt-0.5 flex items-center gap-0.5 text-[8px] font-bold ${user.rank_variation! > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                                {user.rank_variation! > 0 ? <ArrowUp className="w-1.5 h-1.5" /> : <ArrowDown className="w-1.5 h-1.5" />}
                                                 {Math.abs(user.rank_variation!)}
                                             </div>
                                         )}
                                     </div>
-                                </td>
-
-                                {/* Player */}
-                                <td className="px-4 py-4 whitespace-nowrap">
-                                    <div className="flex items-center">
-                                        <div className="flex-shrink-0 h-10 w-10">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-shrink-0 h-8 w-8">
                                             {user.avatar_url ? (
-                                                <img className="h-10 w-10 rounded-full border border-gray-200 dark:border-slate-700" src={user.avatar_url} alt="" />
+                                                <img className="h-8 w-8 rounded-full border border-gray-100 dark:border-slate-800" src={user.avatar_url} alt="" />
                                             ) : (
-                                                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-400 dark:bg-slate-700">
-                                                    <span className="font-medium leading-none text-white dark:text-slate-200">
+                                                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800">
+                                                    <span className="font-bold text-xs leading-none text-slate-600 dark:text-slate-400">
                                                         {user.display_name?.charAt(0).toUpperCase()}
                                                     </span>
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="ml-4">
-                                            <div className={`text-sm ${isCurrentUser ? 'font-bold text-green-800 dark:text-green-400' : 'font-medium text-slate-900 dark:text-slate-100'}`}>
-                                                {user.display_name} {isCurrentUser && '(Você)'}
+                                        <span className={`text-sm ${isCurrentUser ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-300'}`}>
+                                            {user.display_name} {isCurrentUser && '(Você)'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    {/* Tooltip for stats breakdown */}
+                                    <div className="group relative">
+                                        <div className="flex flex-col items-end cursor-help">
+                                            <div className="flex items-center gap-1">
+                                                <div className={`text-base font-black ${isCurrentUser ? 'text-green-700 dark:text-green-400' : 'text-slate-900 dark:text-slate-100'}`}>
+                                                    {user.total_points}
+                                                    <span className="text-[10px] font-bold ml-0.5">pts</span>
+                                                </div>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">
+                                                    <circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
+                                                </svg>
+                                            </div>
+                                            {user.live_points! > 0 && (
+                                                <div className="text-[9px] text-red-500 font-bold animate-pulse leading-none">
+                                                    (+{user.live_points} live)
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Dropdown/Tooltip content */}
+                                        <div className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-100 dark:border-slate-700 p-3 z-50 invisible group-hover:visible transition-all opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto">
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-3 border-b border-gray-50 dark:border-slate-700/50 pb-1 text-center">Distribuição de Pontos</div>
+                                            <div className="space-y-2.5">
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-base">🎯</span>
+                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Cravadas</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] text-slate-400">x{user.stats.exact}</span>
+                                                        <span className="inline-flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-md px-1.5 py-0.5 text-xs font-bold min-w-[35px]">
+                                                            {user.stats.exact * 10}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-base">📊</span>
+                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Venc+Diff</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] text-slate-400">x{user.stats.winnerDiff}</span>
+                                                        <span className="inline-flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-md px-1.5 py-0.5 text-xs font-bold min-w-[35px]">
+                                                            {user.stats.winnerDiff * 7}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-base text-green-500">✓</span>
+                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Vencedor</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] text-slate-400">x{user.stats.winner}</span>
+                                                        <span className="inline-flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-md px-1.5 py-0.5 text-xs font-bold min-w-[35px]">
+                                                            {user.stats.winner * 5}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-base text-slate-400">~</span>
+                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Consolação</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] text-slate-400">x{user.stats.consolation}</span>
+                                                        <span className="inline-flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-md px-1.5 py-0.5 text-xs font-bold min-w-[35px]">
+                                                            {user.stats.consolation * 2}
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </td>
-
-                                {/* Total Points */}
-                                <td className="px-4 py-4 whitespace-nowrap text-center">
-                                    <div className="flex flex-col items-center">
-                                        <span className={`inline-flex items-center rounded-full px-3 py-1 text-base font-bold border ${isCurrentUser
-                                            ? 'bg-green-200 dark:bg-green-800 text-green-900 dark:text-green-200 border-green-300 dark:border-green-700'
-                                            : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800/50'
-                                            }`}>
-                                            {user.total_points}
-                                        </span>
-                                        {user.live_points! > 0 && (
-                                            <span className="text-[10px] text-red-500 font-bold animate-pulse mt-0.5">
-                                                (+{user.live_points}) live
-                                            </span>
-                                        )}
-                                    </div>
-                                </td>
-
-                                {/* Exact Score (10pts) */}
-                                <td className="px-4 py-4 whitespace-nowrap text-center">
-                                    <div className="text-sm">
-                                        <div className="font-bold text-slate-900 dark:text-slate-100">{user.stats.exact}</div>
-                                        <div className="text-xs text-slate-500 dark:text-slate-400">({user.stats.exact * 10}pts)</div>
-                                    </div>
-                                </td>
-
-                                {/* Winner + Diff (7pts) */}
-                                <td className="px-4 py-4 whitespace-nowrap text-center">
-                                    <div className="text-sm">
-                                        <div className="font-bold text-slate-900 dark:text-slate-100">{user.stats.winnerDiff}</div>
-                                        <div className="text-xs text-slate-500 dark:text-slate-400">({user.stats.winnerDiff * 7}pts)</div>
-                                    </div>
-                                </td>
-
-                                {/* Winner (5pts) */}
-                                <td className="px-4 py-4 whitespace-nowrap text-center">
-                                    <div className="text-sm">
-                                        <div className="font-bold text-slate-900 dark:text-slate-100">{user.stats.winner}</div>
-                                        <div className="text-xs text-slate-500 dark:text-slate-400">({user.stats.winner * 5}pts)</div>
-                                    </div>
-                                </td>
-
-                                {/* Consolation (2pts) */}
-                                <td className="px-4 py-4 whitespace-nowrap text-center">
-                                    <div className="text-sm">
-                                        <div className="font-bold text-slate-900 dark:text-slate-100">{user.stats.consolation}</div>
-                                        <div className="text-xs text-slate-500 dark:text-slate-400">({user.stats.consolation * 2}pts)</div>
-                                    </div>
-                                </td>
-                            </tr>
-                        )
-                    })}
-                </tbody>
-            </table>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                })}
+            </div>
         </div>
     )
 }

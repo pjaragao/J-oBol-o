@@ -36,6 +36,12 @@ interface RankingItem {
     live_points?: number
     rank_variation?: number
     exact_scores?: number
+    stats: {
+        exact: number
+        winnerDiff: number
+        winner: number
+        consolation: number
+    }
 }
 
 interface BetWithUser {
@@ -168,6 +174,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
             const pointsMapLiveTotal = new Map<string, number>()
             const livePointsOnlyMap = new Map<string, number>()
             const exactScoresMap = new Map<string, number>()
+            const statsMap = new Map<string, { exact: number; winnerDiff: number; winner: number; consolation: number }>()
 
             const liveMatchesMap = new Map(live?.map(m => [m.id, m]) || [])
 
@@ -177,6 +184,18 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
                 pointsMapBase.set(userId, (pointsMapBase.get(userId) || 0) + basePoints)
                 pointsMapLiveTotal.set(userId, (pointsMapLiveTotal.get(userId) || 0) + basePoints)
+
+                // Stats calculation (only for finished games)
+                if (bet.points !== null) {
+                    if (!statsMap.has(userId)) {
+                        statsMap.set(userId, { exact: 0, winnerDiff: 0, winner: 0, consolation: 0 })
+                    }
+                    const stats = statsMap.get(userId)!
+                    if (basePoints === 10) stats.exact++
+                    else if (basePoints === 7) stats.winnerDiff++
+                    else if (basePoints === 5) stats.winner++
+                    else if (basePoints === 2) stats.consolation++
+                }
 
                 // Track exact scores (tie-breaker)
                 if (bet.points === 10) {
@@ -224,7 +243,8 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                     total_points: totalWithLive,
                     live_points: livePointsOnlyMap.get(userId) || 0,
                     exact_scores: exactScoresMap.get(userId) || 0,
-                    rank_variation: 0
+                    rank_variation: 0,
+                    stats: statsMap.get(userId) || { exact: 0, winnerDiff: 0, winner: 0, consolation: 0 }
                 }
             }).sort((a, b) => b.total_points - a.total_points || (b.exact_scores || 0) - (a.exact_scores || 0))
 
@@ -570,14 +590,78 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                     </span>
                                                 </div>
                                                 <div className="flex flex-col items-end">
-                                                    <span className={`font-bold text-sm ${isCurrentUser ? 'text-green-800 dark:text-green-300' : 'text-green-700 dark:text-green-400'}`}>
-                                                        {user.total_points} pts
-                                                    </span>
-                                                    {user.live_points! > 0 && (
-                                                        <span className="text-[10px] text-red-500 font-bold leading-none animate-pulse">
-                                                            (+{user.live_points}) live
-                                                        </span>
-                                                    )}
+                                                    <div className="group relative">
+                                                        <div className="flex flex-col items-end cursor-help">
+                                                            <div className="flex items-center gap-1">
+                                                                <span className={`font-bold text-sm ${isCurrentUser ? 'text-green-800 dark:text-green-300' : 'text-green-700 dark:text-green-400'}`}>
+                                                                    {user.total_points} pts
+                                                                </span>
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">
+                                                                    <circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
+                                                                </svg>
+                                                            </div>
+                                                            {user.live_points! > 0 && (
+                                                                <span className="text-[10px] text-red-500 font-bold leading-none animate-pulse">
+                                                                    (+{user.live_points}) live
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Tooltip for stats breakdown */}
+                                                        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-100 dark:border-slate-700 p-3 z-50 invisible group-hover:visible transition-all opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto">
+                                                            <div className="text-[9px] font-bold text-slate-400 uppercase mb-2 border-b border-gray-50 dark:border-slate-700/50 pb-1 text-center">Distribuição de Pontos</div>
+                                                            <div className="space-y-2">
+                                                                <div className="flex justify-between items-center">
+                                                                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-300">
+                                                                        <span>🎯</span>
+                                                                        <span>Cravadas</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="text-[9px] text-slate-400 font-medium">x{user.stats.exact}</span>
+                                                                        <span className="inline-flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded px-1 py-0.5 text-[10px] font-bold min-w-[30px]">
+                                                                            {user.stats.exact * 10}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex justify-between items-center">
+                                                                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-300">
+                                                                        <span>📊</span>
+                                                                        <span>Venc+Diff</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="text-[9px] text-slate-400 font-medium">x{user.stats.winnerDiff}</span>
+                                                                        <span className="inline-flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded px-1 py-0.5 text-[10px] font-bold min-w-[30px]">
+                                                                            {user.stats.winnerDiff * 7}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex justify-between items-center">
+                                                                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-300">
+                                                                        <span className="text-green-500 font-bold">✓</span>
+                                                                        <span>Vendedor</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="text-[9px] text-slate-400 font-medium">x{user.stats.winner}</span>
+                                                                        <span className="inline-flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded px-1 py-0.5 text-[10px] font-bold min-w-[30px]">
+                                                                            {user.stats.winner * 5}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex justify-between items-center">
+                                                                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-300">
+                                                                        <span className="text-slate-400 font-bold">~</span>
+                                                                        <span>Consolação</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="text-[9px] text-slate-400 font-medium">x{user.stats.consolation}</span>
+                                                                        <span className="inline-flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded px-1 py-0.5 text-[10px] font-bold min-w-[30px]">
+                                                                            {user.stats.consolation * 2}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )

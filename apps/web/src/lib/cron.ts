@@ -81,6 +81,7 @@ async function performUpdate(onlyLive: boolean = false) {
                     statusFilter = undefined // We'll filter in code or just fetch a tight range
                 } else {
                     // Determine Date Range for full sync
+                    // Look for oldest pending match (not finished/cancelled) that already happened
                     const { data: pendingMatches } = await supabase
                         .from('matches')
                         .select('match_date')
@@ -92,11 +93,23 @@ async function performUpdate(onlyLive: boolean = false) {
 
                     if (pendingMatches && pendingMatches.length > 0) {
                         dateFrom = pendingMatches[0].match_date.split('T')[0]
+                    } else {
+                        // If no pending past matches, look back 3 days to catch any recently finished
+                        const threeDaysAgo = new Date()
+                        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
+                        dateFrom = threeDaysAgo.toISOString().split('T')[0]
                     }
+
+                    // Always look ahead 7 days for upcoming matches
+                    const sevenDaysFromNow = new Date()
+                    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
+                    dateTo = sevenDaysFromNow.toISOString().split('T')[0]
                 }
 
                 // Fetch
+                console.log(`[Update] ${event.name} (${code}): Fetching from ${dateFrom} to ${dateTo}`)
                 const matches = await footballData.getMatchesByDateRange(code, dateFrom, dateTo, statusFilter)
+                console.log(`[Update] ${event.name}: Found ${matches.length} matches from API`)
 
                 if (matches.length === 0) {
                     eventResults.push({ event: event.name, status: 'no_matches' })
