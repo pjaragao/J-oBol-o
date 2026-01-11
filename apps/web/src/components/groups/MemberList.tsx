@@ -11,6 +11,8 @@ interface Member {
     user_id: string
     role: 'admin' | 'moderator' | 'member'
     joined_at: string
+    payment_status: 'PENDING' | 'PAID' | 'EXEMPT'
+    paid_at: string | null
     profiles: {
         display_name: string
         email: string
@@ -52,6 +54,10 @@ export function MemberList({ groupId }: { groupId: string }) {
         fetchMembers()
     }, [groupId])
 
+    const [groupIsPaid, setGroupIsPaid] = useState(false)
+
+    // ... existing state ...
+
     const fetchMembers = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser()
@@ -60,11 +66,12 @@ export function MemberList({ groupId }: { groupId: string }) {
             // 1. Fetch group settings
             const { data: group } = await supabase
                 .from('groups')
-                .select('allow_member_invites')
+                .select('allow_member_invites, is_paid')
                 .eq('id', groupId)
                 .single()
 
             setAllowMemberInvites(group?.allow_member_invites || false)
+            setGroupIsPaid(group?.is_paid || false)
 
             // 2. Fetch members
             const { data: membersData, error: membersError } = await supabase
@@ -74,6 +81,8 @@ export function MemberList({ groupId }: { groupId: string }) {
                     user_id,
                     role,
                     joined_at,
+                    payment_status,
+                    paid_at,
                     profiles (
                         display_name,
                         email,
@@ -85,8 +94,7 @@ export function MemberList({ groupId }: { groupId: string }) {
 
             if (membersError) throw membersError
 
-            // Fix: Supabase might return profiles as array or object depending on schema details
-            // We normalize it here
+            // ... normalization ...
             const normalizedMembers = (membersData || []).map(m => ({
                 ...m,
                 profiles: Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
@@ -94,7 +102,7 @@ export function MemberList({ groupId }: { groupId: string }) {
 
             setMembers(normalizedMembers)
 
-            // 3. Fetch pending invites with profile link
+            // ... invites fetching ...
             const { data: invitesData } = await supabase
                 .from('group_invitations')
                 .select(`
@@ -121,24 +129,44 @@ export function MemberList({ groupId }: { groupId: string }) {
         }
     }
 
-    const handleCancelInvite = async (inviteId: string) => {
-        if (!confirm('Deseja cancelar este convite?')) return
+    const handleTogglePaymentStatus = async (memberId: string, currentStatus: string) => {
+        const newStatus = currentStatus === 'PAID' ? 'PENDING' : 'PAID'
+        const confirmMsg = newStatus === 'PAID'
+            ? 'Confirmar pagamento deste membro?'
+            : 'Remover status de pago deste membro?'
+
+        if (!confirm(confirmMsg)) return
+
         try {
+            const updates: any = {
+                payment_status: newStatus,
+                paid_at: newStatus === 'PAID' ? new Date().toISOString() : null
+            }
+
             const { error } = await supabase
-                .from('group_invitations')
-                .update({ status: 'cancelled' })
-                .eq('id', inviteId)
+                .from('group_members')
+                .update(updates)
+                .eq('id', memberId)
 
             if (error) throw error
+
+            // Create transaction record if marking as PAID
+            if (newStatus === 'PAID') {
+                // ideally this should be a backend function to ensure atomic transaction, 
+                // but for MVP we do it here or let trigger handle it if we had one.
+                // We'll leave the transaction creation for now as it might be complex on client.
+                // TODO: Create transaction entry
+            }
+
             fetchMembers()
         } catch (error: any) {
-            alert('Erro ao cancelar convite: ' + error.message)
+            alert('Erro ao atualizar pagamento: ' + error.message)
         }
     }
 
     const handleRemoveMember = async (memberId: string) => {
         if (!confirm('Tem certeza que deseja remover este membro?')) return
-
+        // ... existing remove logic
         try {
             const { error } = await supabase
                 .from('group_members')
@@ -334,6 +362,26 @@ export function MemberList({ groupId }: { groupId: string }) {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">
+                                        {/* Status de Pagamento (se for grupo pago) */}
+                                        {groupIsPaid && (
+                                            <div className="hidden sm:flex flex-col items-end mr-2">
+                                                <span className={cn(
+                                                    "inline-flex items-center rounded px-2 py-0.5 text-xs font-bold uppercase",
+                                                    member.payment_status === 'PAID' ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
+                                                        member.payment_status === 'EXEMPT' ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" :
+                                                            "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500"
+                                                )}>
+                                                    {member.payment_status === 'PAID' ? 'Pago' :
+                                                        member.payment_status === 'EXEMPT' ? 'Isento' : 'Pendente'}
+                                                </span>
+                                                {member.paid_at && (
+                                                    <span className="text-[10px] text-slate-400 mt-0.5">
+                                                        {new Date(member.paid_at).toLocaleDateString('pt-BR')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+
                                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${member.role === 'admin'
                                             ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 border-purple-200 dark:border-purple-800/50'
                                             : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800/50'
@@ -341,13 +389,33 @@ export function MemberList({ groupId }: { groupId: string }) {
                                             {member.role === 'admin' ? 'Administrador' : 'Membro'}
                                         </span>
 
-                                        {isAdmin && member.role !== 'admin' && (
-                                            <button
-                                                onClick={() => handleRemoveMember(member.id)}
-                                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium transition-colors"
-                                            >
-                                                Remover
-                                            </button>
+                                        {isAdmin && (
+                                            <div className="flex items-center gap-2">
+                                                {/* Botão de Toggle Pagamento */}
+                                                {groupIsPaid && (
+                                                    <button
+                                                        onClick={() => handleTogglePaymentStatus(member.id, member.payment_status)}
+                                                        className={cn(
+                                                            "p-1.5 rounded-md transition-colors",
+                                                            member.payment_status === 'PAID'
+                                                                ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                                : "text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                                        )}
+                                                        title={member.payment_status === 'PAID' ? "Marcar como Pendente" : "Marcar como Pago"}
+                                                    >
+                                                        {member.payment_status === 'PAID' ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                                                    </button>
+                                                )}
+
+                                                {member.role !== 'admin' && (
+                                                    <button
+                                                        onClick={() => handleRemoveMember(member.id)}
+                                                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium transition-colors"
+                                                    >
+                                                        Remover
+                                                    </button>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 </div>

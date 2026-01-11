@@ -23,6 +23,50 @@ export function GroupSettings({ group, matches }: GroupSettingsProps) {
     const [isPublic, setIsPublic] = useState(group.is_public)
     const [allowMemberInvites, setAllowMemberInvites] = useState(group.allow_member_invites ?? false)
 
+    // Financial Config State (for Offline Groups)
+    const [offlineConfig, setOfflineConfig] = useState<{
+        payment_method: string
+        max_members: number | null
+        event_fees: { offline_fee_per_slot: number } | null
+    } | null>(null)
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+    const [newLimit, setNewLimit] = useState<number>(0)
+    const [upgradeFee, setUpgradeFee] = useState(0)
+
+    useEffect(() => {
+        // Fetch extra financial details that might not be in the initial prop
+        const fetchFinancials = async () => {
+            const { data } = await supabase
+                .from('groups')
+                .select(`
+                    payment_method, max_members,
+                    events (offline_fee_per_slot)
+                `)
+                .eq('id', group.id)
+                .single()
+
+            if (data) {
+                setOfflineConfig({
+                    payment_method: data.payment_method,
+                    max_members: data.max_members,
+                    event_fees: Array.isArray(data.events) ? data.events[0] : data.events
+                })
+                setNewLimit((data.max_members || 10) + 5) // Suggest +5
+            }
+        }
+        fetchFinancials()
+    }, [group.id])
+
+    // Update fee whenever newLimit changes
+    useEffect(() => {
+        if (!offlineConfig?.max_members || !offlineConfig.event_fees || newLimit <= offlineConfig.max_members) {
+            setUpgradeFee(0)
+            return
+        }
+        const diff = newLimit - offlineConfig.max_members
+        setUpgradeFee(diff * offlineConfig.event_fees.offline_fee_per_slot)
+    }, [newLimit, offlineConfig])
+
     // Default rules (matching SQL logic 10/7/5/2)
     const defaultRules = { exact: 10, winner_diff: 7, winner: 5, one_score: 2 }
     const [rules, setRules] = useState({ ...defaultRules, ...group.scoring_rules })
@@ -99,6 +143,30 @@ export function GroupSettings({ group, matches }: GroupSettingsProps) {
             alert('Configurações atualizadas com sucesso!')
         } catch (error: any) {
             alert('Erro ao atualizar: ' + error.message)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleUpgradeLimit = async () => {
+        if (!offlineConfig?.max_members || newLimit <= offlineConfig.max_members) return
+
+        setLoading(true)
+        try {
+            // 1. Update group limit
+            const { error } = await supabase
+                .from('groups')
+                .update({ max_members: newLimit })
+                .eq('id', group.id)
+
+            if (error) throw error
+
+            // 2. Refresh local state
+            setOfflineConfig(prev => prev ? { ...prev, max_members: newLimit } : null)
+            alert('Limite de participantes aumentado com sucesso!')
+            setShowUpgradeModal(false)
+        } catch (error: any) {
+            alert('Erro ao aumentar limite: ' + error.message)
         } finally {
             setLoading(false)
         }
@@ -266,6 +334,31 @@ export function GroupSettings({ group, matches }: GroupSettingsProps) {
                 </div>
             </form >
 
+            {/* Offline Group Limits Upgrade */}
+            {offlineConfig && offlineConfig.payment_method === 'OFFLINE' && (
+                <div className="mt-10 pt-6 border-t border-gray-200 dark:border-slate-800">
+                    <h4 className="text-md font-medium text-slate-900 dark:text-white mb-4 font-bold">Limite de Participantes (Cobrança Offline)</h4>
+                    <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-md p-4 flex items-center justify-between">
+                        <div>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-bold text-slate-900 dark:text-white">{offlineConfig.max_members}</span>
+                                <span className="text-sm text-slate-500 dark:text-slate-400">máx. participantes</span>
+                            </div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-md">
+                                Você pode aumentar o limite de participantes pagando a taxa adicional por vaga.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setShowUpgradeModal(true)}
+                            className="ml-3 inline-flex justify-center rounded-md border border-transparent bg-slate-800 dark:bg-slate-700 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-slate-900 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
+                        >
+                            Aumentar Limite
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div className="mt-10 pt-6 border-t border-red-200 dark:border-red-900/50">
                 <h4 className="text-md font-medium text-red-600 dark:text-red-400 mb-4 font-bold">Zona de Perigo</h4>
                 <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-md p-4 flex items-center justify-between">
@@ -283,6 +376,90 @@ export function GroupSettings({ group, matches }: GroupSettingsProps) {
                     </button>
                 </div>
             </div>
+
+            {/* Upgrade Limit Modal */}
+            {showUpgradeModal && offlineConfig && (
+                <div className="fixed inset-0 bg-black/60 dark:bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm transition-opacity">
+                    <div className="bg-white dark:bg-slate-900 rounded-lg max-w-md w-full p-6 shadow-2xl border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Aumentar Limite de Participantes</h3>
+                            <button
+                                onClick={() => setShowUpgradeModal(false)}
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                            >
+                                <span className="sr-only">Fechar</span>
+                                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="mb-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    Novo Limite Máximo
+                                </label>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="number"
+                                        min={(offlineConfig.max_members || 0) + 1}
+                                        value={newLimit}
+                                        onChange={(e) => setNewLimit(parseInt(e.target.value))}
+                                        className="block w-32 rounded-md border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm p-2 border"
+                                    />
+                                    <span className="text-sm text-slate-500">
+                                        Atual: <strong>{offlineConfig.max_members}</strong>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/30 rounded-md p-4 space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-600 dark:text-slate-400">Vagas Adicionais:</span>
+                                    <span className="font-bold text-slate-900 dark:text-white">
+                                        +{Math.max(0, newLimit - (offlineConfig.max_members || 0))}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-600 dark:text-slate-400">Taxa por vaga:</span>
+                                    <span className="font-medium text-slate-900 dark:text-white">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(offlineConfig.event_fees?.offline_fee_per_slot || 0)}
+                                    </span>
+                                </div>
+                                <div className="border-t border-yellow-200 dark:border-yellow-900/30 pt-2 flex justify-between items-center mt-2">
+                                    <span className="font-bold text-yellow-800 dark:text-yellow-500">Total a Pagar:</span>
+                                    <span className="text-xl font-black text-yellow-800 dark:text-yellow-500">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(upgradeFee)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+                                Ao confirmar, o novo limite será aplicado imediatamente. A cobrança será registrada no seu histórico.
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setShowUpgradeModal(false)}
+                                disabled={loading}
+                                className="flex-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-300 py-2 rounded-md font-medium hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleUpgradeLimit}
+                                disabled={loading || upgradeFee <= 0}
+                                className="flex-1 bg-green-600 text-white py-2 rounded-md font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 transition-colors"
+                            >
+                                {loading ? 'Processando...' : 'Confirmar Upgrade'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Delete Confirmation Modal */}
             {
