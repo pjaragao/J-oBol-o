@@ -61,7 +61,14 @@ export async function POST(request: NextRequest) {
             .from('teams')
             .select('id, api_id')
 
-        const teamMap = new Map(teams?.map(t => [t.api_id, t.id]) || [])
+        // Handle both string and number api_id
+        const teamMap = new Map<number, string>()
+        teams?.forEach(t => {
+            const numericId = typeof t.api_id === 'string' ? parseInt(t.api_id, 10) : t.api_id
+            if (!isNaN(numericId)) {
+                teamMap.set(numericId, t.id)
+            }
+        })
 
         // Map matches to our format
         const matchesToUpsert = matches.map(m => ({

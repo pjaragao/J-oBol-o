@@ -138,7 +138,14 @@ async function performUpdate(onlyLive: boolean = false) {
 
                 // 3. Update Teams & Localize Logos (SKIP localization if onlyLive to be faster)
                 const { data: existingTeams } = await supabase.from('teams').select('id, api_id')
-                const teamMap = new Map(existingTeams?.map(t => [t.api_id, t.id]) || [])
+                // Handle both string and number api_id
+                const teamMap = new Map<number, string>()
+                existingTeams?.forEach(t => {
+                    const numericId = typeof t.api_id === 'string' ? parseInt(t.api_id, 10) : t.api_id
+                    if (!isNaN(numericId)) {
+                        teamMap.set(numericId, t.id)
+                    }
+                })
 
                 // Check for new teams
                 if (!onlyLive) {

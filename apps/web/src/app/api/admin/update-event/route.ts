@@ -87,9 +87,15 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: true, message: 'Nenhuma alteração encontrada.' })
         }
 
-        // Get teams for mapping
+        // Get teams for mapping - handle both string and number api_id
         const { data: localTeams } = await supabase.from('teams').select('id, api_id')
-        const teamMap = new Map(localTeams?.map(t => [t.api_id, t.id]) || [])
+        const teamMap = new Map<number, string>()
+        localTeams?.forEach(t => {
+            const numericId = typeof t.api_id === 'string' ? parseInt(t.api_id, 10) : t.api_id
+            if (!isNaN(numericId)) {
+                teamMap.set(numericId, t.id)
+            }
+        })
 
         // 3. Map and Upsert Matches
         const matchesToUpsert = matches.map(m => ({

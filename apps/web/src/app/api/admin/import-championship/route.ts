@@ -77,10 +77,30 @@ export async function POST(req: NextRequest) {
         // 3. Fetch Matches (Fixtures)
         console.log(`[Import Championship] Fetching matches for ${competitionCode}`)
         const apiMatches = await footballData.getMatches(competitionCode)
+        console.log(`[Import Championship] Got ${apiMatches.length} matches from API`)
 
-        // Map teams to local IDs
+        // Map teams to local IDs - handle both string and number api_id for backwards compatibility
         const { data: localTeams } = await supabase.from('teams').select('id, api_id')
-        const teamMap = new Map(localTeams?.map(t => [t.api_id, t.id]) || [])
+
+        // Create map that handles both number and string api_id
+        const teamMap = new Map<number, string>()
+        localTeams?.forEach(t => {
+            // api_id might be stored as string or number depending on when it was imported
+            const numericId = typeof t.api_id === 'string' ? parseInt(t.api_id, 10) : t.api_id
+            if (!isNaN(numericId)) {
+                teamMap.set(numericId, t.id)
+            }
+        })
+
+        console.log(`[Import Championship] Team map has ${teamMap.size} entries`)
+
+        // Debug: log first match team IDs
+        if (apiMatches.length > 0) {
+            const firstMatch = apiMatches[0]
+            console.log(`[Import Championship] First match: ${firstMatch.homeTeam.name} (${firstMatch.homeTeam.id}) vs ${firstMatch.awayTeam.name} (${firstMatch.awayTeam.id})`)
+            console.log(`[Import Championship] Home team in map: ${teamMap.has(firstMatch.homeTeam.id)}`)
+            console.log(`[Import Championship] Away team in map: ${teamMap.has(firstMatch.awayTeam.id)}`)
+        }
 
         const matchesToUpsert = apiMatches.map(m => ({
             event_id: event.id,
@@ -94,6 +114,8 @@ export async function POST(req: NextRequest) {
             away_score: m.score?.fullTime?.away ?? null,
             api_id: m.id
         })).filter(m => m.home_team_id && m.away_team_id)
+
+        console.log(`[Import Championship] Matches after filtering: ${matchesToUpsert.length} (filtered out ${apiMatches.length - matchesToUpsert.length})`)
 
         if (matchesToUpsert.length > 0) {
             const { error: matchesError } = await supabase
