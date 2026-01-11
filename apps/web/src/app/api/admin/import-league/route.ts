@@ -43,8 +43,9 @@ export async function POST(req: NextRequest) {
         const { data: event, error: eventError } = await (await supabase)
             .from('events')
             .upsert({
-                api_id: competition.id.toString(),
+                api_id: competition.id,
                 name: competition.name,
+                description: `${competition.type.toUpperCase()} - ${competitionCode}`,
                 season: season,
                 is_active: true
             }, { onConflict: 'api_id' })

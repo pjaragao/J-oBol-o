@@ -62,12 +62,12 @@ export default function AdminEventsPage() {
         setLoading(false)
     }
 
-    const handleImportLeague = async () => {
+    const handleImportChampionship = async () => {
         if (!competitionCode) return
 
         setImporting(true)
         try {
-            const response = await fetch('/api/admin/import-league', {
+            const response = await fetch('/api/admin/import-championship', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ competitionCode })
@@ -89,25 +89,13 @@ export default function AdminEventsPage() {
         }
     }
 
-    const handleImportFixtures = async (event: Event) => {
-        // Extract competition code from description (format: "TYPE - CODE")
-        const codeMatch = event.description?.match(/- (\w+)$/)
-        const code = codeMatch?.[1]
-
-        if (!code) {
-            alert('Este campeonato não tem código de competição. Reimporte-o usando o botão acima.')
-            return
-        }
-
+    const handleUpdateEvent = async (event: Event) => {
         setImportingFixtures(event.id)
         try {
-            const response = await fetch('/api/admin/import-fixtures', {
+            const response = await fetch('/api/admin/update-event', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    competitionCode: code,
-                    eventId: event.id
-                })
+                body: JSON.stringify({ eventId: event.id })
             })
 
             const data = await response.json()
@@ -229,12 +217,12 @@ export default function AdminEventsPage() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                         <button
-                                            onClick={() => handleImportFixtures(event)}
+                                            onClick={() => handleUpdateEvent(event)}
                                             disabled={importingFixtures === event.id}
                                             className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors inline-flex"
-                                            title="Sincronizar Jogos"
+                                            title="Atualizar Partidas"
                                         >
-                                            {importingFixtures === event.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                            {importingFixtures === event.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                                         </button>
                                         <button
                                             onClick={() => setEditingEvent(event)}
@@ -284,10 +272,10 @@ export default function AdminEventsPage() {
                             </select>
                         </div>
 
-                        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl mb-8 flex gap-3">
-                            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                            <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed font-medium">
-                                A importação inicial traz os detalhes da liga e todos os times participantes. Os jogos devem ser sincronizados individualmente após a criação.
+                        <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-xl mb-8 flex gap-3">
+                            <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                            <p className="text-xs text-emerald-700 dark:text-emerald-300 leading-relaxed font-medium">
+                                A importação unificada traz os detalhes da liga, todos os times participantes e o calendário completo de jogos em uma única etapa.
                             </p>
                         </div>
 
@@ -299,7 +287,7 @@ export default function AdminEventsPage() {
                                 Cancelar
                             </button>
                             <button
-                                onClick={handleImportLeague}
+                                onClick={handleImportChampionship}
                                 disabled={importing}
                                 className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all text-sm shadow-lg shadow-indigo-200 dark:shadow-none inline-flex items-center justify-center gap-2"
                             >

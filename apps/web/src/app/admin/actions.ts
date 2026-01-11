@@ -14,6 +14,24 @@ export async function manualUpdateMatches() {
     }
 }
 
+export async function updateSingleEvent(eventId: string) {
+    try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || ''}/api/admin/update-event`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ eventId })
+        })
+
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Erro ao atualizar evento')
+
+        revalidatePath('/admin/events')
+        return { success: true, message: data.message }
+    } catch (error: any) {
+        return { success: false, message: error.message }
+    }
+}
+
 export async function manualUpdateLiveMatches() {
     try {
         const result = await updateMatches(true) // isLive = true
