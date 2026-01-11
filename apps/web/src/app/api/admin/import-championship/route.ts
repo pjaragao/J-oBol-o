@@ -68,7 +68,6 @@ export async function POST(req: NextRequest) {
             api_id: team.id,
             name: team.name,
             short_name: team.shortName,
-            code: team.tla,
             logo_url: team.crest
         }))
 
