@@ -61,18 +61,27 @@ export async function POST(req: NextRequest) {
         // 2. Fetch Teams
         console.log(`[Import Championship] Fetching teams for ${competitionCode}`)
         const apiTeams = await footballData.getTeams(competitionCode)
+        console.log(`[Import Championship] Got ${apiTeams.length} teams from API`)
 
-        for (const team of apiTeams) {
-            await supabase
-                .from('teams')
-                .upsert({
-                    api_id: team.id, // Fixed: Integer
-                    name: team.name,
-                    short_name: team.shortName,
-                    code: team.tla,
-                    logo_url: team.crest
-                }, { onConflict: 'api_id' })
+        // Batch upsert all teams at once (more reliable than individual upserts)
+        const teamsToUpsert = apiTeams.map(team => ({
+            api_id: team.id,
+            name: team.name,
+            short_name: team.shortName,
+            code: team.tla,
+            logo_url: team.crest
+        }))
+
+        const { error: teamsError } = await supabase
+            .from('teams')
+            .upsert(teamsToUpsert, { onConflict: 'api_id' })
+
+        if (teamsError) {
+            console.error('[Import Championship] Teams upsert error:', teamsError)
+            throw new Error(`Erro ao importar times: ${teamsError.message}`)
         }
+
+        console.log(`[Import Championship] Teams upserted successfully`)
 
         // 3. Fetch Matches (Fixtures)
         console.log(`[Import Championship] Fetching matches for ${competitionCode}`)

@@ -57,17 +57,20 @@ export async function POST(req: NextRequest) {
         // 2. Fetch Teams
         const teams = await footballData.getTeams(competitionCode)
 
-        for (const team of teams) {
-            await (await supabase)
-                .from('teams')
-                .upsert({
-                    api_id: team.id.toString(),
-                    name: team.name,
-                    short_name: team.shortName,
-                    code: team.tla,
-                    logo_url: team.crest
-                }, { onConflict: 'api_id' })
-        }
+        // Batch upsert all teams
+        const teamsToUpsert = teams.map(team => ({
+            api_id: team.id, // Fixed: Integer, no .toString()
+            name: team.name,
+            short_name: team.shortName,
+            code: team.tla,
+            logo_url: team.crest
+        }))
+
+        const { error: teamsError } = await (await supabase)
+            .from('teams')
+            .upsert(teamsToUpsert, { onConflict: 'api_id' })
+
+        if (teamsError) throw teamsError
 
         await syncLogger.log({
             resourceType: 'league',
