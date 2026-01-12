@@ -175,6 +175,16 @@ export default function CreateGroupPage() {
         }
     }
 
+    const [readyToSubmit, setReadyToSubmit] = useState(false)
+
+    useEffect(() => {
+        if (step === 4) {
+            setReadyToSubmit(false)
+            const timer = setTimeout(() => setReadyToSubmit(true), 1000)
+            return () => clearTimeout(timer)
+        }
+    }, [step])
+
     return (
         <div className="max-w-3xl mx-auto py-10 px-4">
             <div className="mb-8">
@@ -191,6 +201,8 @@ export default function CreateGroupPage() {
                 <Card>
                     <CardContent className="pt-6">
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                            {/* ... steps ... */}
+                            {/* We are replacing the container to keep context, but actually I need to target the end of the file for the button logic */}
 
                             {/* STEP 1: Basic Info & Championship */}
                             {step === 1 && (
@@ -464,9 +476,17 @@ export default function CreateGroupPage() {
                                         Próximo
                                     </Button>
                                 ) : (
-                                    <Button type="submit" disabled={loading} className="bg-green-600 hover:bg-green-700 font-black px-10 shadow-lg shadow-green-200 dark:shadow-none">
-                                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        🚀 Criar Bolão
+                                    <Button type="submit" disabled={loading || !readyToSubmit} className="bg-green-600 hover:bg-green-700 font-black px-10 shadow-lg shadow-green-200 dark:shadow-none transition-opacity duration-300">
+                                        {loading ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Criando...
+                                            </>
+                                        ) : !readyToSubmit ? (
+                                            <>Aguarde...</>
+                                        ) : (
+                                            <>🚀 Criar Bolão</>
+                                        )}
                                     </Button>
                                 )}
                             </div>

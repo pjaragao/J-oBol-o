@@ -477,7 +477,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                             </div>
 
                             <div>
-                                <label htmlFor="points-winner-diff" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Vencedor + Diferença</label>
+                                <label htmlFor="points-winner-diff" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Vencedor + Diferença de Gols</label>
                                 <div className="mt-1 flex rounded-md shadow-sm">
                                     <input
                                         type="number"
@@ -493,7 +493,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                             </div>
 
                             <div>
-                                <label htmlFor="points-winner" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Apenas Vencedor</label>
+                                <label htmlFor="points-winner" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Só Vencedor</label>
                                 <div className="mt-1 flex rounded-md shadow-sm">
                                     <input
                                         type="number"
@@ -521,7 +521,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                                     />
                                     <span className="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 text-gray-500 dark:text-slate-400 sm:text-sm">pts</span>
                                 </div>
-                                <p className="mt-1 text-xs text-gray-500 dark:text-slate-500">Acertar os gols de pelo menos um time (Consolação).</p>
+                                <p className="mt-1 text-xs text-gray-500 dark:text-slate-500">Acertar os gols de pelo menos um time (Um Placar Correto).</p>
                             </div>
                         </div>
                     </div>

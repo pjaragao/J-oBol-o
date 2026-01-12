@@ -952,7 +952,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                 <div className="flex justify-between items-center">
                                                                     <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-300">
                                                                         <span>📊</span>
-                                                                        <span>Venc+Diff</span>
+                                                                        <span>Venc+Dif</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-1.5">
                                                                         <span className="text-[9px] text-slate-400 font-medium">x{user.stats.winnerDiff}</span>
@@ -964,7 +964,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                 <div className="flex justify-between items-center">
                                                                     <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-300">
                                                                         <span className="text-green-500 font-bold">✓</span>
-                                                                        <span>Vendedor</span>
+                                                                        <span>Só Vencedor</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-1.5">
                                                                         <span className="text-[9px] text-slate-400 font-medium">x{user.stats.winner}</span>
@@ -976,7 +976,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                 <div className="flex justify-between items-center">
                                                                     <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-300">
                                                                         <span className="text-slate-400 font-bold">~</span>
-                                                                        <span>Consolação</span>
+                                                                        <span>1 Placar</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-1.5">
                                                                         <span className="text-[9px] text-slate-400 font-medium">x{user.stats.consolation}</span>

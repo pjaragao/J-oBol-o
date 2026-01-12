@@ -25,10 +25,10 @@ interface BetState {
 }
 
 function getPointsExplanation(betHome: number, betAway: number, realHome: number, realAway: number, points: number) {
-    if (points === 10) return "Placar exato (Cravada)"
-    if (points === 7) return "Vencedor + diferença correta"
-    if (points === 5) return "Vencedor correto"
-    if (points === 2) return "Um placar certo"
+    if (points === 10) return "Placar Exato (Cravada)"
+    if (points === 7) return "Vencedor + Diferença de Gols"
+    if (points === 5) return "Só Vencedor"
+    if (points === 2) return "Um Placar Correto"
     return "Nenhum acerto"
 }
 

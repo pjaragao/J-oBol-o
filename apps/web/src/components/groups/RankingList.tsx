@@ -174,7 +174,7 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
                             </th>
                             <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                                 <div className="flex flex-col items-center">
-                                    <span>📊 Venc+Diff</span>
+                                    <span>📊 Venc+Dif</span>
                                     <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(7pts)</span>
                                 </div>
                             </th>
@@ -186,7 +186,7 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
                             </th>
                             <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                                 <div className="flex flex-col items-center">
-                                    <span>~ Consolação</span>
+                                    <span>🎯 1 Placar</span>
                                     <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(2pts)</span>
                                 </div>
                             </th>
@@ -406,7 +406,7 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
                                                 <div className="flex justify-between items-center">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-base text-slate-400">~</span>
-                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Consolação</span>
+                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">1 Placar</span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-[10px] text-slate-400">x{user.stats.consolation}</span>
