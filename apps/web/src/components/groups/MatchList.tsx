@@ -1,17 +1,18 @@
+'use client'
+
+import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, Info, Search, Filter, ChevronDown, Check, RefreshCw } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { BetSecurityService } from '@/lib/bet-security'
 
-// ... existing imports ...
-
-// ... inside MatchList component ...
-
-// In filteredMatches useMemo:
-const isLocked = BetSecurityService.isBettingLocked(match.match_date)
-
-// In render loop:
-const locked = BetSecurityService.isBettingLocked(match.match_date)
-matches: any[]
-groupId: string
-userId: string
+interface MatchListProps {
+    matches: any[]
+    groupId: string
+    userId: string
 }
 
 interface BetState {
@@ -197,7 +198,7 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
 
         return matches.filter(match => {
             const bet = bets[match.id]
-            const isLocked = isMatchLocked(match.match_date)
+            const isLocked = BetSecurityService.isBettingLocked(match.match_date)
             const isExpired = isLocked || new Date(match.match_date) < now
 
             // hasStoredBet: Ja foi salvo no banco (nao esta sujo)
@@ -303,7 +304,7 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                 {/* Matches List */}
                 <div className="space-y-2 pb-20">
                     {filteredMatches?.map((match: any) => {
-                        const locked = isMatchLocked(match.match_date)
+                        const locked = BetSecurityService.isBettingLocked(match.match_date)
                         const bet = bets[match.id]
                         const hasExistingBet = bet && bet.home !== '' && bet.away !== '' && !bet.isDirty
                         const homeTeam = getTeam(match.home_team)
