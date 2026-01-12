@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Calendar, MapPin, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { TeamName } from '@/components/ui/TeamName'
 
 interface Match {
     id: string
@@ -67,8 +68,8 @@ export default function AdminMatchesPage() {
             .from('matches')
             .select(`
                 *,
-                home_team:teams!home_team_id(name, short_name, logo_url),
-                away_team:teams!away_team_id(name, short_name, logo_url),
+                home_team:teams!home_team_id(name, short_name, tla, logo_url),
+                away_team:teams!away_team_id(name, short_name, tla, logo_url),
                 events(name)
             `)
             .eq('event_id', eventId)
@@ -187,9 +188,11 @@ export default function AdminMatchesPage() {
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <span className="font-bold text-sm text-slate-900 dark:text-slate-100">
-                                                    {match.home_team?.short_name || match.home_team?.name}
-                                                </span>
+                                                <TeamName
+                                                    team={match.home_team}
+                                                    variant="auto"
+                                                    className="font-bold text-sm text-slate-900 dark:text-slate-100 justify-end"
+                                                />
                                                 {match.home_team?.logo_url && (
                                                     <img
                                                         src={match.home_team.logo_url}
@@ -222,9 +225,11 @@ export default function AdminMatchesPage() {
                                                         onError={(e) => { e.currentTarget.style.display = 'none' }}
                                                     />
                                                 )}
-                                                <span className="font-bold text-sm text-slate-900 dark:text-slate-100">
-                                                    {match.away_team?.short_name || match.away_team?.name}
-                                                </span>
+                                                <TeamName
+                                                    team={match.away_team}
+                                                    variant="auto"
+                                                    className="font-bold text-sm text-slate-900 dark:text-slate-100 justify-start"
+                                                />
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap hidden lg:table-cell">

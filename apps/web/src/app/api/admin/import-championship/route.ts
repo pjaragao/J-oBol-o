@@ -51,7 +51,10 @@ export async function POST(req: NextRequest) {
                 name: competition.name,
                 description: eventDescription,
                 season: season,
-                is_active: true
+                is_active: true,
+                start_date: competition.currentSeason.startDate,
+                end_date: competition.currentSeason.endDate,
+                current_matchday: competition.currentSeason.currentMatchday
             }, { onConflict: 'api_id' })
             .select()
             .single()
@@ -66,8 +69,9 @@ export async function POST(req: NextRequest) {
         // Batch upsert all teams at once (more reliable than individual upserts)
         const teamsToUpsert = apiTeams.map(team => ({
             api_id: team.id,
-            name: team.name,
+            name: team.name, // Keep as is, let trigger handle short_name if needed, but we map explicit shortName below
             short_name: team.shortName,
+            tla: team.tla,
             logo_url: team.crest
         }))
 
@@ -117,9 +121,11 @@ export async function POST(req: NextRequest) {
             match_date: m.utcDate,
             venue: m.venue || null,
             round: m.matchday ? `Rodada ${m.matchday}` : m.stage,
+            group_name: m.group || null,
             status: mapStatus(m.status),
             home_score: m.score?.fullTime?.home ?? null,
             away_score: m.score?.fullTime?.away ?? null,
+            score_detailed: m.score, // Store full score JSON
             api_id: m.id
         })).filter(m => m.home_team_id && m.away_team_id)
 

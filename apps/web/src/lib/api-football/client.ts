@@ -19,18 +19,41 @@
 
 const API_BASE_URL = 'https://api.football-data.org/v4'
 
+// Basic types
+interface Area {
+    id: number
+    name: string
+    code: string
+    flag: string
+}
+
+interface Season {
+    id: number
+    startDate: string
+    endDate: string
+    currentMatchday: number
+    winner: any
+}
+
+interface Score {
+    winner: string | null
+    duration: string
+    fullTime: { home: number | null; away: number | null }
+    halfTime: { home: number | null; away: number | null }
+    extraTime?: { home: number | null; away: number | null }
+    penalties?: { home: number | null; away: number | null }
+}
+
 interface Competition {
     id: number
     name: string
     code: string
     type: string
     emblem: string
-    currentSeason: {
-        id: number
-        startDate: string
-        endDate: string
-        currentMatchday: number
-    }
+    area: Area
+    plan: string
+    currentSeason: Season
+    lastUpdated: string
 }
 
 interface Team {
@@ -40,6 +63,10 @@ interface Team {
     tla: string
     crest: string
     venue: string
+    website?: string
+    founded?: number
+    clubColors?: string
+    area?: Area
 }
 
 interface Match {
@@ -48,15 +75,13 @@ interface Match {
     status: string
     matchday: number
     stage: string
-    venue: string | null
-    homeTeam: { id: number; name: string; shortName: string; crest: string }
-    awayTeam: { id: number; name: string; shortName: string; crest: string }
     group: string | null
-    score: {
-        winner: string | null
-        fullTime: { home: number | null; away: number | null }
-        halfTime: { home: number | null; away: number | null }
-    }
+    lastUpdated: string
+    homeTeam: Team
+    awayTeam: Team
+    score: Score
+    venue?: string
+    referees?: any[]
 }
 
 class FootballDataClient {

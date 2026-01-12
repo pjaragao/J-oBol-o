@@ -158,6 +158,7 @@ async function performUpdate(onlyLive: boolean = false) {
                                     .insert({
                                         name: apiTeam.name,
                                         short_name: apiTeam.shortName,
+                                        tla: apiTeam.tla,
                                         logo_url: apiTeam.crest,
                                         api_id: apiTeam.id
                                     })
@@ -178,24 +179,23 @@ async function performUpdate(onlyLive: boolean = false) {
                 }
 
                 // 4. Map and Upsert Matches
-                const matchesToUpsert = matches.map(m => {
-                    const homeId = teamMap.get(m.homeTeam.id)
-                    const awayId = teamMap.get(m.awayTeam.id)
-
-                    return {
+                const matchesToUpsert = matches
+                    .filter(m => teamMap.has(m.homeTeam.id) && teamMap.has(m.awayTeam.id)) // Only matches with known teams
+                    .map(m => ({
                         event_id: event.id,
-                        home_team_id: homeId,
-                        away_team_id: awayId,
+                        home_team_id: teamMap.get(m.homeTeam.id),
+                        away_team_id: teamMap.get(m.awayTeam.id),
                         match_date: m.utcDate,
+                        venue: m.venue || null,
+                        round: m.matchday ? `Rodada ${m.matchday}` : m.stage,
+                        group_name: m.group || null,
                         status: mapStatus(m.status),
                         home_score: m.score?.fullTime?.home ?? null,
                         away_score: m.score?.fullTime?.away ?? null,
+                        score_detailed: m.score, // Store full score JSON
                         api_id: m.id,
-                        round: m.matchday ? `Rodada ${m.matchday}` : m.stage,
-                        group_name: m.group,
                         updated_at: new Date().toISOString()
-                    }
-                }).filter(m => m.home_team_id && m.away_team_id)
+                    }))
 
                 if (matchesToUpsert.length > 0) {
                     const { data: upsertedMatches } = await supabase

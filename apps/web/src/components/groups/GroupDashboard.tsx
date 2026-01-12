@@ -4,8 +4,10 @@ import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, RefreshCw, DollarSign, AlertTriangle, Wallet } from 'lucide-react'
+import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, RefreshCw, DollarSign, AlertTriangle, Wallet, Crown, Calendar, ChevronRight, BarChart2 } from 'lucide-react'
 import { calculateLivePoints } from '@/lib/utils/points'
+import { BetSecurityService } from '@/lib/bet-security'
+import { TeamName } from '@/components/ui/TeamName'
 import { manualUpdateLiveMatches } from '@/app/admin/actions'
 import Link from 'next/link'
 
@@ -243,8 +245,8 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 status,
                 home_score,
                 away_score,
-                home_team:teams!home_team_id(name, logo_url, short_name),
-                away_team:teams!away_team_id(name, logo_url, short_name),
+                home_team:teams!home_team_id(name, logo_url, short_name, tla),
+                away_team:teams!away_team_id(name, logo_url, short_name, tla),
                 updated_at
             `)
                 .eq('event_id', eventId)
@@ -735,14 +737,22 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between gap-2 mb-2">
-                                            <div className="flex items-center gap-1.5 flex-1 justify-end truncate">
-                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 hidden sm:inline">{home.short_name}</span>
-                                                <img src={home.logo_url} className="w-6 h-6 object-contain" />
+                                            <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
+                                                <TeamName
+                                                    team={home}
+                                                    variant="auto"
+                                                    className="text-xs font-bold text-slate-700 dark:text-slate-300 justify-end"
+                                                />
+                                                <img src={home.logo_url} className="w-6 h-6 object-contain shrink-0" />
                                             </div>
-                                            <span className="text-[10px] font-bold text-slate-300 uppercase">vs</span>
-                                            <div className="flex items-center gap-1.5 flex-1 truncate">
-                                                <img src={away.logo_url} className="w-6 h-6 object-contain" />
-                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 hidden sm:inline">{away.short_name}</span>
+                                            <span className="text-[10px] font-bold text-slate-300 uppercase shrink-0">vs</span>
+                                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                                <img src={away.logo_url} className="w-6 h-6 object-contain shrink-0" />
+                                                <TeamName
+                                                    team={away}
+                                                    variant="auto"
+                                                    className="text-xs font-bold text-slate-700 dark:text-slate-300 justify-start"
+                                                />
                                             </div>
                                         </div>
 

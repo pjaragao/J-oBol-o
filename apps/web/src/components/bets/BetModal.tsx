@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useState } from 'react'
+import { TeamName } from '@/components/ui/TeamName'
 
 export function BetModal({
     isOpen,
@@ -86,14 +87,22 @@ export function BetModal({
                 <h3 className="text-lg font-bold text-center mb-4 dark:text-white">Fazer Aposta</h3>
 
                 <div className="flex justify-between items-center mb-6">
-                    <div className="text-center">
+                    <div className="text-center w-24">
                         <img src={match.home_team.logo_url} className="w-12 h-12 mx-auto mb-2 object-contain" alt="" />
-                        <span className="font-bold block text-slate-800 dark:text-slate-200">{match.home_team.short_name}</span>
+                        <TeamName
+                            team={match.home_team}
+                            variant="auto"
+                            className="font-bold text-slate-800 dark:text-slate-200 justify-center w-full"
+                        />
                     </div>
                     <div className="text-xl font-bold text-gray-300 dark:text-slate-600">X</div>
-                    <div className="text-center">
+                    <div className="text-center w-24">
                         <img src={match.away_team.logo_url} className="w-12 h-12 mx-auto mb-2 object-contain" alt="" />
-                        <span className="font-bold block text-slate-800 dark:text-slate-200">{match.away_team.short_name}</span>
+                        <TeamName
+                            team={match.away_team}
+                            variant="auto"
+                            className="font-bold text-slate-800 dark:text-slate-200 justify-center w-full"
+                        />
                     </div>
                 </div>
 

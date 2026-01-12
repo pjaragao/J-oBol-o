@@ -8,6 +8,7 @@ import { ptBR } from 'date-fns/locale'
 import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, Info, Search, Filter, ChevronDown, Check, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BetSecurityService } from '@/lib/bet-security'
+import { TeamName } from '@/components/ui/TeamName'
 
 interface MatchListProps {
     matches: any[]
@@ -346,7 +347,11 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                 <div className="flex items-center justify-between sm:justify-center gap-2 sm:gap-4 sm:flex-1">
                                     {/* Home Team */}
                                     <div className="flex-1 flex items-center justify-end gap-1.5 sm:gap-2 text-right min-w-0">
-                                        <span className="font-bold text-[11px] sm:text-sm text-slate-700 dark:text-slate-200 truncate leading-tight">{homeTeam.short_name}</span>
+                                        <TeamName
+                                            team={homeTeam}
+                                            variant="auto"
+                                            className="font-bold text-[11px] sm:text-sm text-slate-700 dark:text-slate-200 justify-end"
+                                        />
                                         {homeTeam.logo_url && <img src={homeTeam.logo_url} className="w-5 h-5 sm:w-8 sm:h-8 object-contain shrink-0" alt="" />}
                                     </div>
 
@@ -400,7 +405,11 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                     {/* Away Team */}
                                     <div className="flex-1 flex items-center justify-start gap-1.5 sm:gap-2 text-left min-w-0">
                                         {awayTeam.logo_url && <img src={awayTeam.logo_url} className="w-5 h-5 sm:w-8 sm:h-8 object-contain shrink-0" alt="" />}
-                                        <span className="font-bold text-[11px] sm:text-sm text-slate-700 dark:text-slate-200 truncate leading-tight">{awayTeam.short_name}</span>
+                                        <TeamName
+                                            team={awayTeam}
+                                            variant="auto"
+                                            className="font-bold text-[11px] sm:text-sm text-slate-700 dark:text-slate-200 justify-start"
+                                        />
                                     </div>
                                 </div>
 
