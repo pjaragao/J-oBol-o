@@ -127,7 +127,7 @@ export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTab
             )}
 
             {activeTab === 'settings' && isAdmin && (
-                <GroupSettings group={group} matches={matches} />
+                <GroupSettings group={group} matches={matches} userId={userId} />
             )}
 
             {/* Mobile Bottom Navigation */}

@@ -2,8 +2,10 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
-
 import { useRouter } from 'next/navigation'
+import { Trophy, DollarSign, AlertTriangle, Wallet, ArrowUp, ArrowDown } from 'lucide-react'
+import { calculateLivePoints } from '@/lib/utils/points'
+import Link from 'next/link'
 
 interface GroupSettingsProps {
     group: {
@@ -13,11 +15,15 @@ interface GroupSettingsProps {
         scoring_rules: any
         is_public: boolean
         allow_member_invites?: boolean
+        event_id: string
+        created_by: string
+        is_finished: boolean
     }
     matches: any[]
+    userId: string
 }
 
-export function GroupSettings({ group, matches }: GroupSettingsProps) {
+export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
     const [name, setName] = useState(group.name)
     const [description, setDescription] = useState(group.description || '')
     const [isPublic, setIsPublic] = useState(group.is_public)
@@ -32,6 +38,10 @@ export function GroupSettings({ group, matches }: GroupSettingsProps) {
     const [showUpgradeModal, setShowUpgradeModal] = useState(false)
     const [newLimit, setNewLimit] = useState<number>(0)
     const [upgradeFee, setUpgradeFee] = useState(0)
+
+    const [financials, setFinancials] = useState<any>(null)
+    const [topRanking, setTopRanking] = useState<any[]>([])
+    const [isFinished, setIsFinished] = useState(group.is_finished)
 
     useEffect(() => {
         // Fetch extra financial details that might not be in the initial prop
@@ -55,7 +65,165 @@ export function GroupSettings({ group, matches }: GroupSettingsProps) {
             }
         }
         fetchFinancials()
+        fetchRankingData()
     }, [group.id])
+
+    const fetchRankingData = async () => {
+        try {
+            // Fetch members and profile data
+            const { data: members } = await supabase
+                .from('group_members')
+                .select('user_id, profiles(display_name, avatar_url)')
+                .eq('group_id', group.id)
+
+            // Fetch bets
+            const { data: allBets } = await supabase
+                .from('bets')
+                .select('user_id, match_id, points, home_score_bet, away_score_bet')
+                .eq('group_id', group.id)
+
+            // Fetch live matches
+            const now = new Date().toISOString()
+            const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
+            const { data: liveMatches } = await supabase
+                .from('matches')
+                .select('id, home_score, away_score')
+                .eq('event_id', group.event_id)
+                .not('status', 'in', '("finished", "FT", "AET", "PEN")')
+                .lt('match_date', now)
+                .gt('match_date', threeHoursAgo)
+
+            const liveMatchesMap = new Map(liveMatches?.map(m => [m.id, m]) || [])
+
+            if (members) {
+                const pointsMapBase = new Map<string, number>()
+                const pointsMapLiveTotal = new Map<string, number>()
+                const livePointsOnlyMap = new Map<string, number>()
+                const exactScoresMap = new Map<string, number>()
+                const statsMap = new Map<string, { exact: number; winnerDiff: number; winner: number; consolation: number }>()
+
+                allBets?.forEach(bet => {
+                    const basePoints = bet.points || 0
+                    const userId = bet.user_id
+
+                    pointsMapBase.set(userId, (pointsMapBase.get(userId) || 0) + basePoints)
+                    pointsMapLiveTotal.set(userId, (pointsMapLiveTotal.get(userId) || 0) + basePoints)
+
+                    if (bet.points !== null) {
+                        if (!statsMap.has(userId)) {
+                            statsMap.set(userId, { exact: 0, winnerDiff: 0, winner: 0, consolation: 0 })
+                        }
+                        const stats = statsMap.get(userId)!
+                        if (basePoints === 10) stats.exact++
+                        else if (basePoints === 7) stats.winnerDiff++
+                        else if (basePoints === 5) stats.winner++
+                        else if (basePoints === 2) stats.consolation++
+                    }
+
+                    if (bet.points === 10) {
+                        exactScoresMap.set(userId, (exactScoresMap.get(userId) || 0) + 1)
+                    }
+
+                    if ((bet.points === null || bet.points === 0) && liveMatchesMap.has(bet.match_id)) {
+                        const match = liveMatchesMap.get(bet.match_id)!
+                        const lp = calculateLivePoints(bet.home_score_bet, bet.away_score_bet, match.home_score || 0, match.away_score || 0)
+                        if (lp > 0) {
+                            pointsMapLiveTotal.set(userId, pointsMapLiveTotal.get(userId)! + lp)
+                            livePointsOnlyMap.set(userId, (livePointsOnlyMap.get(userId) || 0) + lp)
+                            if (lp === 10) {
+                                exactScoresMap.set(userId, (exactScoresMap.get(userId) || 0) + 1)
+                            }
+                        }
+                    }
+                })
+
+                const rankingWithoutLive = members.map(m => {
+                    const userId = m.user_id
+                    return {
+                        userId,
+                        points: pointsMapBase.get(userId) || 0,
+                        exacts: exactScoresMap.get(userId) || 0
+                    }
+                }).sort((a, b) => b.points - a.points || b.exacts - a.exacts)
+
+                const initialPosMap = new Map(rankingWithoutLive.map((item, idx) => [item.userId, idx]))
+
+                const fullRanking: any[] = members.map(m => {
+                    const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
+                    const userId = m.user_id
+                    const totalWithLive = pointsMapLiveTotal.get(userId) || 0
+                    return {
+                        user_id: userId,
+                        display_name: profile?.display_name || 'Usuário',
+                        avatar_url: profile?.avatar_url,
+                        total_points: totalWithLive,
+                        live_points: livePointsOnlyMap.get(userId) || 0,
+                        exact_scores: exactScoresMap.get(userId) || 0,
+                        rank_variation: 0,
+                        stats: statsMap.get(userId) || { exact: 0, winnerDiff: 0, winner: 0, consolation: 0 }
+                    }
+                }).sort((a, b) => b.total_points - a.total_points || (b.exact_scores || 0) - (a.exact_scores || 0))
+
+                // Fetch financials to calculate prizes
+                const { data: groupDataFromDB } = await supabase
+                    .from('groups')
+                    .select(`
+                        is_paid, payment_method, entry_fee, min_members, max_members, prize_distribution_strategy,
+                        events!event_id (online_fee_percent, offline_fee_per_slot, offline_base_fee)
+                    `)
+                    .eq('id', group.id)
+                    .single()
+
+                if (groupDataFromDB) {
+                    const { count: paidCount } = await supabase
+                        .from('group_members')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('group_id', group.id)
+                        .eq('payment_status', 'PAID')
+
+                    const eventFees = Array.isArray(groupDataFromDB.events) ? groupDataFromDB.events[0] : groupDataFromDB.events
+                    const config = {
+                        payment_method: groupDataFromDB.payment_method,
+                        entry_fee: groupDataFromDB.entry_fee,
+                        max_members: groupDataFromDB.max_members
+                    }
+                    const potArgs = {
+                        online_fee_percent: eventFees?.online_fee_percent || 10,
+                        offline_fee_per_slot: eventFees?.offline_fee_per_slot || 0,
+                        offline_base_fee: eventFees?.offline_base_fee || 0
+                    }
+
+                    const { FinancialService } = await import('@/lib/financial-service')
+                    const { grossPot, platformFee, netPot } = FinancialService.calculatePrizePot(config, paidCount || 0, potArgs)
+
+                    const fin = {
+                        is_paid: groupDataFromDB.is_paid,
+                        payment_method: groupDataFromDB.payment_method,
+                        entry_fee: groupDataFromDB.entry_fee,
+                        total_pot: grossPot,
+                        net_pot: netPot,
+                        paid_members_count: paidCount || 0
+                    }
+                    setFinancials(fin)
+
+                    const prizeDistribution = FinancialService.calculateDistribution(
+                        fin.payment_method === 'ONLINE' ? fin.net_pot : fin.total_pot,
+                        groupDataFromDB.prize_distribution_strategy
+                    )
+
+                    fullRanking.forEach((user, currentIdx) => {
+                        const initialIdx = initialPosMap.get(user.user_id) ?? currentIdx
+                        user.rank_variation = initialIdx - currentIdx
+                        user.estimated_prize = prizeDistribution[currentIdx + 1] || 0
+                    })
+                }
+
+                setTopRanking(fullRanking)
+            }
+        } catch (error) {
+            console.error('Error fetching ranking data for settings:', error)
+        }
+    }
 
     // Update fee whenever newLimit changes
     useEffect(() => {
@@ -167,6 +335,42 @@ export function GroupSettings({ group, matches }: GroupSettingsProps) {
             setShowUpgradeModal(false)
         } catch (error: any) {
             alert('Erro ao aumentar limite: ' + error.message)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleFinalizeGroup = async () => {
+        if (!confirm("Tem certeza que deseja FINALIZAR este bolão? Isso irá distribuir os prêmios (simulado) e encerrar novas apostas.")) return
+
+        setLoading(true)
+        try {
+            const winners = topRanking.filter(r => r.estimated_prize && r.estimated_prize > 0)
+
+            const promises = winners.map(winner =>
+                supabase.from('transactions').insert({
+                    group_id: group.id,
+                    user_id: winner.user_id,
+                    type: 'PRIZE_PAYOUT',
+                    amount: winner.estimated_prize!,
+                    status: 'COMPLETED'
+                })
+            )
+            await Promise.all(promises)
+
+            const { error } = await supabase
+                .from('groups')
+                .update({ is_finished: true, finished_at: new Date().toISOString() })
+                .eq('id', group.id)
+
+            if (error) throw error
+
+            setIsFinished(true)
+            alert("🏆 Bolão finalizado com sucesso! Prêmios distribuídos (em transações).")
+            router.refresh()
+        } catch (error: any) {
+            console.error('Error finalizing group:', error)
+            alert('Erro ao finalizar bolão: ' + error.message)
         } finally {
             setLoading(false)
         }
@@ -355,6 +559,44 @@ export function GroupSettings({ group, matches }: GroupSettingsProps) {
                         >
                             Aumentar Limite
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Finalization Zone Section */}
+            {group.created_by === userId && !isFinished && (
+                <div className="mt-10 pt-6 border-t border-red-200 dark:border-red-900/50">
+                    <h4 className="text-md font-medium text-red-600 dark:text-red-400 mb-4 font-bold">Encerrar Bolão</h4>
+                    <div className="bg-red-50 dark:bg-red-900/10 border-2 border-dashed border-red-200 dark:border-red-900/30 rounded-xl p-6 flex flex-col items-center text-center gap-4">
+                        <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+                            <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-red-900 dark:text-red-200">Zona de Finalização</h3>
+                            <p className="text-sm text-red-600 dark:text-red-400 max-w-md">
+                                O campeonato terminou? Finalize o bolão para declarar os vencedores e distribuir o prêmio total de <strong>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financials?.net_pot || 0)}</strong>.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleFinalizeGroup}
+                            disabled={loading}
+                            className="bg-red-600 hover:bg-red-700 text-white font-black py-3 px-10 rounded-xl shadow-lg shadow-red-200 dark:shadow-none transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                        >
+                            {loading ? 'Finalizando...' : 'Encerrar Bolão e Pagar Prêmios'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {isFinished && (
+                <div className="mt-10 pt-6 border-t border-green-200 dark:border-green-900/50">
+                    <div className="p-6 rounded-xl border-2 border-green-500 bg-green-50 dark:bg-green-900/10 flex flex-col items-center text-center gap-2">
+                        <Trophy className="w-12 h-12 text-yellow-500 mb-2" />
+                        <h3 className="text-xl font-black text-green-900 dark:text-green-200">ESTE BOLÃO FOI FINALIZADO!</h3>
+                        <p className="text-sm text-green-700 dark:text-green-400">
+                            Prêmios distribuídos e ranking congelado.
+                        </p>
                     </div>
                 </div>
             )}

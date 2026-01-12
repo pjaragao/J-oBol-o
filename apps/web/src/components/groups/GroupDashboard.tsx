@@ -460,40 +460,6 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
         }
     }
 
-    const handleFinalizeGroup = async () => {
-        if (!confirm("Tem certeza que deseja FINALIZAR este bolão? Isso irá distribuir os prêmios (simulado) e encerrar novas apostas.")) return
-
-        setLoading(true)
-        try {
-            // 1. Get Winners (Top of ranking)
-            const winners = topRanking.filter(r => r.estimated_prize && r.estimated_prize > 0)
-
-            // 2. Create Payout Transactions
-            const promises = winners.map(winner =>
-                supabase.from('transactions').insert({
-                    group_id: groupId,
-                    user_id: winner.user_id,
-                    type: 'PRIZE_PAYOUT',
-                    amount: winner.estimated_prize!,
-                    status: 'COMPLETED'
-                })
-            )
-            await Promise.all(promises)
-
-            // 3. Mark Group as Finished
-            await supabase
-                .from('groups')
-                .update({ is_finished: true, finished_at: new Date().toISOString() })
-                .eq('id', groupId)
-
-            alert("🏆 Bolão finalizado com sucesso! Prêmios distribuídos (em transações).")
-            fetchDashboardData()
-        } catch (error) {
-            console.error('Error finalizing group:', error)
-        } finally {
-            setLoading(false)
-        }
-    }
 
     const handlePayMock = async () => {
         setLoading(true)
@@ -888,26 +854,6 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
             )}
 
 
-            {/* Admin Closure Card */}
-            {groupData?.created_by === userId && !isFinished && (
-                <div className="mb-6 p-6 rounded-xl border-2 border-dashed border-red-200 dark:border-red-900/30 bg-red-50/10 dark:bg-red-900/5 flex flex-col items-center text-center gap-4 animate-in fade-in zoom-in">
-                    <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
-                        <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-bold text-red-900 dark:text-red-200">Zona de Finalização</h3>
-                        <p className="text-sm text-red-600 dark:text-red-400 max-w-md">
-                            O campeonato terminou? Finalize o bolão para declarar os vencedores e distribuir o prêmio total de <strong>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financials?.net_pot || 0)}</strong>.
-                        </p>
-                    </div>
-                    <button
-                        onClick={handleFinalizeGroup}
-                        className="bg-red-600 hover:bg-red-700 text-white font-black py-3 px-8 rounded-xl shadow-lg shadow-red-200 dark:shadow-none transition-all hover:scale-105 active:scale-95"
-                    >
-                        Encerrar Bolão e Pagar Prêmios
-                    </button>
-                </div>
-            )}
 
             {isFinished && (
                 <div className="mb-6 p-6 rounded-xl border-2 border-green-500 bg-green-50 dark:bg-green-900/10 flex flex-col items-center text-center gap-2 animate-in bounce-in">
