@@ -73,10 +73,10 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
     return (
         <div className="pb-12 bg-gray-50 dark:bg-slate-900 min-h-screen">
             {/* Header Compacto Moderno */}
-            <div className="bg-gradient-to-b from-green-800 to-green-900 dark:from-slate-900 dark:to-slate-950 pb-12 sm:pb-32 pt-10 px-4 border-b border-green-700/50 dark:border-slate-800">
+            <div className="bg-gradient-to-b from-green-800 to-green-900 dark:from-slate-900 dark:to-slate-950 pb-10 sm:pb-24 pt-6 px-4 border-b border-green-700/50 dark:border-slate-800">
                 <div className="max-w-4xl mx-auto">
                     {/* Layout Refinado: Foco no Grupo e Integração Fluida */}
-                    <div className="flex flex-col gap-6 sm:gap-10">
+                    <div className="flex flex-col gap-4 sm:gap-6">
                         {/* 1. Nome do Grupo (Destaque Principal) */}
                         <div className="flex items-center gap-3">
                             <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight drop-shadow-md">
@@ -90,7 +90,7 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
                         </div>
 
                         {/* 2. Conteúdo da Competição e Prêmio */}
-                        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-8 sm:gap-6">
+                        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6">
                             {/* Bloco da Competição: Logo + Nome (Sempre Lado a Lado) */}
                             <div className="flex items-center gap-4 sm:gap-5">
                                 {/* Logo Redimensionado */}
@@ -144,7 +144,7 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
                 </div>
             </div>
 
-            <main className="-mt-12 sm:-mt-20 mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
+            <main className="-mt-14 sm:-mt-24 mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
                 <GroupTabs
                     groupId={groupId}
                     matches={matches || []}
