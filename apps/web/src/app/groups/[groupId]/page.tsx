@@ -143,19 +143,16 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
                     </div>
                 </div>
             </div>
-        </div>
-                </div >
-            </div >
 
-        <main className="-mt-12 sm:-mt-20 mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
-            <GroupTabs
-                groupId={groupId}
-                matches={matches || []}
-                group={group}
-                isAdmin={isAdmin}
-                userId={user?.id || ''}
-            />
-        </main>
+            <main className="-mt-12 sm:-mt-20 mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
+                <GroupTabs
+                    groupId={groupId}
+                    matches={matches || []}
+                    group={group}
+                    isAdmin={isAdmin}
+                    userId={user?.id || ''}
+                />
+            </main>
         </div >
     )
 }
