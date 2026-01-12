@@ -1146,9 +1146,10 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                     ) : (
                                                         <button
                                                             onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: '', away: '' } }))}
-                                                            className="text-[10px] text-green-600 dark:text-green-400 hover:underline w-auto flex justify-end font-bold"
+                                                            className="text-[10px] text-green-600 dark:text-green-400 hover:underline w-auto flex justify-end font-bold items-center gap-1"
                                                         >
-                                                            Apostar
+                                                            <span className="sm:hidden">+</span>
+                                                            <span className="hidden sm:inline">Apostar</span>
                                                         </button>
                                                     )}
                                                 </div>
