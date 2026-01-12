@@ -294,7 +294,7 @@ export function CampaignForm() {
                                             className="text-[10px] py-1 px-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none"
                                         >
                                             <option value="">Filtrar por Campeonato</option>
-                                            {[...new Set(adminGroups.map(g => g.eventName))].filter(Boolean).map(evtName => (
+                                            {Array.from(new Set(adminGroups.map(g => g.eventName))).filter(Boolean).map(evtName => (
                                                 <option key={evtName} value={evtName!}>{evtName}</option>
                                             ))}
                                         </select>

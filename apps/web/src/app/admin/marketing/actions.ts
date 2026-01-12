@@ -118,7 +118,7 @@ export async function getAudiencePreview(filters: CampaignFilters) {
                     .select('user_id, groups!inner(event_id)')
                     .eq('groups.event_id', filters.eventId)
 
-                const ids = [...new Set((userIdsInEvent || []).map(m => m.user_id))]
+                const ids = Array.from(new Set((userIdsInEvent || []).map(m => m.user_id)))
                 query = query.in('id', ids)
             }
 
@@ -194,7 +194,7 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
                     .select('user_id, groups!inner(event_id)')
                     .eq('groups.event_id', filters.eventId)
 
-                const ids = [...new Set((userIdsInEvent || []).map(m => m.user_id))]
+                const ids = Array.from(new Set((userIdsInEvent || []).map(m => m.user_id)))
                 query = query.in('id', ids)
             }
 
@@ -297,7 +297,7 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
             })
             if (error) throw error
 
-            const userIds = [...new Set((targets as any[]).map(t => t.user_id))]
+            const userIds = Array.from(new Set((targets as any[]).map(t => t.user_id)))
             const { data: users } = await supabase.from('profiles').select('id, display_name').in('id', userIds)
             const userMap = Object.fromEntries((users || []).map(u => [u.id, u.display_name]))
 

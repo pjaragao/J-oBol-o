@@ -182,6 +182,24 @@ export function MemberList({ groupId }: { groupId: string }) {
         }
     }
 
+    const handleCancelInvite = async (inviteId: string) => {
+        if (!confirm('Tem certeza que deseja cancelar este convite?')) return
+
+        try {
+            const { error } = await supabase
+                .from('group_invitations')
+                .delete()
+                .eq('id', inviteId)
+
+            if (error) throw error
+
+            alert('Convite cancelado com sucesso')
+            fetchMembers()
+        } catch (error: any) {
+            alert('Erro ao cancelar convite: ' + error.message)
+        }
+    }
+
     const handleSendEmailInvite = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!inviteEmail) return

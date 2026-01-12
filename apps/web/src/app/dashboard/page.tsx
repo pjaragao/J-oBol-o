@@ -50,8 +50,8 @@ async function UserGroupsCardList({ userId }: { userId: string }) {
                                 {member.groups.events.name}
                             </span>
                             <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${member.role === 'admin'
-                                    ? 'bg-purple-50 text-purple-700 ring-purple-700/10 dark:bg-purple-400/10 dark:text-purple-400 dark:ring-purple-400/30'
-                                    : 'bg-slate-50 text-slate-600 ring-slate-500/10 dark:bg-slate-400/10 dark:text-slate-400 dark:ring-slate-400/30'
+                                ? 'bg-purple-50 text-purple-700 ring-purple-700/10 dark:bg-purple-400/10 dark:text-purple-400 dark:ring-purple-400/30'
+                                : 'bg-slate-50 text-slate-600 ring-slate-500/10 dark:bg-slate-400/10 dark:text-slate-400 dark:ring-slate-400/30'
                                 }`}>
                                 {member.role === 'admin' ? 'Admin' : 'Membro'}
                             </span>
@@ -105,7 +105,7 @@ export default async function DashboardPage() {
         `)
         .eq('user_id', user.id)
 
-    const activeTournaments = new Set(uniqueEvents?.map((m: any) => m.groups.events.id)).size
+    const activeTournaments = Array.from(new Set(uniqueEvents?.map((m: any) => m.groups.events.id))).length
 
     return (
         <AppLayout user={user} profile={profile} isAdmin={isAdmin}>

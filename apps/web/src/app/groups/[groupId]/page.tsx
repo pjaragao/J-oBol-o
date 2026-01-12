@@ -1,11 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { GroupTabs } from '@/components/groups/GroupTabs'
 
 export default async function GroupDetailsPage({ params }: { params: Promise<{ groupId: string }> }) {
     const { groupId } = await params
     const supabase = createClient()
     const { data: { user } } = await (await supabase).auth.getUser()
+
+    if (!user) {
+        redirect(`/login?redirect=/groups/${groupId}`)
+    }
 
     const { data: group } = await (await supabase)
         .from('groups')

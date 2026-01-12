@@ -4,9 +4,10 @@ import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, RefreshCw } from 'lucide-react'
+import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, RefreshCw, DollarSign, AlertTriangle, Wallet } from 'lucide-react'
 import { calculateLivePoints } from '@/lib/utils/points'
 import { manualUpdateLiveMatches } from '@/app/admin/actions'
+import Link from 'next/link'
 
 interface GroupDashboardProps {
     groupId: string
@@ -101,6 +102,10 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
     const [isRefreshing, setIsRefreshing] = useState(false)
 
     const [financials, setFinancials] = useState<GroupFinancials | null>(null)
+    const [isFinished, setIsFinished] = useState(false)
+    const [userPaymentStatus, setUserPaymentStatus] = useState<'PENDING' | 'PAID' | 'EXEMPT'>('PENDING')
+    const [isMember, setIsMember] = useState<boolean | null>(null)
+    const [groupData, setGroupData] = useState<any>(null)
 
     const supabase = createClient()
 
@@ -126,64 +131,94 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
     const [betCounts, setBetCounts] = useState<Record<string, number>>({})
 
 
+    const [errorState, setErrorState] = useState<string | null>(null)
+
     const fetchDashboardData = async (silent = false) => {
+        if (!userId) return
         if (!silent) setLoading(true)
         else setIsRefreshing(true)
+        setErrorState(null)
 
-        const now = new Date().toISOString()
-        const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
+        try {
 
-        // 0. Fetch Group Details & Event Fees (for Financials)
-        const { data: groupData } = await supabase
-            .from('groups')
-            .select(`
-                is_paid, payment_method, entry_fee, min_members, max_members, prize_distribution_strategy,
+            const now = new Date().toISOString()
+            const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
+
+            // 0. Fetch Group Details & Event Fees (for Financials)
+            const { data: groupDataFromDB } = await supabase
+                .from('groups')
+                .select(`
+                is_paid, payment_method, entry_fee, min_members, max_members, prize_distribution_strategy, is_finished,
+                invite_code, created_by,
                 events!event_id (online_fee_percent, offline_fee_per_slot, offline_base_fee)
             `)
-            .eq('id', groupId)
-            .single()
+                .eq('id', groupId)
+                .single()
 
-        // Fetch Paid Count
-        const { count: paidCount } = await supabase
-            .from('group_members')
-            .select('id', { count: 'exact', head: true })
-            .eq('group_id', groupId)
-            .eq('payment_status', 'PAID')
-
-        if (groupData?.is_paid) {
-            const eventFees = Array.isArray(groupData.events) ? groupData.events[0] : groupData.events
-            const config = {
-                payment_method: groupData.payment_method,
-                entry_fee: groupData.entry_fee,
-                max_members: groupData.max_members
-            }
-            const potArgs = {
-                online_fee_percent: eventFees?.online_fee_percent || 10,
-                offline_fee_per_slot: eventFees?.offline_fee_per_slot || 0,
-                offline_base_fee: eventFees?.offline_base_fee || 0
+            if (groupDataFromDB) {
+                setGroupData(groupDataFromDB)
+                setIsFinished(groupDataFromDB.is_finished)
             }
 
-            // Lazy load FinancialService to avoid server/client issues if any
-            const { FinancialService } = await import('@/lib/financial-service')
-            const { grossPot, platformFee, netPot } = FinancialService.calculatePrizePot(config, paidCount || 0, potArgs)
+            const { data: memberData, error: memberError } = await supabase
+                .from('group_members')
+                .select('payment_status')
+                .eq('group_id', groupId)
+                .eq('user_id', userId)
+                .single()
 
-            setFinancials({
-                is_paid: true,
-                payment_method: groupData.payment_method,
-                entry_fee: groupData.entry_fee,
-                min_members: groupData.min_members,
-                max_members: groupData.max_members,
-                paid_members_count: paidCount || 0,
-                total_pot: grossPot,
-                net_pot: netPot,
-                platform_fee: platformFee
-            })
-        }
+            if (memberError && memberError.code !== 'PGRST116') {
+                throw memberError
+            }
 
-        // 1. Fetch Upcoming Matches (Next 3 strictly in future)
-        const { data: upcoming } = await supabase
-            .from('matches')
-            .select(`
+            if (memberData) {
+                setUserPaymentStatus(memberData.payment_status)
+                setIsMember(true)
+            } else {
+                setIsMember(false)
+            }
+
+            // Fetch Paid Count
+            const { count: paidCount } = await supabase
+                .from('group_members')
+                .select('id', { count: 'exact', head: true })
+                .eq('group_id', groupId)
+                .eq('payment_status', 'PAID')
+
+            if (groupData?.is_paid) {
+                const eventFees = Array.isArray(groupData.events) ? groupData.events[0] : groupData.events
+                const config = {
+                    payment_method: groupData.payment_method,
+                    entry_fee: groupData.entry_fee,
+                    max_members: groupData.max_members
+                }
+                const potArgs = {
+                    online_fee_percent: eventFees?.online_fee_percent || 10,
+                    offline_fee_per_slot: eventFees?.offline_fee_per_slot || 0,
+                    offline_base_fee: eventFees?.offline_base_fee || 0
+                }
+
+                // Lazy load FinancialService to avoid server/client issues if any
+                const { FinancialService } = await import('@/lib/financial-service')
+                const { grossPot, platformFee, netPot } = FinancialService.calculatePrizePot(config, paidCount || 0, potArgs)
+
+                setFinancials({
+                    is_paid: true,
+                    payment_method: groupData.payment_method,
+                    entry_fee: groupData.entry_fee,
+                    min_members: groupData.min_members,
+                    max_members: groupData.max_members,
+                    paid_members_count: paidCount || 0,
+                    total_pot: grossPot,
+                    net_pot: netPot,
+                    platform_fee: platformFee
+                })
+            }
+
+            // 1. Fetch Upcoming Matches (Next 3 strictly in future)
+            const { data: upcoming } = await supabase
+                .from('matches')
+                .select(`
                 id,
                 match_date,
                 status,
@@ -192,17 +227,17 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 home_team:teams!home_team_id(name, logo_url, short_name),
                 away_team:teams!away_team_id(name, logo_url, short_name)
             `)
-            .eq('event_id', eventId)
-            .in('status', ['scheduled', 'timed'])
-            .gte('match_date', now)
-            .order('match_date', { ascending: true })
-            .limit(3)
+                .eq('event_id', eventId)
+                .in('status', ['scheduled', 'timed'])
+                .gte('match_date', now)
+                .order('match_date', { ascending: true })
+                .limit(3)
 
-        // 2. Fetch Live/InProgress Matches
-        // Criteria: status is 'live' OR (status is not finished AND date is in the last 3 hours or slightly future which started)
-        const { data: live } = await supabase
-            .from('matches')
-            .select(`
+            // 2. Fetch Live/InProgress Matches
+            // Criteria: status is 'live' OR (status is not finished AND date is in the last 3 hours or slightly future which started)
+            const { data: live } = await supabase
+                .from('matches')
+                .select(`
                 id,
                 match_date,
                 status,
@@ -212,41 +247,41 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 away_team:teams!away_team_id(name, logo_url, short_name),
                 updated_at
             `)
-            .eq('event_id', eventId)
-            .not('status', 'in', '("finished", "FT", "AET", "PEN")')
-            .lt('match_date', now)
-            .gt('match_date', threeHoursAgo)
-            .order('match_date', { ascending: true })
+                .eq('event_id', eventId)
+                .not('status', 'in', '("finished", "FT", "AET", "PEN")')
+                .lt('match_date', now)
+                .gt('match_date', threeHoursAgo)
+                .order('match_date', { ascending: true })
 
-        // 3. SMART SYNC CHECK (Client trigger)
-        // If there are live matches, check if the data is stale (older than 2 mins)
-        if (live && live.length > 0) {
-            const lastLiveUpdate = live.reduce((latest, match) => {
-                const matchTime = new Date(match.updated_at).getTime()
-                return matchTime > latest ? matchTime : latest
-            }, 0)
+            // 3. SMART SYNC CHECK (Client trigger)
+            // If there are live matches, check if the data is stale (older than 2 mins)
+            if (live && live.length > 0) {
+                const lastLiveUpdate = live.reduce((latest, match) => {
+                    const matchTime = new Date(match.updated_at).getTime()
+                    return matchTime > latest ? matchTime : latest
+                }, 0)
 
-            const twoMinutesAgo = Date.now() - 2 * 60 * 1000
+                const twoMinutesAgo = Date.now() - 2 * 60 * 1000
 
-            // If the latest update is older than 2 minutes, trigger a background refresh
-            if (lastLiveUpdate < twoMinutesAgo) {
-                console.log('[SmartSync] Data is stale. Triggering background update...')
-                // We call the server action without awaiting to not block the UI render
-                manualUpdateLiveMatches().then(res => {
-                    if (res.success) {
-                        console.log('[SmartSync] Triggered successfully. Will refresh in next poll.')
-                        // Optionally set a flag to refresh sooner
-                    } else {
-                        console.log('[SmartSync] Skipped:', res.message)
-                    }
-                })
+                // If the latest update is older than 2 minutes, trigger a background refresh
+                if (lastLiveUpdate < twoMinutesAgo) {
+                    console.log('[SmartSync] Data is stale. Triggering background update...')
+                    // We call the server action without awaiting to not block the UI render
+                    manualUpdateLiveMatches().then(res => {
+                        if (res.success) {
+                            console.log('[SmartSync] Triggered successfully. Will refresh in next poll.')
+                            // Optionally set a flag to refresh sooner
+                        } else {
+                            console.log('[SmartSync] Skipped:', res.message)
+                        }
+                    })
+                }
             }
-        }
 
-        // 3. Fetch Recent Matches (Last 3 Finished)
-        const { data: recent } = await supabase
-            .from('matches')
-            .select(`
+            // 3. Fetch Recent Matches (Last 3 Finished)
+            const { data: recent } = await supabase
+                .from('matches')
+                .select(`
                 id,
                 match_date,
                 status,
@@ -255,168 +290,236 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 home_team:teams!home_team_id(name, logo_url, short_name),
                 away_team:teams!away_team_id(name, logo_url, short_name)
             `)
-            .eq('event_id', eventId)
-            .in('status', ['finished', 'FT', 'AET', 'PEN'])
-            .order('match_date', { ascending: false })
-            .limit(3)
+                .eq('event_id', eventId)
+                .in('status', ['finished', 'FT', 'AET', 'PEN'])
+                .order('match_date', { ascending: false })
+                .limit(3)
 
-        // Fetch user data and all bets for ranking
-        const { data: members } = await supabase
-            .from('group_members')
-            .select('user_id, profiles(display_name, avatar_url)')
-            .eq('group_id', groupId)
-            .limit(5000)
+            // Fetch user data and all bets for ranking
+            const { data: members } = await supabase
+                .from('group_members')
+                .select('user_id, profiles(display_name, avatar_url)')
+                .eq('group_id', groupId)
+                .limit(5000)
 
-        const { data: allBets } = await supabase
-            .from('bets')
-            .select('user_id, match_id, points, home_score_bet, away_score_bet')
-            .eq('group_id', groupId)
-            .limit(5000)
+            const { data: allBets } = await supabase
+                .from('bets')
+                .select('user_id, match_id, points, home_score_bet, away_score_bet')
+                .eq('group_id', groupId)
+                .limit(5000)
 
-        if (members) {
-            // Aggregate Ranking (both without and with live points)
-            const pointsMapBase = new Map<string, number>()
-            const pointsMapLiveTotal = new Map<string, number>()
-            const livePointsOnlyMap = new Map<string, number>()
-            const exactScoresMap = new Map<string, number>()
-            const statsMap = new Map<string, { exact: number; winnerDiff: number; winner: number; consolation: number }>()
+            if (members) {
+                // Aggregate Ranking (both without and with live points)
+                const pointsMapBase = new Map<string, number>()
+                const pointsMapLiveTotal = new Map<string, number>()
+                const livePointsOnlyMap = new Map<string, number>()
+                const exactScoresMap = new Map<string, number>()
+                const statsMap = new Map<string, { exact: number; winnerDiff: number; winner: number; consolation: number }>()
 
-            const liveMatchesMap = new Map(live?.map(m => [m.id, m]) || [])
+                const liveMatchesMap = new Map(live?.map(m => [m.id, m]) || [])
 
-            allBets?.forEach(bet => {
-                const basePoints = bet.points || 0
-                const userId = bet.user_id
+                allBets?.forEach(bet => {
+                    const basePoints = bet.points || 0
+                    const userId = bet.user_id
 
-                pointsMapBase.set(userId, (pointsMapBase.get(userId) || 0) + basePoints)
-                pointsMapLiveTotal.set(userId, (pointsMapLiveTotal.get(userId) || 0) + basePoints)
+                    pointsMapBase.set(userId, (pointsMapBase.get(userId) || 0) + basePoints)
+                    pointsMapLiveTotal.set(userId, (pointsMapLiveTotal.get(userId) || 0) + basePoints)
 
-                // Stats calculation (only for finished games)
-                if (bet.points !== null) {
-                    if (!statsMap.has(userId)) {
-                        statsMap.set(userId, { exact: 0, winnerDiff: 0, winner: 0, consolation: 0 })
+                    // Stats calculation (only for finished games)
+                    if (bet.points !== null) {
+                        if (!statsMap.has(userId)) {
+                            statsMap.set(userId, { exact: 0, winnerDiff: 0, winner: 0, consolation: 0 })
+                        }
+                        const stats = statsMap.get(userId)!
+                        if (basePoints === 10) stats.exact++
+                        else if (basePoints === 7) stats.winnerDiff++
+                        else if (basePoints === 5) stats.winner++
+                        else if (basePoints === 2) stats.consolation++
                     }
-                    const stats = statsMap.get(userId)!
-                    if (basePoints === 10) stats.exact++
-                    else if (basePoints === 7) stats.winnerDiff++
-                    else if (basePoints === 5) stats.winner++
-                    else if (basePoints === 2) stats.consolation++
-                }
 
-                // Track exact scores (tie-breaker)
-                if (bet.points === 10) {
-                    exactScoresMap.set(userId, (exactScoresMap.get(userId) || 0) + 1)
-                }
+                    // Track exact scores (tie-breaker)
+                    if (bet.points === 10) {
+                        exactScoresMap.set(userId, (exactScoresMap.get(userId) || 0) + 1)
+                    }
 
-                // Calculate live points if this match is currently live
-                // Note: we check for null OR 0 to be safe before the DB migration propagates
-                if ((bet.points === null || bet.points === 0) && liveMatchesMap.has(bet.match_id)) {
-                    const match = liveMatchesMap.get(bet.match_id)!
-                    const lp = calculateLivePoints(bet.home_score_bet, bet.away_score_bet, match.home_score || 0, match.away_score || 0)
-                    if (lp > 0) {
-                        pointsMapLiveTotal.set(userId, pointsMapLiveTotal.get(userId)! + lp)
-                        livePointsOnlyMap.set(userId, (livePointsOnlyMap.get(userId) || 0) + lp)
+                    // Calculate live points if this match is currently live
+                    // Note: we check for null OR 0 to be safe before the DB migration propagates
+                    if ((bet.points === null || bet.points === 0) && liveMatchesMap.has(bet.match_id)) {
+                        const match = liveMatchesMap.get(bet.match_id)!
+                        const lp = calculateLivePoints(bet.home_score_bet, bet.away_score_bet, match.home_score || 0, match.away_score || 0)
+                        if (lp > 0) {
+                            pointsMapLiveTotal.set(userId, pointsMapLiveTotal.get(userId)! + lp)
+                            livePointsOnlyMap.set(userId, (livePointsOnlyMap.get(userId) || 0) + lp)
 
-                        // Also count live exact scores for live ranking tie-breaker
-                        if (lp === 10) {
-                            exactScoresMap.set(userId, (exactScoresMap.get(userId) || 0) + 1)
+                            // Also count live exact scores for live ranking tie-breaker
+                            if (lp === 10) {
+                                exactScoresMap.set(userId, (exactScoresMap.get(userId) || 0) + 1)
+                            }
                         }
                     }
+                })
+
+                // Calculate Initial Positions (Without Live)
+                const rankingWithoutLive = members.map(m => {
+                    const userId = m.user_id
+                    return {
+                        userId,
+                        points: pointsMapBase.get(userId) || 0,
+                        exacts: exactScoresMap.get(userId) || 0
+                    }
+                }).sort((a, b) => b.points - a.points || b.exacts - a.exacts)
+
+                const initialPosMap = new Map(rankingWithoutLive.map((item, idx) => [item.userId, idx]))
+
+                // Calculate Final Positions (With Live)
+                const fullRanking: RankingItem[] = members.map(m => {
+                    const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
+                    const userId = m.user_id
+                    const totalWithLive = pointsMapLiveTotal.get(userId) || 0
+                    return {
+                        user_id: userId,
+                        display_name: profile?.display_name || 'Usuário',
+                        avatar_url: profile?.avatar_url,
+                        total_points: totalWithLive,
+                        live_points: livePointsOnlyMap.get(userId) || 0,
+                        exact_scores: exactScoresMap.get(userId) || 0,
+                        rank_variation: 0,
+                        stats: statsMap.get(userId) || { exact: 0, winnerDiff: 0, winner: 0, consolation: 0 }
+                    }
+                }).sort((a, b) => b.total_points - a.total_points || (b.exact_scores || 0) - (a.exact_scores || 0))
+
+                // Add rank variation and Estimated Prize
+                // Note: Distribution depends on rank, so we calculate after sorting
+                let prizeDistribution: Record<number, number> = {}
+                if (financials) {
+                    const { FinancialService } = require('@/lib/financial-service')
+                    prizeDistribution = FinancialService.calculateDistribution(
+                        financials.payment_method === 'ONLINE' ? financials.net_pot : financials.total_pot,
+                        groupData?.prize_distribution_strategy
+                    )
                 }
-            })
 
-            // Calculate Initial Positions (Without Live)
-            const rankingWithoutLive = members.map(m => {
-                const userId = m.user_id
-                return {
-                    userId,
-                    points: pointsMapBase.get(userId) || 0,
-                    exacts: exactScoresMap.get(userId) || 0
-                }
-            }).sort((a, b) => b.points - a.points || b.exacts - a.exacts)
+                fullRanking.forEach((user, currentIdx) => {
+                    const initialIdx = initialPosMap.get(user.user_id) ?? currentIdx
+                    user.rank_variation = initialIdx - currentIdx
+                    // Assign Prize if available for this rank (1-indexed)
+                    user.estimated_prize = prizeDistribution[currentIdx + 1] || 0
+                })
 
-            const initialPosMap = new Map(rankingWithoutLive.map((item, idx) => [item.userId, idx]))
+                setTopRanking(fullRanking)
 
-            // Calculate Final Positions (With Live)
-            const fullRanking: RankingItem[] = members.map(m => {
-                const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
-                const userId = m.user_id
-                const totalWithLive = pointsMapLiveTotal.get(userId) || 0
-                return {
-                    user_id: userId,
-                    display_name: profile?.display_name || 'Usuário',
-                    avatar_url: profile?.avatar_url,
-                    total_points: totalWithLive,
-                    live_points: livePointsOnlyMap.get(userId) || 0,
-                    exact_scores: exactScoresMap.get(userId) || 0,
-                    rank_variation: 0,
-                    stats: statsMap.get(userId) || { exact: 0, winnerDiff: 0, winner: 0, consolation: 0 }
-                }
-            }).sort((a, b) => b.total_points - a.total_points || (b.exact_scores || 0) - (a.exact_scores || 0))
-
-            // Add rank variation and Estimated Prize
-            // Note: Distribution depends on rank, so we calculate after sorting
-            let prizeDistribution: Record<number, number> = {}
-            if (financials) {
-                const { FinancialService } = require('@/lib/financial-service')
-                prizeDistribution = FinancialService.calculateDistribution(
-                    financials.payment_method === 'ONLINE' ? financials.net_pot : financials.total_pot,
-                    groupData?.prize_distribution_strategy
-                )
+                // Bet Counts for Upcoming
+                const counts: Record<string, number> = {}
+                upcoming?.forEach(m => {
+                    counts[m.id] = allBets?.filter(b => b.match_id === m.id).length || 0
+                })
+                setBetCounts(counts)
             }
 
-            fullRanking.forEach((user, currentIdx) => {
-                const initialIdx = initialPosMap.get(user.user_id) ?? currentIdx
-                user.rank_variation = initialIdx - currentIdx
-                // Assign Prize if available for this rank (1-indexed)
-                user.estimated_prize = prizeDistribution[currentIdx + 1] || 0
-            })
+            // Fetch specific user bets for display
+            const matchIds = [
+                ...(upcoming || []).map(m => m.id),
+                ...(live || []).map(m => m.id),
+                ...(recent || []).map(m => m.id)
+            ]
+            if (matchIds.length > 0) {
+                const { data: userBets } = await supabase
+                    .from('bets')
+                    .select('match_id, home_score_bet, away_score_bet, points')
+                    .eq('group_id', groupId)
+                    .eq('user_id', userId)
+                    .in('match_id', matchIds)
 
-            setTopRanking(fullRanking)
+                const betsMap = new Map(userBets?.map(b => [b.match_id, b]) || [])
 
-            // Bet Counts for Upcoming
-            const counts: Record<string, number> = {}
-            upcoming?.forEach(m => {
-                counts[m.id] = allBets?.filter(b => b.match_id === m.id).length || 0
-            })
-            setBetCounts(counts)
+                if (upcoming) {
+                    setUpcomingMatches(upcoming.map(m => ({ ...m, user_bet: betsMap.get(m.id) })) as any)
+                }
+                if (live) {
+                    setLiveMatches(live.map(m => ({ ...m, user_bet: betsMap.get(m.id) })) as any)
+                }
+                if (recent) {
+                    setRecentMatches(recent.map(m => ({ ...m, user_bet: betsMap.get(m.id) })) as any)
+                }
+            } else {
+                if (upcoming) setUpcomingMatches(upcoming as any)
+                if (live) setLiveMatches(live as any)
+                if (recent) setRecentMatches(recent as any)
+            }
+
+            setLastUpdated(new Date())
+
+        } catch (error: any) {
+            console.error('Error fetching dashboard data:', error)
+            setErrorState('Não foi possível carregar os dados do grupo.')
+        } finally {
+            if (!silent) setLoading(false)
+            else {
+                setTimeout(() => setIsRefreshing(false), 500)
+            }
         }
+    }
 
-        // Fetch specific user bets for display
-        const matchIds = [
-            ...(upcoming || []).map(m => m.id),
-            ...(live || []).map(m => m.id),
-            ...(recent || []).map(m => m.id)
-        ]
-        if (matchIds.length > 0) {
-            const { data: userBets } = await supabase
-                .from('bets')
-                .select('match_id, home_score_bet, away_score_bet, points')
+    const handleFinalizeGroup = async () => {
+        if (!confirm("Tem certeza que deseja FINALIZAR este bolão? Isso irá distribuir os prêmios (simulado) e encerrar novas apostas.")) return
+
+        setLoading(true)
+        try {
+            // 1. Get Winners (Top of ranking)
+            const winners = topRanking.filter(r => r.estimated_prize && r.estimated_prize > 0)
+
+            // 2. Create Payout Transactions
+            const promises = winners.map(winner =>
+                supabase.from('transactions').insert({
+                    group_id: groupId,
+                    user_id: winner.user_id,
+                    type: 'PRIZE_PAYOUT',
+                    amount: winner.estimated_prize!,
+                    status: 'COMPLETED'
+                })
+            )
+            await Promise.all(promises)
+
+            // 3. Mark Group as Finished
+            await supabase
+                .from('groups')
+                .update({ is_finished: true, finished_at: new Date().toISOString() })
+                .eq('id', groupId)
+
+            alert("🏆 Bolão finalizado com sucesso! Prêmios distribuídos (em transações).")
+            fetchDashboardData()
+        } catch (error) {
+            console.error('Error finalizing group:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handlePayMock = async () => {
+        setLoading(true)
+        try {
+            // 1. Create Transaction (Mocking successful payment)
+            await supabase.from('transactions').insert({
+                group_id: groupId,
+                user_id: userId,
+                type: 'ENTRY_FEE',
+                amount: financials?.entry_fee || 0,
+                status: 'COMPLETED'
+            })
+
+            // 2. Update Member Status
+            await supabase
+                .from('group_members')
+                .update({ payment_status: 'PAID', paid_at: new Date().toISOString() })
                 .eq('group_id', groupId)
                 .eq('user_id', userId)
-                .in('match_id', matchIds)
 
-            const betsMap = new Map(userBets?.map(b => [b.match_id, b]) || [])
-
-            if (upcoming) {
-                setUpcomingMatches(upcoming.map(m => ({ ...m, user_bet: betsMap.get(m.id) })) as any)
-            }
-            if (live) {
-                setLiveMatches(live.map(m => ({ ...m, user_bet: betsMap.get(m.id) })) as any)
-            }
-            if (recent) {
-                setRecentMatches(recent.map(m => ({ ...m, user_bet: betsMap.get(m.id) })) as any)
-            }
-        } else {
-            if (upcoming) setUpcomingMatches(upcoming as any)
-            if (live) setLiveMatches(live as any)
-            if (recent) setRecentMatches(recent as any)
-        }
-
-        setLastUpdated(new Date())
-
-        if (!silent) setLoading(false)
-        else {
-            setTimeout(() => setIsRefreshing(false), 500)
+            alert("✅ Pagamento confirmado (MOCK)! Você está oficialmente no jogo.")
+            fetchDashboardData()
+        } catch (error) {
+            console.error('Error in mock payment:', error)
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -437,7 +540,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
         // Let's try to import it to be consistent.
         const { BetSecurityService } = await import('@/lib/bet-security') // Dynamic import to avoid top-level issues with existing imports
 
-        if (!BetSecurityService.isBetVisible(matchDate)) {
+        if (!BetSecurityService.isBetVisible(matchDate, false)) {
             alert("⏳ Os palpites só são visíveis após o início do jogo!")
             return
         }
@@ -566,6 +669,43 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
     const getTeam = (team: any) => Array.isArray(team) ? team[0] : team
 
+    if (isMember === false) return (
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-full mb-6 text-green-600 dark:text-green-400">
+                <Lock className="w-12 h-12" />
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3">Você ainda não está no grupo!</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 max-w-sm mx-auto">
+                Para participar deste bolão e começar a palpitar, você precisa de um convite ou entrar com o código do grupo.
+            </p>
+            <Link
+                href={`/groups/join?code=${groupData?.invite_code || ''}`}
+                className="bg-green-600 hover:bg-green-700 text-white font-black py-4 px-10 rounded-2xl shadow-lg shadow-green-200 dark:shadow-none transition-all hover:scale-105 active:scale-95"
+            >
+                Participar Agora
+            </Link>
+        </div>
+    )
+
+    if (errorState) return (
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-white dark:bg-slate-900 rounded-2xl border border-red-100 dark:border-red-900/20 shadow-sm">
+            <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full mb-4">
+                <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{errorState}</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-xs mx-auto">
+                Ocorreu um problema ao carregar as informações deste grupo. Tente atualizar a página.
+            </p>
+            <button
+                onClick={() => fetchDashboardData()}
+                className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-6 py-2 rounded-xl font-bold transition-all"
+            >
+                <RefreshCw className="w-4 h-4" />
+                Tentar Novamente
+            </button>
+        </div>
+    )
+
     if (loading) return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-pulse">
             <div className="h-64 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
@@ -671,6 +811,33 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 </div>
             )}
 
+            {/* Payment Warning Banner */}
+            {financials && financials.is_paid && userPaymentStatus === 'PENDING' && (
+                <div className="mb-6 p-4 rounded-xl border bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800/50 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-yellow-100 dark:bg-yellow-800 rounded-full">
+                            <DollarSign className="w-5 h-5 text-yellow-700 dark:text-yellow-400" />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-yellow-900 dark:text-yellow-200 text-sm">Pagamento Pendente</h4>
+                            <p className="text-xs text-yellow-700 dark:text-yellow-400 leading-tight">
+                                {financials.payment_method === 'ONLINE'
+                                    ? `Pague a entrada de R$ ${financials.entry_fee.toFixed(2)} para validar sua participação.`
+                                    : `Combine o pagamento de R$ ${financials.entry_fee.toFixed(2)} diretamente com o administrador do grupo.`}
+                            </p>
+                        </div>
+                    </div>
+                    {financials.payment_method === 'ONLINE' && (
+                        <button
+                            onClick={handlePayMock}
+                            className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-6 rounded-lg text-sm shadow-md transition-all active:scale-95 whitespace-nowrap"
+                        >
+                            Pagar Agora (BETA)
+                        </button>
+                    )}
+                </div>
+            )}
+
             {/* Financial Info Card */}
             {financials && financials.is_paid && (
                 <div className="mb-6 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl p-4 shadow-lg text-white">
@@ -701,17 +868,56 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                 <span className="block text-xs text-emerald-100">Participantes Pagos</span>
                                 <span className="block text-xl font-bold">{financials.paid_members_count}</span>
                             </div>
-                            <div className="text-center">
-                                <span className="block text-xs text-emerald-100">Valor Entrada</span>
+                            <div className="text-center border-r border-white/20 pr-4">
+                                <span className="block text-xs text-emerald-100">Entrada</span>
                                 <span className="block text-xl font-bold">
                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financials.entry_fee)}
                                 </span>
+                            </div>
+                            <div className="text-center pl-4">
+                                <Link href="/profile/transactions" className="flex flex-col items-center group">
+                                    <div className="p-1.5 bg-white/10 rounded-full group-hover:bg-white/20 mb-1 transition-colors">
+                                        <Wallet className="w-4 h-4" />
+                                    </div>
+                                    <span className="text-[10px] font-bold text-emerald-100 uppercase tracking-tighter">Extrato</span>
+                                </Link>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
 
+
+            {/* Admin Closure Card */}
+            {groupData?.created_by === userId && !isFinished && (
+                <div className="mb-6 p-6 rounded-xl border-2 border-dashed border-red-200 dark:border-red-900/30 bg-red-50/10 dark:bg-red-900/5 flex flex-col items-center text-center gap-4 animate-in fade-in zoom-in">
+                    <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+                        <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-red-900 dark:text-red-200">Zona de Finalização</h3>
+                        <p className="text-sm text-red-600 dark:text-red-400 max-w-md">
+                            O campeonato terminou? Finalize o bolão para declarar os vencedores e distribuir o prêmio total de <strong>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financials?.net_pot || 0)}</strong>.
+                        </p>
+                    </div>
+                    <button
+                        onClick={handleFinalizeGroup}
+                        className="bg-red-600 hover:bg-red-700 text-white font-black py-3 px-8 rounded-xl shadow-lg shadow-red-200 dark:shadow-none transition-all hover:scale-105 active:scale-95"
+                    >
+                        Encerrar Bolão e Pagar Prêmios
+                    </button>
+                </div>
+            )}
+
+            {isFinished && (
+                <div className="mb-6 p-6 rounded-xl border-2 border-green-500 bg-green-50 dark:bg-green-900/10 flex flex-col items-center text-center gap-2 animate-in bounce-in">
+                    <Trophy className="w-12 h-12 text-yellow-500 mb-2" />
+                    <h3 className="text-2xl font-black text-green-900 dark:text-green-200">ESTE BOLÃO FOI FINALIZADO! 🎊</h3>
+                    <p className="text-sm text-green-700 dark:text-green-400">
+                        Obrigado a todos os participantes. Confira a premiação final no ranking abaixo.
+                    </p>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-sans text-slate-800 dark:text-slate-100">
 

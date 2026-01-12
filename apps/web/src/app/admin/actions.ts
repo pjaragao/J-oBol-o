@@ -116,7 +116,7 @@ export async function recalculateAllPendingBets() {
         }
 
         // Get unique match IDs from pending bets
-        const matchIds = [...new Set(pendingBets.map(b => (b.matches as any).id))]
+        const matchIds = Array.from(new Set(pendingBets.map(b => (b.matches as any).id)))
 
         // Call recalculate_match_points for each unique match
         let totalRecalculated = 0
