@@ -62,7 +62,7 @@ export default function CreateGroupPage() {
             score_exact: 10,
             score_winner_goals: 7,
             score_winner: 5,
-            score_draw: 0
+            score_draw: 2
         }
     })
 
@@ -304,7 +304,10 @@ export default function CreateGroupPage() {
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                         <div className="space-y-2">
-                                            <Label className="font-bold">Valor da Entrada</Label>
+                                            <div className="flex items-center justify-between">
+                                                <Label className="font-bold">Valor da Entrada</Label>
+                                                <span className="text-[10px] font-black text-slate-400 uppercase">Por pessoa</span>
+                                            </div>
                                             <div className="relative group">
                                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-emerald-500">R$</span>
                                                 <Input
@@ -367,7 +370,7 @@ export default function CreateGroupPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <div className="flex justify-between items-center">
-                                                <Label className="font-bold">📊 Venceu + Altura</Label>
+                                                <Label className="font-bold">📊 Vencedor + Dif. Gols</Label>
                                                 <span className="text-[10px] font-black text-indigo-500 uppercase">Sugestão: 7</span>
                                             </div>
                                             <Input type="number" onKeyDown={preventEnterSubmit} {...register('score_winner_goals', { valueAsNumber: true })} className="h-12 bg-slate-50 dark:bg-slate-900 border-none text-xl font-bold text-center" />
@@ -381,7 +384,7 @@ export default function CreateGroupPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <div className="flex justify-between items-center">
-                                                <Label className="font-bold">~ Empate Genérico</Label>
+                                                <Label className="font-bold">🎯 Um Placar Correto</Label>
                                                 <span className="text-[10px] font-black text-indigo-500 uppercase">Sugestão: 2</span>
                                             </div>
                                             <Input type="number" onKeyDown={preventEnterSubmit} {...register('score_draw', { valueAsNumber: true })} className="h-12 bg-slate-50 dark:bg-slate-900 border-none text-xl font-bold text-center" />
@@ -431,9 +434,9 @@ export default function CreateGroupPage() {
                                         <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">Pontuação</p>
                                         <div className="flex flex-wrap gap-4 text-sm">
                                             <span><strong>🎯 Exato:</strong> {watch('score_exact')} pts</span>
-                                            <span><strong>📊 Vencedor+:</strong> {watch('score_winner_goals')} pts</span>
+                                            <span><strong>📊 Venc+Dif:</strong> {watch('score_winner_goals')} pts</span>
                                             <span><strong>✓ Vencedor:</strong> {watch('score_winner')} pts</span>
-                                            <span><strong>~ Empate:</strong> {watch('score_draw')} pts</span>
+                                            <span><strong>🎯 1 Placar:</strong> {watch('score_draw')} pts</span>
                                         </div>
                                     </div>
 
