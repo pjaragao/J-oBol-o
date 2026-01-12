@@ -876,22 +876,22 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-[35%_65%] gap-6 font-sans text-slate-800 dark:text-slate-100 items-stretch">
 
                 {/* Col 1: Ranking Resumido */}
-                <div className="bg-[#FDFDF7] dark:bg-slate-800 border border-green-100 dark:border-slate-700 rounded-xl p-5 shadow-sm flex flex-col h-full">
-                    <div className="flex items-center gap-2 mb-4 text-[#15803d] dark:text-green-400">
+                <div className="bg-[#FDFDF7] dark:bg-slate-800 border border-green-100 dark:border-slate-700 rounded-xl p-3 shadow-sm flex flex-col h-full">
+                    <div className="flex items-center gap-2 mb-2 text-[#15803d] dark:text-green-400">
                         <Trophy className="h-5 w-5" />
                         <h3 className="font-bold text-lg">Ranking Resumido</h3>
                     </div>
 
-                    <div className="bg-white/50 dark:bg-black/20 rounded-lg p-4 flex-1 flex flex-col">
+                    <div className="bg-white/50 dark:bg-black/20 rounded-lg p-2 flex-1 flex flex-col">
                         {topRanking.length === 0 ? (
                             <p className="text-center text-slate-500 dark:text-slate-400 text-sm my-auto">
                                 Nenhuma previsão feita ainda.
                             </p>
                         ) : (
-                            <div className="space-y-3 w-full">
+                            <div className="space-y-1 w-full">
                                 {(() => {
                                     const userIndex = topRanking.findIndex(r => r.user_id === userId)
-                                    const showLimit = 5
+                                    const showLimit = 12
                                     const itemsToDisplay = topRanking.slice(0, showLimit)
 
                                     // If current user is not in top 5, append them
@@ -904,7 +904,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                         const isCurrentUser = user.user_id === userId
 
                                         return (
-                                            <div key={user.user_id} className={`flex items-center justify-between border-b border-green-50 dark:border-slate-700 pb-2 last:border-0 last:pb-0 ${isCurrentUser ? 'bg-green-50/50 dark:bg-green-900/10 -mx-2 px-2 rounded-md' : ''}`}>
+                                            <div key={user.user_id} className={`flex items-center justify-between border-b border-green-50 dark:border-slate-700 py-1 last:border-0 last:pb-0 ${isCurrentUser ? 'bg-green-50/50 dark:bg-green-900/10 -mx-1 px-1 rounded-md' : ''}`}>
                                                 <div className="flex items-center gap-3">
                                                     <div className="relative">
                                                         <div className={`
