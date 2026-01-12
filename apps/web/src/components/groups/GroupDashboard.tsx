@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, RefreshCw, DollarSign, AlertTriangle, Wallet, Crown, Calendar, ChevronRight, BarChart2, Plus, Pencil } from 'lucide-react'
+import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, RefreshCw, DollarSign, AlertTriangle, Wallet, Crown, Calendar, ChevronRight, BarChart2, Plus, Pencil, Users } from 'lucide-react'
 import { calculateLivePoints } from '@/lib/utils/points'
 import { BetSecurityService } from '@/lib/bet-security'
 import { TeamName } from '@/components/ui/TeamName'
@@ -875,10 +875,10 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-sans text-slate-800 dark:text-slate-100">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-[35%_65%] gap-6 font-sans text-slate-800 dark:text-slate-100">
 
                 {/* Col 1: Ranking Resumido */}
-                <div className="bg-[#FDFDF7] dark:bg-slate-800 border border-green-100 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+                <div className="bg-[#FDFDF7] dark:bg-slate-800 border border-green-100 dark:border-slate-700 rounded-xl p-5 shadow-sm h-fit">
                     <div className="flex items-center gap-2 mb-4 text-[#15803d] dark:text-green-400">
                         <Trophy className="h-5 w-5" />
                         <h3 className="font-bold text-lg">Ranking Resumido</h3>
@@ -910,9 +910,9 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                 <div className="flex items-center gap-3">
                                                     <div className="relative">
                                                         <div className={`
-                                                             w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white
-                                                             ${globalIdx === 0 ? 'bg-yellow-400' : globalIdx === 1 ? 'bg-gray-400' : globalIdx === 2 ? 'bg-orange-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}
-                                                         `}>
+                                                              w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white
+                                                              ${globalIdx === 0 ? 'bg-yellow-400' : globalIdx === 1 ? 'bg-gray-400' : globalIdx === 2 ? 'bg-orange-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}
+                                                          `}>
                                                             {globalIdx + 1}
                                                         </div>
                                                         {user.rank_variation !== 0 && (
@@ -1008,378 +1008,213 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                     </div>
                 </div>
 
-                {/* Col 2: Minhas Apostas */}
-                <div className="bg-[#FDFDF7] dark:bg-slate-800 border border-green-100 dark:border-slate-700 rounded-xl p-5 shadow-sm">
-                    <div className="flex items-center gap-2 mb-4 text-[#15803d] dark:text-green-400">
-                        <Gamepad2 className="h-5 w-5" />
-                        <h3 className="font-bold text-lg">Minhas Apostas</h3>
-                    </div>
+                {/* Col 2: Jogos (Unificado) */}
+                <div className="space-y-6">
+                    {/* Próximos Jogos */}
+                    <div className="bg-[#FDFDF7] dark:bg-slate-800 border border-green-100 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+                        <div className="flex items-center gap-2 mb-4 text-[#15803d] dark:text-green-400">
+                            <Gamepad2 className="h-5 w-5" />
+                            <h3 className="font-bold text-lg">Próximos Jogos</h3>
+                        </div>
 
-                    <div className="space-y-6">
-                        {/* Próximas Apostas */}
-                        <div>
-                            <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3 flex items-center gap-1">
-                                → Próximas Apostas
-                            </h4>
-                            {upcomingMatches.length === 0 ? (
-                                <p className="text-xs text-slate-400 italic">Nenhum jogo próximo.</p>
-                            ) : (
-                                <div className="space-y-2">
-                                    {upcomingMatches.map(match => {
-                                        const home = getTeam(match.home_team)
-                                        const away = getTeam(match.away_team)
-                                        const hasBet = !!match.user_bet
-                                        const inlineBet = inlineBets[match.id]
-                                        const isEditing = !!inlineBet
-                                        const matchDate = new Date(match.match_date)
-                                        const dateStr = format(matchDate, "dd/MM HH:mm", { locale: ptBR })
+                        {upcomingMatches.length === 0 ? (
+                            <p className="text-center text-slate-500 dark:text-slate-400 text-sm py-8">
+                                Nenhum jogo próximo.
+                            </p>
+                        ) : (
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                                {upcomingMatches.map(match => {
+                                    const home = getTeam(match.home_team)
+                                    const away = getTeam(match.away_team)
+                                    const hasBet = !!match.user_bet
+                                    const inlineBet = inlineBets[match.id]
+                                    const isEditing = !!inlineBet
+                                    const betCount = betCounts[match.id] || 0
+                                    const matchDate = new Date(match.match_date)
 
-                                        return (
-                                            <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 p-2 shadow-sm flex items-center gap-2">
-                                                <div className="flex flex-col items-center justify-center min-w-[35px] border-r border-slate-100 dark:border-slate-600 pr-2 my-1">
+                                    return (
+                                        <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 shadow-sm overflow-hidden flex flex-col">
+                                            {/* Parte Superior: Aposta */}
+                                            <div className="p-3 flex items-center gap-3">
+                                                <div className="flex flex-col items-center justify-center min-w-[45px] border-r border-slate-100 dark:border-slate-600 pr-3 my-1">
                                                     <span className="text-[10px] text-slate-400 font-bold leading-tight">{format(matchDate, "dd/MM", { locale: ptBR })}</span>
                                                     <span className="text-[10px] text-slate-500 dark:text-slate-300 font-black leading-tight">{format(matchDate, "HH:mm", { locale: ptBR })}</span>
                                                 </div>
 
-                                                <div className="flex items-center justify-between gap-1 flex-1">
+                                                <div className="flex items-center justify-between gap-1 flex-1 min-w-0">
                                                     {/* Home Team */}
                                                     <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
                                                         <TeamName
                                                             team={home}
                                                             variant="auto"
-                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-end flex-1 min-w-0"
+                                                            className="text-xs font-bold text-slate-700 dark:text-slate-300 justify-end flex-1 min-w-0"
                                                         />
-                                                        <img src={home.logo_url} alt={home.short_name} className="w-5 h-5 object-contain shrink-0" />
+                                                        <img src={home.logo_url} alt={home.short_name} className="w-6 h-6 object-contain shrink-0" />
                                                     </div>
 
                                                     {/* Score Inputs / Box */}
-                                                    <div className="px-1 py-0.5 bg-slate-50 dark:bg-slate-800 rounded flex items-center gap-1 shrink-0 min-w-[58px] justify-center">
+                                                    <div
+                                                        onClick={() => !isEditing && setInlineBets(prev => ({ ...prev, [match.id]: { home: String(match.user_bet?.home_score_bet ?? ''), away: String(match.user_bet?.away_score_bet ?? '') } }))}
+                                                        className={`px-2 py-1 bg-slate-50 dark:bg-slate-800 rounded-lg flex items-center gap-1.5 shrink-0 min-w-[70px] justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors border-2 ${isEditing ? 'border-green-500' : 'border-transparent'}`}
+                                                    >
                                                         {isEditing ? (
-                                                            <input
-                                                                type="tel"
-                                                                inputMode="numeric"
-                                                                className="w-5 h-6 text-center text-xs font-bold border-0 bg-white dark:bg-slate-700 dark:text-white p-0 rounded-sm focus:ring-1 focus:ring-green-500"
-                                                                value={inlineBet.home}
-                                                                onChange={(e) => handleInlineBetChange(match.id, 'home', e.target.value)}
-                                                                onFocus={(e) => {
-                                                                    handleInlineFocus(match.id, 'home')
-                                                                    e.target.select()
-                                                                }}
-                                                                onBlur={() => {
-                                                                    setTimeout(() => {
-                                                                        if (activeMatchId === match.id) handleSaveInlineBet(match.id)
-                                                                    }, 200)
-                                                                }}
-                                                                placeholder="-"
-                                                            />
+                                                            <>
+                                                                <input
+                                                                    type="tel"
+                                                                    inputMode="numeric"
+                                                                    className="w-6 h-7 text-center text-sm font-black border-0 bg-white dark:bg-slate-700 dark:text-white p-0 rounded-sm focus:ring-0"
+                                                                    value={inlineBet.home}
+                                                                    onChange={(e) => handleInlineBetChange(match.id, 'home', e.target.value)}
+                                                                    onFocus={(e) => {
+                                                                        handleInlineFocus(match.id, 'home')
+                                                                        e.target.select()
+                                                                    }}
+                                                                    autoFocus
+                                                                    placeholder="-"
+                                                                />
+                                                                <span className="text-xs text-slate-400">x</span>
+                                                                <input
+                                                                    type="tel"
+                                                                    inputMode="numeric"
+                                                                    className="w-6 h-7 text-center text-sm font-black border-0 bg-white dark:bg-slate-700 dark:text-white p-0 rounded-sm focus:ring-0"
+                                                                    value={inlineBet.away}
+                                                                    onChange={(e) => handleInlineBetChange(match.id, 'away', e.target.value)}
+                                                                    onFocus={(e) => {
+                                                                        handleInlineFocus(match.id, 'away')
+                                                                        e.target.select()
+                                                                    }}
+                                                                    placeholder="-"
+                                                                />
+                                                            </>
                                                         ) : (
-                                                            <span className={`text-xs font-mono font-bold ${hasBet ? 'text-green-700 dark:text-green-400' : 'text-slate-400 dark:text-slate-500'}`}>
-                                                                {hasBet ? match.user_bet?.home_score_bet : '-'}
-                                                            </span>
-                                                        )}
-
-                                                        <span className="text-[9px] text-slate-300">x</span>
-
-                                                        {isEditing ? (
-                                                            <input
-                                                                type="tel"
-                                                                inputMode="numeric"
-                                                                className="w-5 h-6 text-center text-xs font-bold border-0 bg-white dark:bg-slate-700 dark:text-white p-0 rounded-sm focus:ring-1 focus:ring-green-500"
-                                                                value={inlineBet.away}
-                                                                onChange={(e) => handleInlineBetChange(match.id, 'away', e.target.value)}
-                                                                onFocus={(e) => {
-                                                                    handleInlineFocus(match.id, 'away')
-                                                                    e.target.select()
-                                                                }}
-                                                                onBlur={() => {
-                                                                    setTimeout(() => {
-                                                                        if (activeMatchId === match.id) handleSaveInlineBet(match.id)
-                                                                    }, 200)
-                                                                }}
-                                                                placeholder="-"
-                                                            />
-                                                        ) : (
-                                                            <span className={`text-xs font-mono font-bold ${hasBet ? 'text-green-700 dark:text-green-400' : 'text-slate-400 dark:text-slate-500'}`}>
-                                                                {hasBet ? match.user_bet?.away_score_bet : '-'}
-                                                            </span>
+                                                            <>
+                                                                <span className={`text-sm font-black ${hasBet ? 'text-green-700 dark:text-green-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                                                                    {hasBet ? match.user_bet?.home_score_bet : '-'}
+                                                                </span>
+                                                                <span className="text-[10px] text-slate-300">x</span>
+                                                                <span className={`text-sm font-black ${hasBet ? 'text-green-700 dark:text-green-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                                                                    {hasBet ? match.user_bet?.away_score_bet : '-'}
+                                                                </span>
+                                                            </>
                                                         )}
                                                     </div>
 
                                                     {/* Away Team */}
                                                     <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                                        <img src={away.logo_url} alt={away.short_name} className="w-5 h-5 object-contain shrink-0" />
+                                                        <img src={away.logo_url} alt={away.short_name} className="w-6 h-6 object-contain shrink-0" />
                                                         <TeamName
                                                             team={away}
                                                             variant="auto"
-                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-start flex-1 min-w-0"
+                                                            className="text-xs font-bold text-slate-700 dark:text-slate-300 justify-start flex-1 min-w-0"
                                                         />
                                                     </div>
 
-                                                    {/* Actions - Direct sibling like in model */}
-                                                    {isEditing ? (
-                                                        <div className="ml-2 h-7 w-7 flex items-center justify-center shrink-0">
-                                                            {savingMap[match.id] === 'saved' ? (
-                                                                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                                            ) : (
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setInlineBets(prev => { const n = { ...prev }; delete n[match.id]; return n })
-                                                                        setSavingMap(prev => { const n = { ...prev }; delete n[match.id]; return n })
-                                                                    }}
-                                                                    className="text-slate-400 hover:text-red-500"
-                                                                >
-                                                                    <X className="h-4 w-4" />
-                                                                </button>
-                                                            )}
+                                                    {/* Edit Icon wrapper */}
+                                                    {!isEditing && (
+                                                        <div className="ml-1 text-slate-300">
+                                                            <Pencil className="w-3 h-3" />
                                                         </div>
-                                                    ) : hasBet ? (
-                                                        <button
-                                                            onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: String(match.user_bet?.home_score_bet ?? ''), away: String(match.user_bet?.away_score_bet ?? '') } }))}
-                                                            className="ml-2 h-7 w-7 flex items-center justify-center rounded-md bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-green-600 transition-colors shrink-0"
-                                                            title="Editar aposta"
-                                                        >
-                                                            <Pencil className="h-3.5 w-3.5" />
-                                                        </button>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: '', away: '' } }))}
-                                                            className="ml-2 h-7 w-7 flex items-center justify-center rounded-md bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/50 hover:bg-green-100 transition-colors shrink-0"
-                                                            title="Apostar"
-                                                        >
-                                                            <Plus className="h-4 w-4" />
-                                                        </button>
                                                     )}
                                                 </div>
                                             </div>
-                                        )
-                                    })}
-                                </div>
-                            )}
-                        </div>
 
-                        {/* Últimas Apostas */}
-                        <div>
-                            <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3 flex items-center gap-1">
-                                ↺ Últimas Apostas
-                            </h4>
-                            {recentMatches.length === 0 ? (
-                                <p className="text-center text-xs text-slate-400 py-4">Nenhuma aposta finalizada.</p>
-                            ) : (
-                                <div className="space-y-2">
-                                    {recentMatches.map(match => {
-                                        const home = getTeam(match.home_team)
-                                        const away = getTeam(match.away_team)
-                                        const bet = match.user_bet
-                                        const matchDate = new Date(match.match_date)
-
-                                        return (
-                                            <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 p-2 shadow-sm opacity-90 hover:opacity-100 transition-opacity flex items-center gap-2">
-                                                <div className="flex flex-col items-center justify-center min-w-[35px] border-r border-slate-100 dark:border-slate-600 pr-2 my-1">
-                                                    <span className="text-[10px] text-slate-400 font-bold leading-tight">{format(matchDate, "dd/MM", { locale: ptBR })}</span>
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-300 font-black leading-tight">{format(matchDate, "HH:mm", { locale: ptBR })}</span>
-                                                </div>
-
-                                                <div className="flex-1">
-                                                    <div className="flex items-center justify-between gap-1 mb-1">
-                                                        {/* Home */}
-                                                        <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
-                                                            <TeamName
-                                                                team={home}
-                                                                variant="auto"
-                                                                className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-end"
-                                                            />
-                                                            <img src={home.logo_url} className="w-5 h-5 object-contain shrink-0" />
-                                                        </div>
-
-                                                        {/* Score */}
-                                                        <div className="flex flex-col items-center shrink-0">
-                                                            <div className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded flex items-center gap-1.5 scale-90">
-                                                                <span className="font-black text-xs text-slate-800 dark:text-slate-200">{match.home_score}</span>
-                                                                <span className="text-[9px] text-slate-400">x</span>
-                                                                <span className="font-black text-xs text-slate-800 dark:text-slate-200">{match.away_score}</span>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Away */}
-                                                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                                            <img src={away.logo_url} className="w-5 h-5 object-contain shrink-0" />
-                                                            <TeamName
-                                                                team={away}
-                                                                variant="auto"
-                                                                className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-start"
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex items-center justify-between text-[9px] border-t dark:border-slate-600 pt-1">
-                                                        <div className="flex items-center gap-1">
-                                                            <span className="text-slate-400">Palpite:</span>
-                                                            <span className="font-bold text-slate-600 dark:text-slate-300">{bet ? `${bet.home_score_bet} x ${bet.away_score_bet}` : '---'}</span>
-                                                        </div>
-                                                        {bet?.points !== undefined && (
-                                                            <span className={`font-black px-1 rounded uppercase tracking-tighter ${bet.points > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
-                                                                {bet.points > 0 ? `+${bet.points} pts` : '0 pts'}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                            {/* Parte Inferior: Grupo */}
+                                            <div className="px-3 py-1.5 bg-slate-50/80 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-600/50 flex items-center justify-center">
+                                                <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                                                    {betCount} {betCount === 1 ? 'aposta feita' : 'apostas feitas'} no grupo
+                                                </span>
                                             </div>
-                                        )
-                                    })}
-                                </div>
-                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Últimos Jogos */}
+                    <div className="bg-[#FDFDF7] dark:bg-slate-800 border border-green-100 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+                        <div className="flex items-center gap-2 mb-4 text-[#15803d] dark:text-green-400">
+                            <CheckCircle2 className="h-5 w-5" />
+                            <h3 className="font-bold text-lg">Últimos Jogos</h3>
                         </div>
-                    </div>
-                </div>
 
-                {/* Col 3: Apostas da Galera */}
-                <div className="bg-[#FDFDF7] dark:bg-slate-800 border border-green-100 dark:border-slate-700 rounded-xl p-5 shadow-sm">
-                    <div className="flex items-center gap-2 mb-4 text-[#15803d] dark:text-green-400">
-                        <Eye className="h-5 w-5" />
-                        <h3 className="font-bold text-lg">Apostas da Galera</h3>
-                    </div>
+                        {recentMatches.length === 0 ? (
+                            <p className="text-center text-slate-500 dark:text-slate-400 text-sm py-8">
+                                Nenhum jogo finalizado recentemente.
+                            </p>
+                        ) : (
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                                {recentMatches.map(match => {
+                                    const home = getTeam(match.home_team)
+                                    const away = getTeam(match.away_team)
+                                    const bet = match.user_bet
+                                    const matchDate = new Date(match.match_date)
 
-                    <div className="space-y-6">
-                        <div>
-                            <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3 flex items-center gap-1">
-                                ↺ Últimos Jogos
-                            </h4>
-                            {recentMatches.length === 0 ? (
-                                <p className="text-xs text-slate-400 italic">Sem dados recentes.</p>
-                            ) : (
-                                <div className="space-y-2">
-                                    {recentMatches.map(match => {
-                                        const home = getTeam(match.home_team)
-                                        const away = getTeam(match.away_team)
-                                        const matchDate = new Date(match.match_date)
-
-                                        return (
-                                            <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 p-2 shadow-sm flex items-center gap-2">
-                                                <div className="flex flex-col items-center justify-center min-w-[35px] border-r border-slate-100 dark:border-slate-600 pr-2 my-1">
+                                    return (
+                                        <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 shadow-sm overflow-hidden flex flex-col">
+                                            {/* Parte Superior: Minha Aposta */}
+                                            <div className="p-3 flex items-center gap-3">
+                                                <div className="flex flex-col items-center justify-center min-w-[45px] border-r border-slate-100 dark:border-slate-600 pr-3 my-1">
                                                     <span className="text-[10px] text-slate-400 font-bold leading-tight">{format(matchDate, "dd/MM", { locale: ptBR })}</span>
                                                     <span className="text-[10px] text-slate-500 dark:text-slate-300 font-black leading-tight">{format(matchDate, "HH:mm", { locale: ptBR })}</span>
                                                 </div>
 
-                                                <div className="flex items-center justify-between gap-1 flex-1">
-                                                    {/* Home */}
+                                                <div className="flex items-center justify-between gap-1 flex-1 min-w-0">
                                                     <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
                                                         <TeamName
                                                             team={home}
                                                             variant="auto"
-                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-end"
+                                                            className="text-xs font-bold text-slate-700 dark:text-slate-300 justify-end flex-1 min-w-0"
                                                         />
-                                                        <img src={home.logo_url} className="w-5 h-5 object-contain shrink-0" />
+                                                        <img src={home.logo_url} className="w-6 h-6 object-contain shrink-0" />
                                                     </div>
 
-                                                    {/* Score */}
-                                                    <div className="px-1.5 py-0.5 bg-slate-50 dark:bg-slate-800 rounded flex items-center gap-1.5 shrink-0">
-                                                        <span className="font-bold text-xs text-slate-700 dark:text-slate-200">{match.home_score}</span>
-                                                        <span className="text-[9px] text-slate-400">x</span>
-                                                        <span className="font-bold text-xs text-slate-700 dark:text-slate-200">{match.away_score}</span>
+                                                    <div className="px-2 py-1 bg-green-50/50 dark:bg-green-900/10 rounded-lg flex items-center gap-1.5 shrink-0 min-w-[70px] justify-center border border-green-100/50 dark:border-green-900/30">
+                                                        <span className="text-sm font-black text-green-700 dark:text-green-400">{bet ? bet.home_score_bet : '-'}</span>
+                                                        <span className="text-[10px] text-slate-300">x</span>
+                                                        <span className="text-sm font-black text-green-700 dark:text-green-400">{bet ? bet.away_score_bet : '-'}</span>
                                                     </div>
 
-                                                    {/* Away */}
                                                     <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                                        <img src={away.logo_url} className="w-5 h-5 object-contain shrink-0" />
+                                                        <img src={away.logo_url} className="w-6 h-6 object-contain shrink-0" />
                                                         <TeamName
                                                             team={away}
                                                             variant="auto"
-                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-start"
+                                                            className="text-xs font-bold text-slate-700 dark:text-slate-300 justify-start flex-1 min-w-0"
                                                         />
                                                     </div>
-
-                                                    <button
-                                                        onClick={() => handleViewBets(match.id, match.match_date)}
-                                                        className="ml-2 h-7 w-7 flex items-center justify-center rounded-md bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/50 hover:bg-green-100 transition-colors"
-                                                        title="Ver palpites"
-                                                    >
-                                                        <Eye className="h-3.5 w-3.5" />
-                                                    </button>
                                                 </div>
                                             </div>
-                                        )
-                                    })}
-                                </div>
-                            )}
-                        </div>
 
-                        <div>
-                            <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3 flex items-center gap-1">
-                                → Próximos Jogos
-                            </h4>
-                            {upcomingMatches.length === 0 ? (
-                                <p className="text-xs text-slate-400 italic">Sem jogos futuros.</p>
-                            ) : (
-                                <div className="space-y-2">
-                                    {upcomingMatches.map(match => {
-                                        const home = getTeam(match.home_team)
-                                        const away = getTeam(match.away_team)
-                                        const betCount = betCounts[match.id] || 0
-                                        const matchDate = new Date(match.match_date)
-                                        const isLocked = new Date() < matchDate
-
-                                        return (
-                                            <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 p-2 shadow-sm flex items-center gap-2">
-                                                <div className="flex flex-col items-center justify-center min-w-[35px] border-r border-slate-100 dark:border-slate-600 pr-2 my-1">
-                                                    <span className="text-[10px] text-slate-400 font-bold leading-tight">{format(matchDate, "dd/MM", { locale: ptBR })}</span>
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-300 font-black leading-tight">{format(matchDate, "HH:mm", { locale: ptBR })}</span>
+                                            {/* Parte Inferior: Placar Real + Pontos + Apostas */}
+                                            <div className="px-3 py-2 bg-slate-50/80 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-600/50 flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Real:</span>
+                                                    <span className="text-xs font-black text-slate-700 dark:text-slate-300">{match.home_score} x {match.away_score}</span>
                                                 </div>
 
-                                                <div className="flex-1 flex items-center justify-between gap-1 overflow-hidden">
-                                                    {/* Home */}
-                                                    <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
-                                                        <TeamName
-                                                            team={home}
-                                                            variant="auto"
-                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-end flex-1 min-w-0"
-                                                        />
-                                                        <img src={home.logo_url} className="w-5 h-5 object-contain shrink-0" />
+                                                {bet?.points !== undefined && (
+                                                    <div className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${bet.points > 0 ? 'bg-green-500 text-white shadow-sm shadow-green-200 dark:shadow-none' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>
+                                                        +{bet.points} PTS
                                                     </div>
+                                                )}
 
-                                                    {/* Middle Info (vs / box) */}
-                                                    <div className="px-1 py-0.5 bg-slate-50 dark:bg-slate-800 rounded flex items-center gap-1 shrink-0 min-w-[32px] justify-center">
-                                                        <span className="text-[10px] font-bold text-slate-300 lowercase text-center">vs</span>
-                                                    </div>
-
-                                                    {/* Away */}
-                                                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                                        <img src={away.logo_url} className="w-5 h-5 object-contain shrink-0" />
-                                                        <TeamName
-                                                            team={away}
-                                                            variant="auto"
-                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-start flex-1 min-w-0"
-                                                        />
-                                                    </div>
-
-                                                    {/* Counts info if not too narrow, or just compact it */}
-                                                    <div className="flex flex-col items-center leading-none min-w-[34px] shrink-0 ml-1">
-                                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">{betCount}</span>
-                                                        <span className="text-[7px] text-slate-400 uppercase tracking-tighter">apostas</span>
-                                                    </div>
-
-                                                    <button
-                                                        onClick={() => !isLocked && handleViewBets(match.id, match.match_date)}
-                                                        disabled={isLocked}
-                                                        className={`ml-1 h-7 w-7 flex items-center justify-center rounded-md transition-all border shrink-0
-                                                            ${isLocked
-                                                                ? 'bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800 dark:text-slate-600 dark:border-slate-700 cursor-not-allowed'
-                                                                : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40 border-green-100 dark:border-green-800/50'
-                                                            }
-                                                        `}
-                                                        title={isLocked ? "Bloqueado" : "Ver"}
-                                                    >
-                                                        {isLocked ? <Lock className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                                                    </button>
-                                                </div>
+                                                <button
+                                                    onClick={() => handleViewBets(match.id, match.match_date)}
+                                                    className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                                                    title="Ver palpites da galera"
+                                                >
+                                                    <Users className="w-3.5 h-3.5" />
+                                                    <span>GALERA</span>
+                                                </button>
                                             </div>
-                                        )
-                                    })}
-                                </div>
-                            )}
-                        </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
                     </div>
                 </div>
-
             </div>
 
             {/* Bets Modal */}
