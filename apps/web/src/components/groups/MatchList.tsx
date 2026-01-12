@@ -340,6 +340,11 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                         </div>
                                         {locked && <span className="text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-500/10 px-1 py-0.5 rounded border border-red-100 dark:border-red-500/20 leading-none">🔒</span>}
                                     </div>
+                                    {match.venue && (
+                                        <div className="text-[9px] text-slate-400 mt-0.5 italic flex items-center gap-1">
+                                            <span>🏟️</span> {match.venue}
+                                        </div>
+                                    )}
                                 </div>
 
 

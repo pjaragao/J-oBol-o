@@ -226,6 +226,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 status,
                 home_score,
                 away_score,
+                venue,
                 home_team:teams!home_team_id(name, logo_url, short_name, tla),
                 away_team:teams!away_team_id(name, logo_url, short_name, tla)
             `)
@@ -245,6 +246,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 status,
                 home_score,
                 away_score,
+                venue,
                 home_team:teams!home_team_id(name, logo_url, short_name, tla),
                 away_team:teams!away_team_id(name, logo_url, short_name, tla),
                 updated_at
@@ -289,6 +291,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 status,
                 home_score,
                 away_score,
+                venue,
                 home_team:teams!home_team_id(name, logo_url, short_name, tla),
                 away_team:teams!away_team_id(name, logo_url, short_name, tla)
             `)
@@ -768,6 +771,17 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                     +{livePoints}
                                                 </span>
                                             </div>
+                                            {match.venue && (
+                                                <>
+                                                    <div className="w-px h-6 bg-slate-100 dark:bg-slate-800" />
+                                                    <div className="flex flex-col items-start max-w-[100px]">
+                                                        <span className="text-[8px] text-slate-400 uppercase font-bold">Local</span>
+                                                        <span className="text-[9px] font-medium text-slate-500 truncate w-full">
+                                                            {match.venue}
+                                                        </span>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
 
@@ -1116,10 +1130,18 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                 </div>
                                             </div>
 
-                                            {/* Parte Inferior: Grupo */}
-                                            <div className="px-3 py-1 bg-slate-50/80 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-600/50 flex items-center justify-center">
-                                                <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                                                    {betCount} {betCount === 1 ? 'aposta feita' : 'apostas feitas'} no grupo
+                                            {/* Parte Inferior: Grupo & Estadio */}
+                                            <div className="px-3 py-1 bg-slate-50/80 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-600/50 flex items-center justify-between gap-4">
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    {match.venue && (
+                                                        <>
+                                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight shrink-0">🏟️ Estádio:</span>
+                                                            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate">{match.venue}</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                                                    {betCount} {betCount === 1 ? 'aposta' : 'apostas'}
                                                 </span>
                                             </div>
                                         </div>
@@ -1186,9 +1208,17 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
                                             {/* Parte Inferior: Placar Real + Pontos + Apostas */}
                                             <div className="px-3 py-1 bg-slate-50/80 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-600/50 flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[9px] font-bold text-slate-400 font-mono uppercase tracking-tighter">PLACAR REAL:</span>
-                                                    <span className="text-xs font-black text-slate-700 dark:text-slate-300">{match.home_score} x {match.away_score}</span>
+                                                <div className="flex flex-col gap-0.5">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[9px] font-bold text-slate-400 font-mono uppercase tracking-tighter">PLACAR REAL:</span>
+                                                        <span className="text-xs font-black text-slate-700 dark:text-slate-300">{match.home_score} x {match.away_score}</span>
+                                                    </div>
+                                                    {match.venue && (
+                                                        <div className="flex items-center gap-1 opacity-60">
+                                                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Estádio:</span>
+                                                            <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 truncate max-w-[120px]">{match.venue}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 {bet?.points !== undefined && (

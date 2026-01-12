@@ -54,7 +54,8 @@ export async function POST(req: NextRequest) {
                 is_active: true,
                 start_date: competition.currentSeason.startDate,
                 end_date: competition.currentSeason.endDate,
-                current_matchday: competition.currentSeason.currentMatchday
+                current_matchday: competition.currentSeason.currentMatchday,
+                logo_url: competition.emblem
             }, { onConflict: 'api_id' })
             .select()
             .single()
