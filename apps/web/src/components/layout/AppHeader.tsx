@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { NotificationBell } from './NotificationBell'
+import { useLayout } from './LayoutContext'
 
 interface HeaderProps {
     setSidebarOpen: (open: boolean) => void
@@ -16,6 +17,7 @@ interface HeaderProps {
 }
 
 export function AppHeader({ setSidebarOpen, user, profile }: HeaderProps) {
+    const { headerTitle, headerContent } = useLayout()
     const { theme, setTheme } = useTheme()
     const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false) // Simple state for now
     const supabase = createClient()
@@ -28,18 +30,27 @@ export function AppHeader({ setSidebarOpen, user, profile }: HeaderProps) {
 
     return (
         <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm dark:border-slate-800 dark:bg-slate-950 sm:px-6 lg:px-8">
-            <button
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 -ml-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-50"
-            >
-                <Menu className="h-6 w-6" />
-            </button>
+            <div className="flex items-center gap-4">
+                <button
+                    onClick={() => setSidebarOpen(true)}
+                    className="lg:hidden p-2 -ml-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-50"
+                >
+                    <Menu className="h-6 w-6" />
+                </button>
 
-            <div className="flex flex-1 gap-4 lg:hidden">
-                <span className="font-bold text-green-700 dark:text-green-500 ml-2 text-lg">JãoBolão</span>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                    <span className="font-black text-green-700 dark:text-green-500 text-lg sm:text-xl truncate max-w-[200px] sm:max-w-md">
+                        {headerTitle}
+                    </span>
+                    {headerContent && (
+                        <div className="hidden md:block border-l border-slate-200 dark:border-slate-800 pl-4 h-8 flex items-center">
+                            {headerContent}
+                        </div>
+                    )}
+                </div>
             </div>
 
-            <div className="flex flex-1 justify-end items-center gap-2 sm:gap-4">
+            <div className="flex justify-end items-center gap-2 sm:gap-4">
                 {user && <NotificationBell userId={user.id} />}
 
                 <button

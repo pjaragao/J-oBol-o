@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { FinancialService } from '@/lib/financial-service'
 import { Info } from 'lucide-react'
+import { HeaderSetter } from '@/components/layout/HeaderSetter'
 
 export default async function GroupDetailsPage({ params }: { params: Promise<{ groupId: string }> }) {
     const { groupId } = await params
@@ -72,79 +73,69 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
 
     return (
         <div className="pb-12 bg-gray-50 dark:bg-slate-900 min-h-screen">
-            {/* Header Compacto Moderno */}
-            <div className="bg-gradient-to-b from-green-800 to-green-900 dark:from-slate-900 dark:to-slate-950 pb-10 sm:pb-24 pt-1 px-4 border-b border-green-700/50 dark:border-slate-800">
-                <div className="max-w-4xl mx-auto">
-                    {/* Layout Refinado: Foco no Grupo e Integração Fluida */}
-                    <div className="flex flex-col gap-4 sm:gap-6">
-                        {/* 1. Nome do Grupo (Destaque Principal) */}
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight drop-shadow-md">
-                                {group.name}
-                            </h1>
-                            {group.description && (
-                                <div className="cursor-help transition-transform hover:scale-110" title={group.description}>
-                                    <Info className="w-4 h-4 text-green-300/50 hover:text-green-300" />
-                                </div>
-                            )}
-                        </div>
+            {/* HeaderSetter atualiza o título no AppHeader global */}
+            <HeaderSetter title={group.name} />
 
-                        {/* 2. Conteúdo da Competição e Prêmio */}
-                        <div className="flex flex-row items-center sm:items-end justify-between gap-4 sm:gap-6">
-                            {/* Bloco da Competição: Logo + Nome (Sempre Lado a Lado) */}
-                            <div className="flex items-center gap-4 sm:gap-5">
-                                {/* Logo Redimensionado */}
+            {/* Header Reduzido e Integrado */}
+            <div className="bg-gradient-to-b from-green-800 to-green-900 dark:from-slate-900 dark:to-slate-950 pb-8 sm:pb-20 pt-2 px-4 border-b border-green-700/50 dark:border-slate-800">
+                <div className="max-w-4xl mx-auto">
+                    <div className="flex flex-col gap-3">
+                        {/* Linha 1: Competição e Prêmio */}
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                                {/* Logo Compacto */}
                                 <div className="shrink-0">
-                                    <div className="relative w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-2xl p-2 flex items-center justify-center shadow-xl border-2 border-white/20 transition-transform hover:rotate-2">
+                                    <div className="relative w-10 h-10 sm:w-14 sm:h-14 bg-white rounded-xl p-1.5 flex items-center justify-center shadow-lg border border-white/10">
                                         {eventData?.logo_url ? (
                                             <img src={eventData.logo_url} className="w-full h-full object-contain" alt="" />
                                         ) : (
-                                            <span className="text-2xl sm:text-3xl">🏆</span>
+                                            <span className="text-xl sm:text-2xl">🏆</span>
                                         )}
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col gap-2">
-                                    {/* Nome da Competição (Mais Discreto) */}
-                                    <h2 className="text-lg sm:text-2xl font-black text-white/90 tracking-tight italic uppercase leading-none">
+                                <div className="min-w-0">
+                                    <h2 className="text-sm sm:text-xl font-black text-white italic uppercase leading-none tracking-tight truncate">
                                         {eventData?.name}
                                     </h2>
-
-                                    {/* Infos Secundárias (Membros e Datas) */}
-                                    <div className="flex flex-wrap items-center gap-3 text-white/50 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
-                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-black/20 rounded border border-white/5">
-                                            <span className="text-green-400">👥</span>
-                                            <span>{group.group_members[0].count} Participantes</span>
-                                        </div>
-                                        {startDate && endDate && (
-                                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-black/20 rounded border border-white/5">
-                                                <span className="text-green-400">📅</span>
-                                                <span>{startDate} - {endDate}</span>
-                                            </div>
-                                        )}
-                                    </div>
+                                    {/* Link sutil para descrição/info do grupo se necessário */}
+                                    {group.description && (
+                                        <p className="hidden sm:block text-[10px] text-white/40 mt-1 truncate max-w-xs">{group.description}</p>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* 3. Bloco de Prêmio (Design Compacto e Elegante) */}
-                            <div className="shrink-0 pl-2 sm:pl-0">
-                                <div className="flex flex-col items-end">
-                                    <span className="text-[8px] sm:text-[10px] font-black text-green-400/80 uppercase tracking-widest mb-0.5 sm:mb-1">Total em Disputa</span>
-                                    <div className="flex items-baseline gap-1 sm:gap-2">
-                                        <span className="text-xs sm:text-lg font-bold text-green-200/40 leading-none">R$</span>
-                                        <span className="text-xl sm:text-5xl font-black text-white tabular-nums leading-none tracking-tighter drop-shadow-[0_4px_12px_rgba(74,222,128,0.2)]">
-                                            {totalPot.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                                            <span className="text-xs sm:text-2xl opacity-30">,00</span>
-                                        </span>
-                                    </div>
+                            {/* Prêmio (Sempre à direita) */}
+                            <div className="shrink-0 text-right">
+                                <span className="block text-[8px] sm:text-[10px] font-black text-green-400/80 uppercase tracking-widest leading-none mb-0.5 sm:mb-1">Prêmio Total</span>
+                                <div className="flex items-baseline justify-end gap-1">
+                                    <span className="text-[10px] sm:text-sm font-bold text-green-200/40 leading-none">R$</span>
+                                    <span className="text-base sm:text-3xl font-black text-white tabular-nums leading-none tracking-tighter">
+                                        {totalPot.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                                        <span className="text-[10px] sm:text-xl opacity-30">,00</span>
+                                    </span>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Linha 2: Participantes e Datas (Lado a Lado) */}
+                        <div className="flex items-center gap-4 text-white/60 text-[9px] sm:text-xs font-bold uppercase tracking-widest">
+                            <div className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded border border-white/5">
+                                <span className="text-green-400">👥</span>
+                                <span>{group.group_members[0].count} Participantes</span>
+                            </div>
+                            {startDate && endDate && (
+                                <div className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded border border-white/5">
+                                    <span className="text-green-400">📅</span>
+                                    <span>{startDate} - {endDate}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <main className="-mt-14 sm:-mt-24 mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
+            <main className="-mt-10 sm:-mt-16 mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
                 <GroupTabs
                     groupId={groupId}
                     matches={matches || []}
@@ -153,6 +144,6 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
                     userId={user?.id || ''}
                 />
             </main>
-        </div >
+        </div>
     )
 }
