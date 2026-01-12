@@ -173,8 +173,8 @@ export default function CreateGroupPage() {
             <div className="mb-8">
                 <h1 className="text-3xl font-bold mb-2">Novo Bolão</h1>
                 <div className="flex gap-2">
-                    {[1, 2, 3].map(s => (
-                        <div key={s} className={`h-2 flex-1 rounded-full transition-all duration-500 ${s <= step ? (step === 2 ? 'bg-emerald-500' : 'bg-indigo-600') : 'bg-gray-200 dark:bg-slate-800'}`} />
+                    {[1, 2, 3, 4].map(s => (
+                        <div key={s} className={`h-2 flex-1 rounded-full transition-all duration-500 ${s <= step ? (step === 2 ? 'bg-emerald-500' : step === 4 ? 'bg-green-500' : 'bg-indigo-600') : 'bg-gray-200 dark:bg-slate-800'}`} />
                     ))}
                 </div>
             </div>
@@ -377,12 +377,69 @@ export default function CreateGroupPage() {
                                 </div>
                             )}
 
+                            {/* STEP 4: Confirmation */}
+                            {step === 4 && (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                                    <h2 className="text-xl font-semibold flex items-center gap-2 text-green-600 dark:text-green-400">
+                                        <Check className="w-5 h-5" /> Confirme seu Bolão
+                                    </h2>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Nome</p>
+                                            <p className="font-bold text-lg truncate">{watch('name') || '-'}</p>
+                                        </div>
+                                        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Campeonato</p>
+                                            <p className="font-bold text-lg truncate">{events.find(e => e.id === watch('event_id'))?.display_name || events.find(e => e.id === watch('event_id'))?.name || '-'}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-center">
+                                            <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase">Entrada</p>
+                                            <p className="font-bold text-lg">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(watch('entry_fee') || 0)}</p>
+                                        </div>
+                                        <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-center">
+                                            <p className="text-[10px] font-black text-slate-500 uppercase">Vagas</p>
+                                            <p className="font-bold text-lg">{watch('max_members') || '∞'}</p>
+                                        </div>
+                                        <div className="p-3 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-center">
+                                            <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase">Método</p>
+                                            <p className="font-bold text-sm">{watch('payment_method') === 'ONLINE' ? 'Plataforma' : 'Direto'}</p>
+                                        </div>
+                                        <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-center">
+                                            <p className="text-[10px] font-black text-slate-500 uppercase">Visibilidade</p>
+                                            <p className="font-bold text-sm">{watch('is_public') ? 'Público' : 'Privado'}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-900/20">
+                                        <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">Pontuação</p>
+                                        <div className="flex flex-wrap gap-4 text-sm">
+                                            <span><strong>🎯 Exato:</strong> {watch('score_exact')} pts</span>
+                                            <span><strong>📊 Vencedor+:</strong> {watch('score_winner_goals')} pts</span>
+                                            <span><strong>✓ Vencedor:</strong> {watch('score_winner')} pts</span>
+                                            <span><strong>~ Empate:</strong> {watch('score_draw')} pts</span>
+                                        </div>
+                                    </div>
+
+                                    {creatorFee > 0 && (
+                                        <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                                            <p className="text-xs text-amber-700 dark:text-amber-400">
+                                                <strong>Taxa de Criação:</strong> {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(creatorFee)} (será cobrada após criação)
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="flex justify-between pt-6 border-t mt-6">
                                 {step > 1 ? (
                                     <Button type="button" variant="ghost" onClick={prevStep} className="font-bold">Voltar</Button>
                                 ) : <div />}
 
-                                {step < 3 ? (
+                                {step < 4 ? (
                                     <Button
                                         type="button"
                                         onClick={nextStep}
@@ -391,9 +448,9 @@ export default function CreateGroupPage() {
                                         Próximo
                                     </Button>
                                 ) : (
-                                    <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 font-black px-10">
+                                    <Button type="submit" disabled={loading} className="bg-green-600 hover:bg-green-700 font-black px-10 shadow-lg shadow-green-200 dark:shadow-none">
                                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Finalizar e Criar
+                                        🚀 Criar Bolão
                                     </Button>
                                 )}
                             </div>
