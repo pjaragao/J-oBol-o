@@ -75,35 +75,65 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
             <div className="bg-gradient-to-b from-green-800 to-green-900 dark:from-slate-900 dark:to-slate-950 pb-12 sm:pb-24 pt-3 px-4 border-b border-green-700/50 dark:border-slate-800">
                 <div className="max-w-4xl mx-auto">
                     <div className="flex flex-col gap-2">
-                        {/* Título e Descrição */}
-                        <div>
-                            <h1 className="text-base sm:text-2xl font-bold tracking-tight text-white leading-tight">{group.name}</h1>
-                            {group.description && <p className="text-green-100/60 text-[10px] sm:text-sm line-clamp-1">{group.description}</p>}
+                        {/* Título e Descrição do Grupo */}
+                        <div className="mb-4">
+                            <h1 className="text-xl sm:text-3xl font-black tracking-tight text-white leading-tight drop-shadow-sm">{group.name}</h1>
+                            {group.description && <p className="text-green-100/70 text-xs sm:text-base font-medium line-clamp-1 mt-1">{group.description}</p>}
                         </div>
 
-                        {/* Stats Bar - Scrollable on Mobile */}
-                        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide text-[10px] sm:text-xs font-medium text-green-50/80">
-                            <div className="flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-full whitespace-nowrap border border-white/5">
-                                {eventData?.logo_url ? (
-                                    <img src={eventData.logo_url} className="w-4 h-4 object-contain" alt="" />
-                                ) : (
-                                    <span>🏆</span>
-                                )}
-                                <span>{eventData?.name}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-full whitespace-nowrap border border-white/5">
-                                <span>👥</span>
-                                <span>{group.group_members[0].count}</span>
-                            </div>
-                            {startDate && endDate && (
-                                <div className="flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-full whitespace-nowrap border border-white/5">
-                                    <span>📅</span>
-                                    <span>{startDate} - {endDate}</span>
+                        {/* Destaque da Competição e Prêmio */}
+                        <div className="flex flex-wrap items-center gap-4 sm:gap-6 bg-white/5 dark:bg-black/20 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
+                            {/* Logo Maior */}
+                            <div className="relative shrink-0">
+                                <div className="absolute inset-0 bg-white/20 blur-xl rounded-full" />
+                                <div className="relative w-12 h-12 sm:w-16 sm:h-16 bg-white/10 rounded-xl p-2 flex items-center justify-center border border-white/20 shadow-inner">
+                                    {eventData?.logo_url ? (
+                                        <img src={eventData.logo_url} className="w-full h-full object-contain" alt="" />
+                                    ) : (
+                                        <span className="text-2xl sm:text-3xl">🏆</span>
+                                    )}
                                 </div>
-                            )}
-                            <div className="flex items-center gap-1.5 bg-green-500/20 px-2.5 py-1 rounded-full whitespace-nowrap border border-green-400/30 font-bold text-green-200">
-                                <span>💰</span>
-                                <span>Total em Disputa: R$ {totalPot.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                            </div>
+
+                            <div className="flex flex-col flex-1 min-w-0">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    {/* Nome da Competição em Destaque */}
+                                    <div>
+                                        <span className="text-[10px] sm:text-xs font-bold text-green-300/80 uppercase tracking-widest block mb-0.5">Competição</span>
+                                        <h2 className="text-lg sm:text-2xl font-bold text-white leading-tight truncate">
+                                            {eventData?.name}
+                                        </h2>
+                                    </div>
+
+                                    {/* Valor em Disputa em Grande Destaque */}
+                                    <div className="bg-gradient-to-br from-green-400 to-emerald-600 p-[1px] rounded-xl shadow-lg shadow-green-900/40">
+                                        <div className="bg-green-950/80 px-4 py-2 rounded-[11px] backdrop-blur-md flex flex-col items-end">
+                                            <span className="text-[10px] font-black text-green-400 uppercase tracking-tighter leading-none mb-1">Total em Disputa</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-bold text-green-100/60 leading-none">R$</span>
+                                                <span className="text-xl sm:text-2xl font-black text-white tabular-nums leading-none">
+                                                    {totalPot.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Info Secundária (Membros e Datas) */}
+                                <div className="mt-3 flex items-center gap-4 border-t border-white/5 pt-3">
+                                    <div className="flex items-center gap-2 text-white/60 text-[11px] sm:text-xs font-medium">
+                                        <div className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
+                                            <span>👥</span>
+                                            <span>{group.group_members[0].count} membros</span>
+                                        </div>
+                                        {startDate && endDate && (
+                                            <div className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
+                                                <span>📅</span>
+                                                <span>{startDate} - {endDate}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
