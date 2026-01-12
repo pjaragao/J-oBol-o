@@ -310,6 +310,8 @@ export default function CreateGroupPage() {
                                                 <Input
                                                     type="number"
                                                     className="pl-12 h-12 bg-slate-50 dark:bg-slate-900 border-none text-xl font-bold"
+                                                    onKeyDown={preventEnterSubmit}
+                                                    onFocus={(e) => e.target.select()}
                                                     {...register('entry_fee', { valueAsNumber: true })}
                                                 />
                                             </div>
@@ -319,14 +321,18 @@ export default function CreateGroupPage() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label className="font-bold">Limite de Participantes (Vagas)</Label>
+                                            <div className="flex items-center justify-between">
+                                                <Label className="font-bold">Limite de Participantes</Label>
+                                                <span className="text-[10px] font-black text-slate-400 uppercase">Mín. 5 jogadores</span>
+                                            </div>
                                             <div className="relative group">
                                                 <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 transition-colors group-focus-within:text-emerald-500" />
                                                 <Input
                                                     type="number"
                                                     className="pl-12 h-12 bg-slate-50 dark:bg-slate-900 border-none text-xl font-bold"
+                                                    onKeyDown={preventEnterSubmit}
                                                     {...register('max_members', { valueAsNumber: true })}
-                                                    placeholder={paymentMethod === 'ONLINE' ? 'Ilimitado' : 'Mín. 5'}
+                                                    placeholder={paymentMethod === 'ONLINE' ? 'Ilimitado' : 'Obrigatório'}
                                                 />
                                             </div>
                                             {paymentMethod === 'OFFLINE' && !maxMembers && (
@@ -357,28 +363,28 @@ export default function CreateGroupPage() {
                                                 <Label className="font-bold">🎯 Placar Exato</Label>
                                                 <span className="text-[10px] font-black text-indigo-500 uppercase">Sugestão: 10</span>
                                             </div>
-                                            <Input type="number" {...register('score_exact', { valueAsNumber: true })} className="h-12 bg-slate-50 dark:bg-slate-900 border-none text-xl font-bold text-center" />
+                                            <Input type="number" onKeyDown={preventEnterSubmit} {...register('score_exact', { valueAsNumber: true })} className="h-12 bg-slate-50 dark:bg-slate-900 border-none text-xl font-bold text-center" />
                                         </div>
                                         <div className="space-y-2">
                                             <div className="flex justify-between items-center">
                                                 <Label className="font-bold">📊 Venceu + Altura</Label>
                                                 <span className="text-[10px] font-black text-indigo-500 uppercase">Sugestão: 7</span>
                                             </div>
-                                            <Input type="number" {...register('score_winner_goals', { valueAsNumber: true })} className="h-12 bg-slate-50 dark:bg-slate-900 border-none text-xl font-bold text-center" />
+                                            <Input type="number" onKeyDown={preventEnterSubmit} {...register('score_winner_goals', { valueAsNumber: true })} className="h-12 bg-slate-50 dark:bg-slate-900 border-none text-xl font-bold text-center" />
                                         </div>
                                         <div className="space-y-2">
                                             <div className="flex justify-between items-center">
                                                 <Label className="font-bold">✓ Só Vencedor</Label>
                                                 <span className="text-[10px] font-black text-indigo-500 uppercase">Sugestão: 5</span>
                                             </div>
-                                            <Input type="number" {...register('score_winner', { valueAsNumber: true })} className="h-12 bg-slate-50 dark:bg-slate-900 border-none text-xl font-bold text-center" />
+                                            <Input type="number" onKeyDown={preventEnterSubmit} {...register('score_winner', { valueAsNumber: true })} className="h-12 bg-slate-50 dark:bg-slate-900 border-none text-xl font-bold text-center" />
                                         </div>
                                         <div className="space-y-2">
                                             <div className="flex justify-between items-center">
                                                 <Label className="font-bold">~ Empate Genérico</Label>
                                                 <span className="text-[10px] font-black text-indigo-500 uppercase">Sugestão: 2</span>
                                             </div>
-                                            <Input type="number" {...register('score_draw', { valueAsNumber: true })} className="h-12 bg-slate-50 dark:bg-slate-900 border-none text-xl font-bold text-center" />
+                                            <Input type="number" onKeyDown={preventEnterSubmit} {...register('score_draw', { valueAsNumber: true })} className="h-12 bg-slate-50 dark:bg-slate-900 border-none text-xl font-bold text-center" />
                                         </div>
                                     </div>
                                 </div>

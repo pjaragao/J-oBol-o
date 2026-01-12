@@ -567,23 +567,25 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
             {group.created_by === userId && !isFinished && (
                 <div className="mt-10 pt-6 border-t border-red-200 dark:border-red-900/50">
                     <h4 className="text-md font-medium text-red-600 dark:text-red-400 mb-4 font-bold">Encerrar Bolão</h4>
-                    <div className="bg-red-50 dark:bg-red-900/10 border-2 border-dashed border-red-200 dark:border-red-900/30 rounded-xl p-6 flex flex-col items-center text-center gap-4">
-                        <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
-                            <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-red-900 dark:text-red-200">Zona de Finalização</h3>
-                            <p className="text-sm text-red-600 dark:text-red-400 max-w-md">
-                                O campeonato terminou? Finalize o bolão para declarar os vencedores e distribuir o prêmio total de <strong>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financials?.net_pot || 0)}</strong>.
-                            </p>
+                    <div className="bg-red-50/50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-md p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-red-900 dark:text-red-200">Finalizar e distribuir prêmios</p>
+                                <p className="text-xs text-red-600 dark:text-red-400">
+                                    Prêmio total: <strong>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financials?.net_pot || 0)}</strong>
+                                </p>
+                            </div>
                         </div>
                         <button
                             type="button"
                             onClick={handleFinalizeGroup}
                             disabled={loading}
-                            className="bg-red-600 hover:bg-red-700 text-white font-black py-3 px-10 rounded-xl shadow-lg shadow-red-200 dark:shadow-none transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                            className="inline-flex justify-center rounded-md border border-transparent bg-red-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors disabled:opacity-50"
                         >
-                            {loading ? 'Finalizando...' : 'Encerrar Bolão e Pagar Prêmios'}
+                            {loading ? 'Finalizando...' : 'Encerrar Bolão'}
                         </button>
                     </div>
                 </div>
