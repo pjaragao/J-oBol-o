@@ -168,6 +168,13 @@ export default function CreateGroupPage() {
     const nextStep = () => setStep(s => s + 1)
     const prevStep = () => setStep(s => s - 1)
 
+    // Prevent Enter key from submitting the form accidentally
+    const preventEnterSubmit = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            e.preventDefault()
+        }
+    }
+
     return (
         <div className="max-w-3xl mx-auto py-10 px-4">
             <div className="mb-8">
