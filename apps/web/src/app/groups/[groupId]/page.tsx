@@ -4,6 +4,7 @@ import { GroupTabs } from '@/components/groups/GroupTabs'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { FinancialService } from '@/lib/financial-service'
+import { Info } from 'lucide-react'
 
 export default async function GroupDetailsPage({ params }: { params: Promise<{ groupId: string }> }) {
     const { groupId } = await params
@@ -72,46 +73,51 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
     return (
         <div className="pb-12 bg-gray-50 dark:bg-slate-900 min-h-screen">
             {/* Header Compacto Moderno */}
-            <div className="bg-gradient-to-b from-green-800 to-green-900 dark:from-slate-900 dark:to-slate-950 pb-12 sm:pb-24 pt-3 px-4 border-b border-green-700/50 dark:border-slate-800">
+            <div className="bg-gradient-to-b from-green-800 to-green-900 dark:from-slate-900 dark:to-slate-950 pb-8 sm:pb-20 pt-3 px-4 border-b border-green-700/50 dark:border-slate-800">
                 <div className="max-w-4xl mx-auto">
                     <div className="flex flex-col gap-2">
-                        {/* Título e Descrição do Grupo */}
-                        <div className="mb-4">
-                            <h1 className="text-xl sm:text-3xl font-black tracking-tight text-white leading-tight drop-shadow-sm">{group.name}</h1>
-                            {group.description && <p className="text-green-100/70 text-xs sm:text-base font-medium line-clamp-1 mt-1">{group.description}</p>}
-                        </div>
-
-                        {/* Destaque da Competição e Prêmio */}
-                        <div className="flex flex-wrap items-center gap-4 sm:gap-6 bg-white/5 dark:bg-black/20 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
-                            {/* Logo Maior */}
+                        {/* Novo Layout Compacto e Integrado */}
+                        <div className="flex flex-wrap items-center gap-4 sm:gap-6 bg-white/5 dark:bg-black/20 p-4 sm:p-5 rounded-2xl border border-white/10 backdrop-blur-sm relative overflow-hidden">
+                            {/* Logo com Fundo Branco para Contraste */}
                             <div className="relative shrink-0">
-                                <div className="absolute inset-0 bg-white/20 blur-xl rounded-full" />
-                                <div className="relative w-12 h-12 sm:w-16 sm:h-16 bg-white/10 rounded-xl p-2 flex items-center justify-center border border-white/20 shadow-inner">
+                                <div className="absolute inset-0 bg-white/10 blur-xl rounded-full" />
+                                <div className="relative w-14 h-14 sm:w-20 sm:h-20 bg-white rounded-2xl p-2.5 flex items-center justify-center border border-white/20 shadow-lg group transition-transform hover:scale-105">
                                     {eventData?.logo_url ? (
                                         <img src={eventData.logo_url} className="w-full h-full object-contain" alt="" />
                                     ) : (
-                                        <span className="text-2xl sm:text-3xl">🏆</span>
+                                        <span className="text-3xl sm:text-4xl">🏆</span>
                                     )}
                                 </div>
                             </div>
 
                             <div className="flex flex-col flex-1 min-w-0">
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                    {/* Nome da Competição em Destaque */}
-                                    <div>
-                                        <span className="text-[10px] sm:text-xs font-bold text-green-300/80 uppercase tracking-widest block mb-0.5">Competição</span>
-                                        <h2 className="text-lg sm:text-2xl font-bold text-white leading-tight truncate">
+                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        {/* Nome do Grupo Integrado */}
+                                        <div className="flex items-center gap-2 mb-1 group">
+                                            <h1 className="text-sm sm:text-base font-bold text-green-300 drop-shadow-sm truncate">
+                                                {group.name}
+                                            </h1>
+                                            {group.description && (
+                                                <div className="relative cursor-help" title={group.description}>
+                                                    <Info className="w-3.5 h-3.5 text-green-300/50 hover:text-green-300 transition-colors" />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Nome da Competição */}
+                                        <h2 className="text-xl sm:text-3xl font-black text-white leading-tight truncate tracking-tight">
                                             {eventData?.name}
                                         </h2>
                                     </div>
 
-                                    {/* Valor em Disputa em Grande Destaque */}
-                                    <div className="bg-gradient-to-br from-green-400 to-emerald-600 p-[1px] rounded-xl shadow-lg shadow-green-900/40">
-                                        <div className="bg-green-950/80 px-4 py-2 rounded-[11px] backdrop-blur-md flex flex-col items-end">
-                                            <span className="text-[10px] font-black text-green-400 uppercase tracking-tighter leading-none mb-1">Total em Disputa</span>
+                                    {/* Valor em Disputa (Versão Compacta) */}
+                                    <div className="bg-gradient-to-br from-green-400 to-emerald-600 p-[1px] rounded-xl shadow-lg shadow-green-950/50 shrink-0 self-start sm:self-center">
+                                        <div className="bg-slate-900/90 dark:bg-black/80 px-4 py-2 sm:px-6 sm:py-3 rounded-[11px] backdrop-blur-md flex flex-col items-end">
+                                            <span className="text-[10px] font-black text-green-400/90 uppercase tracking-tighter leading-none mb-1.5">Total em Disputa</span>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs font-bold text-green-100/60 leading-none">R$</span>
-                                                <span className="text-xl sm:text-2xl font-black text-white tabular-nums leading-none">
+                                                <span className="text-xs font-bold text-green-200/50 leading-none">R$</span>
+                                                <span className="text-xl sm:text-3xl font-black text-white tabular-nums leading-none">
                                                     {totalPot.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                                 </span>
                                             </div>
@@ -120,35 +126,36 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
                                 </div>
 
                                 {/* Info Secundária (Membros e Datas) */}
-                                <div className="mt-3 flex items-center gap-4 border-t border-white/5 pt-3">
-                                    <div className="flex items-center gap-2 text-white/60 text-[11px] sm:text-xs font-medium">
-                                        <div className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
-                                            <span>👥</span>
-                                            <span>{group.group_members[0].count} membros</span>
-                                        </div>
-                                        {startDate && endDate && (
-                                            <div className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
-                                                <span>📅</span>
-                                                <span>{startDate} - {endDate}</span>
-                                            </div>
-                                        )}
+                                <div className="mt-4 flex flex-wrap items-center gap-3 sm:gap-4 border-t border-white/10 pt-3">
+                                    <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5 text-white/70 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
+                                        <span>👥</span>
+                                        <span>{group.group_members[0].count} Participantes</span>
                                     </div>
+                                    {startDate && endDate && (
+                                        <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5 text-white/70 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
+                                            <span>📅</span>
+                                            <span>{startDate} - {endDate}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <main className="-mt-12 sm:-mt-20 mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
-                <GroupTabs
-                    groupId={groupId}
-                    matches={matches || []}
-                    group={group}
-                    isAdmin={isAdmin}
-                    userId={user?.id || ''}
-                />
-            </main>
         </div>
+                </div >
+            </div >
+
+        <main className="-mt-12 sm:-mt-20 mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
+            <GroupTabs
+                groupId={groupId}
+                matches={matches || []}
+                group={group}
+                isAdmin={isAdmin}
+                userId={user?.id || ''}
+            />
+        </main>
+        </div >
     )
 }
