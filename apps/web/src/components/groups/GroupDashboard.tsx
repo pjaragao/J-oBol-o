@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, RefreshCw, DollarSign, AlertTriangle, Wallet, Crown, Calendar, ChevronRight, BarChart2 } from 'lucide-react'
+import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, RefreshCw, DollarSign, AlertTriangle, Wallet, Crown, Calendar, ChevronRight, BarChart2, Plus, Pencil } from 'lucide-react'
 import { calculateLivePoints } from '@/lib/utils/points'
 import { BetSecurityService } from '@/lib/bet-security'
 import { TeamName } from '@/components/ui/TeamName'
@@ -1140,16 +1140,17 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                         <button
                                                             onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: String(match.user_bet?.home_score_bet ?? ''), away: String(match.user_bet?.away_score_bet ?? '') } }))}
                                                             className="text-slate-400 hover:text-green-600 w-auto min-w-[24px] flex justify-end"
+                                                            title="Editar aposta"
                                                         >
-                                                            ✏️
+                                                            <Pencil className="h-3.5 w-3.5" />
                                                         </button>
                                                     ) : (
                                                         <button
                                                             onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: '', away: '' } }))}
-                                                            className="text-[10px] text-green-600 dark:text-green-400 hover:underline w-auto flex justify-end font-bold items-center gap-1"
+                                                            className="h-6 w-6 flex items-center justify-center rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 transition-colors"
+                                                            title="Apostar"
                                                         >
-                                                            <span className="sm:hidden">+</span>
-                                                            <span className="hidden sm:inline">Apostar</span>
+                                                            <Plus className="h-3.5 w-3.5" />
                                                         </button>
                                                     )}
                                                 </div>
@@ -1333,7 +1334,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                     <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
                                                         <TeamName
                                                             team={home}
-                                                            variant="auto"
+                                                            variant="tla"
                                                             className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-end"
                                                         />
                                                         <img src={home.logo_url} className="w-5 h-5 object-contain shrink-0" />
@@ -1345,7 +1346,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                         <img src={away.logo_url} className="w-5 h-5 object-contain shrink-0" />
                                                         <TeamName
                                                             team={away}
-                                                            variant="auto"
+                                                            variant="tla"
                                                             className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-start"
                                                         />
                                                     </div>
