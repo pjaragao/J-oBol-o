@@ -73,70 +73,69 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
     return (
         <div className="pb-12 bg-gray-50 dark:bg-slate-900 min-h-screen">
             {/* Header Compacto Moderno */}
-            <div className="bg-gradient-to-b from-green-800 to-green-900 dark:from-slate-900 dark:to-slate-950 pb-8 sm:pb-20 pt-3 px-4 border-b border-green-700/50 dark:border-slate-800">
+            <div className="bg-gradient-to-b from-green-800 to-green-900 dark:from-slate-900 dark:to-slate-950 pb-12 sm:pb-28 pt-8 px-4 border-b border-green-700/50 dark:border-slate-800">
                 <div className="max-w-4xl mx-auto">
-                    <div className="flex flex-col gap-2">
-                        {/* Novo Layout Compacto e Integrado */}
-                        <div className="flex flex-wrap items-center gap-4 sm:gap-6 bg-white/5 dark:bg-black/20 p-4 sm:p-5 rounded-2xl border border-white/10 backdrop-blur-sm relative overflow-hidden">
-                            {/* Logo com Fundo Branco para Contraste */}
-                            <div className="relative shrink-0">
-                                <div className="absolute inset-0 bg-white/10 blur-xl rounded-full" />
-                                <div className="relative w-14 h-14 sm:w-20 sm:h-20 bg-white rounded-2xl p-2.5 flex items-center justify-center border border-white/20 shadow-lg group transition-transform hover:scale-105">
-                                    {eventData?.logo_url ? (
-                                        <img src={eventData.logo_url} className="w-full h-full object-contain" alt="" />
-                                    ) : (
-                                        <span className="text-3xl sm:text-4xl">🏆</span>
-                                    )}
-                                </div>
+                    {/* Layout Orgânico sem "Boxes" aninhados */}
+                    <div className="flex flex-wrap items-center gap-6 sm:gap-8">
+                        {/* Logo da Competição com Destaque e Contraste */}
+                        <div className="shrink-0 group">
+                            <div className="relative w-16 h-16 sm:w-24 sm:h-24 bg-white rounded-[2rem] p-3 flex items-center justify-center shadow-2xl border-4 border-white/20 transition-transform hover:scale-105 active:scale-95 duration-300">
+                                {eventData?.logo_url ? (
+                                    <img src={eventData.logo_url} className="w-full h-full object-contain" alt="" />
+                                ) : (
+                                    <span className="text-4xl sm:text-5xl">🏆</span>
+                                )}
+                                {/* Badge de "Live" ou similar se necessário no futuro */}
                             </div>
+                        </div>
 
-                            <div className="flex flex-col flex-1 min-w-0">
-                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                                    <div className="min-w-0">
-                                        {/* Nome do Grupo Integrado */}
-                                        <div className="flex items-center gap-2 mb-1 group">
-                                            <h1 className="text-sm sm:text-base font-bold text-green-300 drop-shadow-sm truncate">
-                                                {group.name}
-                                            </h1>
-                                            {group.description && (
-                                                <div className="relative cursor-help" title={group.description}>
-                                                    <Info className="w-3.5 h-3.5 text-green-300/50 hover:text-green-300 transition-colors" />
-                                                </div>
-                                            )}
+                        <div className="flex flex-col flex-1 min-w-[280px]">
+                            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+                                <div className="min-w-0">
+                                    {/* Identidade do Grupo (Integrada e Sutil) */}
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="bg-green-400/20 px-2 py-0.5 rounded text-[10px] font-black text-green-300 uppercase tracking-widest border border-green-400/20">
+                                            Grupo: {group.name}
                                         </div>
-
-                                        {/* Nome da Competição */}
-                                        <h2 className="text-xl sm:text-3xl font-black text-white leading-tight truncate tracking-tight">
-                                            {eventData?.name}
-                                        </h2>
+                                        {group.description && (
+                                            <div className="cursor-help transition-transform hover:scale-110" title={group.description}>
+                                                <Info className="w-3.5 h-3.5 text-green-300/60" />
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {/* Valor em Disputa (Versão Compacta) */}
-                                    <div className="bg-gradient-to-br from-green-400 to-emerald-600 p-[1px] rounded-xl shadow-lg shadow-green-950/50 shrink-0 self-start sm:self-center">
-                                        <div className="bg-slate-900/90 dark:bg-black/80 px-4 py-2 sm:px-6 sm:py-3 rounded-[11px] backdrop-blur-md flex flex-col items-end">
-                                            <span className="text-[10px] font-black text-green-400/90 uppercase tracking-tighter leading-none mb-1.5">Total em Disputa</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs font-bold text-green-200/50 leading-none">R$</span>
-                                                <span className="text-xl sm:text-3xl font-black text-white tabular-nums leading-none">
-                                                    {totalPot.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                                </span>
-                                            </div>
+                                    {/* Título da Competição (O Grande Destaque) */}
+                                    <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tighter italic uppercase leading-none drop-shadow-lg">
+                                        {eventData?.name}
+                                    </h2>
+
+                                    {/* Infos de Apoio (Membros e Datas) */}
+                                    <div className="mt-4 flex flex-wrap items-center gap-4 text-white/60 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-green-400">👥</span>
+                                            <span>{group.group_members[0].count} Participantes</span>
                                         </div>
+                                        {startDate && endDate && (
+                                            <div className="flex items-center gap-1.5 pl-4 border-l border-white/10">
+                                                <span className="text-green-400">📅</span>
+                                                <span>{startDate} - {endDate}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
-                                {/* Info Secundária (Membros e Datas) */}
-                                <div className="mt-4 flex flex-wrap items-center gap-3 sm:gap-4 border-t border-white/10 pt-3">
-                                    <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5 text-white/70 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
-                                        <span>👥</span>
-                                        <span>{group.group_members[0].count} Participantes</span>
-                                    </div>
-                                    {startDate && endDate && (
-                                        <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5 text-white/70 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
-                                            <span>📅</span>
-                                            <span>{startDate} - {endDate}</span>
+                                {/* Bloco de Prêmio (Design Minimalista mas Potente) */}
+                                <div className="shrink-0 sm:pb-1">
+                                    <div className="flex flex-col items-start sm:items-end">
+                                        <span className="text-[10px] font-black text-green-300 uppercase tracking-widest mb-1 opacity-80">Total em Disputa</span>
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-xl font-bold text-green-400 leading-none">R$</span>
+                                            <span className="text-4xl sm:text-6xl font-black text-white tabular-nums leading-none tracking-tighter drop-shadow-[0_0_20px_rgba(74,222,128,0.3)]">
+                                                {totalPot.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                                                <span className="text-xl sm:text-2xl opacity-40">,00</span>
+                                            </span>
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
