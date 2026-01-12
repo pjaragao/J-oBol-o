@@ -1043,13 +1043,17 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
                                                 <div className="flex items-center justify-between gap-1 flex-1">
                                                     {/* Home Team */}
-                                                    <div className="flex items-center gap-1.5 flex-1 justify-end">
-                                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{home.short_name}</span>
-                                                        <img src={home.logo_url} alt={home.short_name} className="w-5 h-5 object-contain" />
+                                                    <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
+                                                        <TeamName
+                                                            team={home}
+                                                            variant="auto"
+                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-end"
+                                                        />
+                                                        <img src={home.logo_url} alt={home.short_name} className="w-5 h-5 object-contain shrink-0" />
                                                     </div>
 
                                                     {/* Score Inputs */}
-                                                    <div className="flex items-center justify-center gap-1">
+                                                    <div className="flex items-center justify-center gap-1 shrink-0">
                                                         {isEditing ? (
                                                             <div className="relative">
                                                                 <input
@@ -1107,13 +1111,17 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                     </div>
 
                                                     {/* Away Team */}
-                                                    <div className="flex items-center gap-1.5 flex-1">
-                                                        <img src={away.logo_url} alt={away.short_name} className="w-5 h-5 object-contain" />
-                                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{away.short_name}</span>
+                                                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                                        <img src={away.logo_url} alt={away.short_name} className="w-5 h-5 object-contain shrink-0" />
+                                                        <TeamName
+                                                            team={away}
+                                                            variant="auto"
+                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-start"
+                                                        />
                                                     </div>
 
                                                     {isEditing ? (
-                                                        <div className="flex items-center justify-end w-[24px]">
+                                                        <div className="flex items-center justify-end w-auto min-w-[24px]">
                                                             {savingMap[match.id] === 'saved' ? (
                                                                 <CheckCircle2 className="h-4 w-4 text-green-500" />
                                                             ) : (
@@ -1131,14 +1139,14 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                     ) : hasBet ? (
                                                         <button
                                                             onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: String(match.user_bet?.home_score_bet ?? ''), away: String(match.user_bet?.away_score_bet ?? '') } }))}
-                                                            className="text-slate-400 hover:text-green-600 w-[24px] flex justify-end"
+                                                            className="text-slate-400 hover:text-green-600 w-auto min-w-[24px] flex justify-end"
                                                         >
                                                             ✏️
                                                         </button>
                                                     ) : (
                                                         <button
                                                             onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: '', away: '' } }))}
-                                                            className="text-[10px] text-green-600 dark:text-green-400 hover:underline w-[24px] flex justify-end"
+                                                            className="text-[10px] text-green-600 dark:text-green-400 hover:underline w-auto flex justify-end font-bold"
                                                         >
                                                             Apostar
                                                         </button>
@@ -1176,13 +1184,17 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                 <div className="flex-1">
                                                     <div className="flex items-center justify-between gap-1 mb-1">
                                                         {/* Home */}
-                                                        <div className="flex items-center gap-1.5 flex-1 justify-end">
-                                                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{home.short_name}</span>
-                                                            <img src={home.logo_url} className="w-5 h-5 object-contain" />
+                                                        <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
+                                                            <TeamName
+                                                                team={home}
+                                                                variant="auto"
+                                                                className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-end"
+                                                            />
+                                                            <img src={home.logo_url} className="w-5 h-5 object-contain shrink-0" />
                                                         </div>
 
                                                         {/* Score */}
-                                                        <div className="flex flex-col items-center">
+                                                        <div className="flex flex-col items-center shrink-0">
                                                             <div className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded flex items-center gap-1.5 scale-90">
                                                                 <span className="font-black text-xs text-slate-800 dark:text-slate-200">{match.home_score}</span>
                                                                 <span className="text-[9px] text-slate-400">x</span>
@@ -1191,9 +1203,13 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                         </div>
 
                                                         {/* Away */}
-                                                        <div className="flex items-center gap-1.5 flex-1">
-                                                            <img src={away.logo_url} className="w-5 h-5 object-contain" />
-                                                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{away.short_name}</span>
+                                                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                                            <img src={away.logo_url} className="w-5 h-5 object-contain shrink-0" />
+                                                            <TeamName
+                                                                team={away}
+                                                                variant="auto"
+                                                                className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-start"
+                                                            />
                                                         </div>
                                                     </div>
 
@@ -1248,22 +1264,30 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
                                                 <div className="flex items-center justify-between gap-1 flex-1">
                                                     {/* Home */}
-                                                    <div className="flex items-center gap-1.5 flex-1 justify-end">
-                                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{home.short_name}</span>
-                                                        <img src={home.logo_url} className="w-5 h-5 object-contain" />
+                                                    <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
+                                                        <TeamName
+                                                            team={home}
+                                                            variant="auto"
+                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-end"
+                                                        />
+                                                        <img src={home.logo_url} className="w-5 h-5 object-contain shrink-0" />
                                                     </div>
 
                                                     {/* Score */}
-                                                    <div className="px-1.5 py-0.5 bg-slate-50 dark:bg-slate-800 rounded flex items-center gap-1.5">
+                                                    <div className="px-1.5 py-0.5 bg-slate-50 dark:bg-slate-800 rounded flex items-center gap-1.5 shrink-0">
                                                         <span className="font-bold text-xs text-slate-700 dark:text-slate-200">{match.home_score}</span>
                                                         <span className="text-[9px] text-slate-400">x</span>
                                                         <span className="font-bold text-xs text-slate-700 dark:text-slate-200">{match.away_score}</span>
                                                     </div>
 
                                                     {/* Away */}
-                                                    <div className="flex items-center gap-1.5 flex-1">
-                                                        <img src={away.logo_url} className="w-5 h-5 object-contain" />
-                                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{away.short_name}</span>
+                                                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                                        <img src={away.logo_url} className="w-5 h-5 object-contain shrink-0" />
+                                                        <TeamName
+                                                            team={away}
+                                                            variant="auto"
+                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-start"
+                                                        />
                                                     </div>
 
                                                     <button
@@ -1305,16 +1329,24 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
                                                 <div className="flex-1 flex items-center justify-between gap-1">
                                                     {/* Teams */}
-                                                    <div className="flex items-center gap-1.5 flex-1 justify-end">
-                                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{home.short_name}</span>
-                                                        <img src={home.logo_url} className="w-5 h-5 object-contain" />
+                                                    <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
+                                                        <TeamName
+                                                            team={home}
+                                                            variant="auto"
+                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-end"
+                                                        />
+                                                        <img src={home.logo_url} className="w-5 h-5 object-contain shrink-0" />
                                                     </div>
 
-                                                    <span className="text-[10px] font-bold text-slate-300 lowercase px-1 text-center">vs</span>
+                                                    <span className="text-[10px] font-bold text-slate-300 lowercase px-1 text-center shrink-0">vs</span>
 
-                                                    <div className="flex items-center gap-1.5 flex-1">
-                                                        <img src={away.logo_url} className="w-5 h-5 object-contain" />
-                                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 hidden sm:block">{away.short_name}</span>
+                                                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                                        <img src={away.logo_url} className="w-5 h-5 object-contain shrink-0" />
+                                                        <TeamName
+                                                            team={away}
+                                                            variant="auto"
+                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-start"
+                                                        />
                                                     </div>
                                                 </div>
 
