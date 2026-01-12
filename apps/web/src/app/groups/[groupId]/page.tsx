@@ -67,13 +67,13 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
     const { grossPot } = FinancialService.calculatePrizePot(config, paidCount || 0, potArgs)
     const totalPot = grossPot;
 
-    const startDate = eventData?.start_date ? format(new Date(eventData.start_date), 'dd/MM/yyyy') : null
-    const endDate = eventData?.end_date ? format(new Date(eventData.end_date), 'dd/MM/yyyy') : null
+    const startDate = eventData?.start_date ? format(new Date(eventData.start_date), 'dd/MM/yy') : null
+    const endDate = eventData?.end_date ? format(new Date(eventData.end_date), 'dd/MM/yy') : null
 
     return (
         <div className="pb-12 bg-gray-50 dark:bg-slate-900 min-h-screen">
             {/* Header Compacto Moderno */}
-            <div className="bg-gradient-to-b from-green-800 to-green-900 dark:from-slate-900 dark:to-slate-950 pb-10 sm:pb-24 pt-6 px-4 border-b border-green-700/50 dark:border-slate-800">
+            <div className="bg-gradient-to-b from-green-800 to-green-900 dark:from-slate-900 dark:to-slate-950 pb-10 sm:pb-24 pt-1 px-4 border-b border-green-700/50 dark:border-slate-800">
                 <div className="max-w-4xl mx-auto">
                     {/* Layout Refinado: Foco no Grupo e Integração Fluida */}
                     <div className="flex flex-col gap-4 sm:gap-6">
@@ -90,7 +90,7 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
                         </div>
 
                         {/* 2. Conteúdo da Competição e Prêmio */}
-                        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6">
+                        <div className="flex flex-row items-center sm:items-end justify-between gap-4 sm:gap-6">
                             {/* Bloco da Competição: Logo + Nome (Sempre Lado a Lado) */}
                             <div className="flex items-center gap-4 sm:gap-5">
                                 {/* Logo Redimensionado */}
@@ -127,14 +127,14 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
                             </div>
 
                             {/* 3. Bloco de Prêmio (Design Compacto e Elegante) */}
-                            <div className="shrink-0 border-l-4 border-green-500/30 pl-4 sm:pl-0 sm:border-0">
-                                <div className="flex flex-col items-start sm:items-end">
-                                    <span className="text-[10px] font-black text-green-400/80 uppercase tracking-widest mb-1">Total em Disputa</span>
-                                    <div className="flex items-baseline gap-2">
-                                        <span className="text-lg font-bold text-green-200/40 leading-none">R$</span>
-                                        <span className="text-3xl sm:text-5xl font-black text-white tabular-nums leading-none tracking-tighter drop-shadow-[0_4px_12px_rgba(74,222,128,0.2)]">
+                            <div className="shrink-0 pl-2 sm:pl-0">
+                                <div className="flex flex-col items-end">
+                                    <span className="text-[8px] sm:text-[10px] font-black text-green-400/80 uppercase tracking-widest mb-0.5 sm:mb-1">Total em Disputa</span>
+                                    <div className="flex items-baseline gap-1 sm:gap-2">
+                                        <span className="text-xs sm:text-lg font-bold text-green-200/40 leading-none">R$</span>
+                                        <span className="text-xl sm:text-5xl font-black text-white tabular-nums leading-none tracking-tighter drop-shadow-[0_4px_12px_rgba(74,222,128,0.2)]">
                                             {totalPot.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                                            <span className="text-xl sm:text-2xl opacity-30">,00</span>
+                                            <span className="text-xs sm:text-2xl opacity-30">,00</span>
                                         </span>
                                     </div>
                                 </div>
