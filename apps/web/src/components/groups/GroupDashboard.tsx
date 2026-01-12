@@ -1047,18 +1047,18 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                         <TeamName
                                                             team={home}
                                                             variant="auto"
-                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-end"
+                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-end flex-1 min-w-0"
                                                         />
                                                         <img src={home.logo_url} alt={home.short_name} className="w-5 h-5 object-contain shrink-0" />
                                                     </div>
 
                                                     {/* Score Inputs / Box */}
-                                                    <div className="px-1 py-0.5 bg-slate-50 dark:bg-slate-800 rounded flex items-center gap-1 shrink-0 min-w-[65px] justify-center">
+                                                    <div className="px-1 py-0.5 bg-slate-50 dark:bg-slate-800 rounded flex items-center gap-1 shrink-0 min-w-[58px] justify-center">
                                                         {isEditing ? (
                                                             <input
                                                                 type="tel"
                                                                 inputMode="numeric"
-                                                                className="w-6 h-6 text-center text-xs font-bold border rounded focus:ring-1 focus:ring-green-500 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white p-0"
+                                                                className="w-5 h-6 text-center text-xs font-bold border-0 bg-white dark:bg-slate-700 dark:text-white p-0 rounded-sm focus:ring-1 focus:ring-green-500"
                                                                 value={inlineBet.home}
                                                                 onChange={(e) => handleInlineBetChange(match.id, 'home', e.target.value)}
                                                                 onFocus={(e) => {
@@ -1084,7 +1084,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                             <input
                                                                 type="tel"
                                                                 inputMode="numeric"
-                                                                className="w-6 h-6 text-center text-xs font-bold border rounded focus:ring-1 focus:ring-green-500 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white p-0"
+                                                                className="w-5 h-6 text-center text-xs font-bold border-0 bg-white dark:bg-slate-700 dark:text-white p-0 rounded-sm focus:ring-1 focus:ring-green-500"
                                                                 value={inlineBet.away}
                                                                 onChange={(e) => handleInlineBetChange(match.id, 'away', e.target.value)}
                                                                 onFocus={(e) => {
@@ -1111,14 +1111,14 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                         <TeamName
                                                             team={away}
                                                             variant="auto"
-                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-start"
+                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-start flex-1 min-w-0"
                                                         />
                                                     </div>
 
-                                                    {/* Actions */}
-                                                    <div className="flex items-center justify-end ml-1 shrink-0 w-7">
-                                                        {isEditing ? (
-                                                            savingMap[match.id] === 'saved' ? (
+                                                    {/* Actions - Direct sibling like in model */}
+                                                    {isEditing ? (
+                                                        <div className="ml-2 h-7 w-7 flex items-center justify-center shrink-0">
+                                                            {savingMap[match.id] === 'saved' ? (
                                                                 <CheckCircle2 className="h-4 w-4 text-green-500" />
                                                             ) : (
                                                                 <button
@@ -1130,25 +1130,25 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                 >
                                                                     <X className="h-4 w-4" />
                                                                 </button>
-                                                            )
-                                                        ) : hasBet ? (
-                                                            <button
-                                                                onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: String(match.user_bet?.home_score_bet ?? ''), away: String(match.user_bet?.away_score_bet ?? '') } }))}
-                                                                className="text-slate-400 hover:text-green-600 transition-colors"
-                                                                title="Editar aposta"
-                                                            >
-                                                                <Pencil className="h-3.5 w-3.5" />
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: '', away: '' } }))}
-                                                                className="h-6 w-6 flex items-center justify-center rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 transition-colors border border-green-100 dark:border-green-800/50"
-                                                                title="Apostar"
-                                                            >
-                                                                <Plus className="h-3.5 w-3.5" />
-                                                            </button>
-                                                        )}
-                                                    </div>
+                                                            )}
+                                                        </div>
+                                                    ) : hasBet ? (
+                                                        <button
+                                                            onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: String(match.user_bet?.home_score_bet ?? ''), away: String(match.user_bet?.away_score_bet ?? '') } }))}
+                                                            className="ml-2 h-7 w-7 flex items-center justify-center rounded-md bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-green-600 transition-colors shrink-0"
+                                                            title="Editar aposta"
+                                                        >
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: '', away: '' } }))}
+                                                            className="ml-2 h-7 w-7 flex items-center justify-center rounded-md bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/50 hover:bg-green-100 transition-colors shrink-0"
+                                                            title="Apostar"
+                                                        >
+                                                            <Plus className="h-4 w-4" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         )
@@ -1325,20 +1325,20 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                     <span className="text-[10px] text-slate-500 dark:text-slate-300 font-black leading-tight">{format(matchDate, "HH:mm", { locale: ptBR })}</span>
                                                 </div>
 
-                                                <div className="flex-1 flex items-center justify-between gap-1">
+                                                <div className="flex-1 flex items-center justify-between gap-1 overflow-hidden">
                                                     {/* Home */}
                                                     <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
                                                         <TeamName
                                                             team={home}
                                                             variant="auto"
-                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-end"
+                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-end flex-1 min-w-0"
                                                         />
                                                         <img src={home.logo_url} className="w-5 h-5 object-contain shrink-0" />
                                                     </div>
 
                                                     {/* Middle Info (vs / box) */}
-                                                    <div className="px-1.5 py-0.5 bg-slate-50 dark:bg-slate-800 rounded flex items-center gap-1 shrink-0 min-w-[32px] justify-center">
-                                                        <span className="text-[10px] font-bold text-slate-300 lowercase px-1 text-center">vs</span>
+                                                    <div className="px-1 py-0.5 bg-slate-50 dark:bg-slate-800 rounded flex items-center gap-1 shrink-0 min-w-[32px] justify-center">
+                                                        <span className="text-[10px] font-bold text-slate-300 lowercase text-center">vs</span>
                                                     </div>
 
                                                     {/* Away */}
@@ -1347,31 +1347,29 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                         <TeamName
                                                             team={away}
                                                             variant="auto"
-                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-start"
+                                                            className="text-[10px] font-bold text-slate-700 dark:text-slate-300 justify-start flex-1 min-w-0"
                                                         />
                                                     </div>
 
-                                                    {/* Actions */}
-                                                    <div className="flex items-center gap-2 shrink-0 ml-1">
-                                                        <div className="flex flex-col items-center leading-none min-w-[38px]">
-                                                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">{betCount}</span>
-                                                            <span className="text-[7px] text-slate-400 uppercase tracking-tighter">apostas</span>
-                                                        </div>
-
-                                                        <button
-                                                            onClick={() => !isLocked && handleViewBets(match.id, match.match_date)}
-                                                            disabled={isLocked}
-                                                            className={`h-7 w-7 flex items-center justify-center rounded-md transition-all border
-                                                                ${isLocked
-                                                                    ? 'bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800 dark:text-slate-600 dark:border-slate-700 cursor-not-allowed'
-                                                                    : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40 border-green-100 dark:border-green-800/50'
-                                                                }
-                                                            `}
-                                                            title={isLocked ? "Bloqueado" : "Ver"}
-                                                        >
-                                                            {isLocked ? <Lock className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                                                        </button>
+                                                    {/* Counts info if not too narrow, or just compact it */}
+                                                    <div className="flex flex-col items-center leading-none min-w-[34px] shrink-0 ml-1">
+                                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">{betCount}</span>
+                                                        <span className="text-[7px] text-slate-400 uppercase tracking-tighter">apostas</span>
                                                     </div>
+
+                                                    <button
+                                                        onClick={() => !isLocked && handleViewBets(match.id, match.match_date)}
+                                                        disabled={isLocked}
+                                                        className={`ml-1 h-7 w-7 flex items-center justify-center rounded-md transition-all border shrink-0
+                                                            ${isLocked
+                                                                ? 'bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800 dark:text-slate-600 dark:border-slate-700 cursor-not-allowed'
+                                                                : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40 border-green-100 dark:border-green-800/50'
+                                                            }
+                                                        `}
+                                                        title={isLocked ? "Bloqueado" : "Ver"}
+                                                    >
+                                                        {isLocked ? <Lock className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                                    </button>
                                                 </div>
                                             </div>
                                         )
