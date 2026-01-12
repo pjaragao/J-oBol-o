@@ -226,8 +226,8 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 status,
                 home_score,
                 away_score,
-                home_team:teams!home_team_id(name, logo_url, short_name),
-                away_team:teams!away_team_id(name, logo_url, short_name)
+                home_team:teams!home_team_id(name, logo_url, short_name, tla),
+                away_team:teams!away_team_id(name, logo_url, short_name, tla)
             `)
                 .eq('event_id', eventId)
                 .in('status', ['scheduled', 'timed'])
@@ -289,8 +289,8 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 status,
                 home_score,
                 away_score,
-                home_team:teams!home_team_id(name, logo_url, short_name),
-                away_team:teams!away_team_id(name, logo_url, short_name)
+                home_team:teams!home_team_id(name, logo_url, short_name, tla),
+                away_team:teams!away_team_id(name, logo_url, short_name, tla)
             `)
                 .eq('event_id', eventId)
                 .in('status', ['finished', 'FT', 'AET', 'PEN'])
@@ -1052,44 +1052,39 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                         <img src={home.logo_url} alt={home.short_name} className="w-5 h-5 object-contain shrink-0" />
                                                     </div>
 
-                                                    {/* Score Inputs */}
-                                                    <div className="flex items-center justify-center gap-1 shrink-0">
+                                                    {/* Score Inputs / Box */}
+                                                    <div className="px-1 py-0.5 bg-slate-50 dark:bg-slate-800 rounded flex items-center gap-1 shrink-0 min-w-[65px] justify-center">
                                                         {isEditing ? (
-                                                            <div className="relative">
-                                                                <input
-                                                                    type="tel"
-                                                                    inputMode="numeric"
-                                                                    className="w-7 h-7 text-center text-xs font-bold border rounded focus:ring-1 focus:ring-green-500 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white p-0"
-                                                                    value={inlineBet.home}
-                                                                    onChange={(e) => handleInlineBetChange(match.id, 'home', e.target.value)}
-                                                                    onFocus={(e) => {
-                                                                        handleInlineFocus(match.id, 'home')
-                                                                        e.target.select()
-                                                                    }}
-                                                                    onBlur={() => {
-                                                                        setTimeout(() => {
-                                                                            if (activeMatchId === match.id) handleSaveInlineBet(match.id)
-                                                                        }, 200)
-                                                                    }}
-                                                                    placeholder="-"
-                                                                />
-                                                                {savingMap[match.id] === 'saving' && (
-                                                                    <div className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse" />
-                                                                )}
-                                                            </div>
+                                                            <input
+                                                                type="tel"
+                                                                inputMode="numeric"
+                                                                className="w-6 h-6 text-center text-xs font-bold border rounded focus:ring-1 focus:ring-green-500 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white p-0"
+                                                                value={inlineBet.home}
+                                                                onChange={(e) => handleInlineBetChange(match.id, 'home', e.target.value)}
+                                                                onFocus={(e) => {
+                                                                    handleInlineFocus(match.id, 'home')
+                                                                    e.target.select()
+                                                                }}
+                                                                onBlur={() => {
+                                                                    setTimeout(() => {
+                                                                        if (activeMatchId === match.id) handleSaveInlineBet(match.id)
+                                                                    }, 200)
+                                                                }}
+                                                                placeholder="-"
+                                                            />
                                                         ) : (
-                                                            <div className={`w-7 h-7 flex items-center justify-center rounded text-xs font-mono font-bold ${hasBet ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-600 dark:text-slate-300'}`}>
+                                                            <span className={`text-xs font-mono font-bold ${hasBet ? 'text-green-700 dark:text-green-400' : 'text-slate-400 dark:text-slate-500'}`}>
                                                                 {hasBet ? match.user_bet?.home_score_bet : '-'}
-                                                            </div>
+                                                            </span>
                                                         )}
 
-                                                        <span className="text-[10px] text-slate-400">x</span>
+                                                        <span className="text-[9px] text-slate-300">x</span>
 
                                                         {isEditing ? (
                                                             <input
                                                                 type="tel"
                                                                 inputMode="numeric"
-                                                                className="w-7 h-7 text-center text-xs font-bold border rounded focus:ring-1 focus:ring-green-500 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white p-0"
+                                                                className="w-6 h-6 text-center text-xs font-bold border rounded focus:ring-1 focus:ring-green-500 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white p-0"
                                                                 value={inlineBet.away}
                                                                 onChange={(e) => handleInlineBetChange(match.id, 'away', e.target.value)}
                                                                 onFocus={(e) => {
@@ -1104,9 +1099,9 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                 placeholder="-"
                                                             />
                                                         ) : (
-                                                            <div className={`w-7 h-7 flex items-center justify-center rounded text-xs font-mono font-bold ${hasBet ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-600 dark:text-slate-300'}`}>
+                                                            <span className={`text-xs font-mono font-bold ${hasBet ? 'text-green-700 dark:text-green-400' : 'text-slate-400 dark:text-slate-500'}`}>
                                                                 {hasBet ? match.user_bet?.away_score_bet : '-'}
-                                                            </div>
+                                                            </span>
                                                         )}
                                                     </div>
 
@@ -1121,9 +1116,9 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                     </div>
 
                                                     {/* Actions */}
-                                                    {isEditing ? (
-                                                        <div className="flex items-center justify-end ml-1 shrink-0">
-                                                            {savingMap[match.id] === 'saved' ? (
+                                                    <div className="flex items-center justify-end ml-1 shrink-0 w-7">
+                                                        {isEditing ? (
+                                                            savingMap[match.id] === 'saved' ? (
                                                                 <CheckCircle2 className="h-4 w-4 text-green-500" />
                                                             ) : (
                                                                 <button
@@ -1135,25 +1130,25 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                 >
                                                                     <X className="h-4 w-4" />
                                                                 </button>
-                                                            )}
-                                                        </div>
-                                                    ) : hasBet ? (
-                                                        <button
-                                                            onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: String(match.user_bet?.home_score_bet ?? ''), away: String(match.user_bet?.away_score_bet ?? '') } }))}
-                                                            className="ml-1 text-slate-400 hover:text-green-600 shrink-0"
-                                                            title="Editar aposta"
-                                                        >
-                                                            <Pencil className="h-3.5 w-3.5" />
-                                                        </button>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: '', away: '' } }))}
-                                                            className="ml-1 h-6 w-6 flex items-center justify-center rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 transition-colors shrink-0"
-                                                            title="Apostar"
-                                                        >
-                                                            <Plus className="h-3.5 w-3.5" />
-                                                        </button>
-                                                    )}
+                                                            )
+                                                        ) : hasBet ? (
+                                                            <button
+                                                                onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: String(match.user_bet?.home_score_bet ?? ''), away: String(match.user_bet?.away_score_bet ?? '') } }))}
+                                                                className="text-slate-400 hover:text-green-600 transition-colors"
+                                                                title="Editar aposta"
+                                                            >
+                                                                <Pencil className="h-3.5 w-3.5" />
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => setInlineBets(prev => ({ ...prev, [match.id]: { home: '', away: '' } }))}
+                                                                className="h-6 w-6 flex items-center justify-center rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 transition-colors border border-green-100 dark:border-green-800/50"
+                                                                title="Apostar"
+                                                            >
+                                                                <Plus className="h-3.5 w-3.5" />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         )
@@ -1341,7 +1336,10 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                         <img src={home.logo_url} className="w-5 h-5 object-contain shrink-0" />
                                                     </div>
 
-                                                    <span className="text-[10px] font-bold text-slate-300 lowercase px-1 text-center shrink-0">vs</span>
+                                                    {/* Middle Info (vs / box) */}
+                                                    <div className="px-1.5 py-0.5 bg-slate-50 dark:bg-slate-800 rounded flex items-center gap-1 shrink-0 min-w-[32px] justify-center">
+                                                        <span className="text-[10px] font-bold text-slate-300 lowercase px-1 text-center">vs</span>
+                                                    </div>
 
                                                     {/* Away */}
                                                     <div className="flex items-center gap-1.5 flex-1 min-w-0">
@@ -1355,9 +1353,9 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
                                                     {/* Actions */}
                                                     <div className="flex items-center gap-2 shrink-0 ml-1">
-                                                        <div className="flex flex-col items-end leading-none">
+                                                        <div className="flex flex-col items-center leading-none min-w-[38px]">
                                                             <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">{betCount}</span>
-                                                            <span className="text-[8px] text-slate-400 uppercase">apostas</span>
+                                                            <span className="text-[7px] text-slate-400 uppercase tracking-tighter">apostas</span>
                                                         </div>
 
                                                         <button
