@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, RefreshCw, DollarSign, AlertTriangle, Wallet, Crown, Calendar, ChevronRight, BarChart2, Plus, Pencil, Users } from 'lucide-react'
+import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, RefreshCw, DollarSign, AlertTriangle, Wallet, Crown, Calendar, ChevronRight, BarChart2, Plus, Users } from 'lucide-react'
 import { calculateLivePoints } from '@/lib/utils/points'
 import { BetSecurityService } from '@/lib/bet-security'
 import { TeamName } from '@/components/ui/TeamName'
@@ -570,7 +570,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
         if (bet?.isDirty && bet.home !== '' && bet.away !== '') {
             const timer = setTimeout(() => {
                 handleSaveInlineBet(activeMatchId)
-            }, 3000)
+            }, 1000) // Reduced from 3000ms to 1000ms for faster response while typing
             return () => clearTimeout(timer)
         }
     }, [inlineBets, activeMatchId])
@@ -617,18 +617,16 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 setSavingMap(prev => ({ ...prev, [matchId]: 'saved' }))
 
                 // Clear inline bet after a delay to show saved status
-                setTimeout(() => {
-                    setInlineBets(prev => {
-                        const next = { ...prev }
-                        delete next[matchId]
-                        return next
-                    })
-                    setSavingMap(prev => {
-                        const next = { ...prev }
-                        delete next[matchId]
-                        return next
-                    })
-                }, 2000)
+                setInlineBets(prev => {
+                    const next = { ...prev }
+                    delete next[matchId]
+                    return next
+                })
+                setSavingMap(prev => {
+                    const next = { ...prev }
+                    delete next[matchId]
+                    return next
+                })
             }
         } catch (error) {
             console.error(error)
@@ -875,16 +873,16 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-[35%_65%] gap-6 font-sans text-slate-800 dark:text-slate-100">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-[35%_65%] gap-6 font-sans text-slate-800 dark:text-slate-100 items-stretch">
 
                 {/* Col 1: Ranking Resumido */}
-                <div className="bg-[#FDFDF7] dark:bg-slate-800 border border-green-100 dark:border-slate-700 rounded-xl p-5 shadow-sm h-fit">
+                <div className="bg-[#FDFDF7] dark:bg-slate-800 border border-green-100 dark:border-slate-700 rounded-xl p-5 shadow-sm flex flex-col h-full">
                     <div className="flex items-center gap-2 mb-4 text-[#15803d] dark:text-green-400">
                         <Trophy className="h-5 w-5" />
                         <h3 className="font-bold text-lg">Ranking Resumido</h3>
                     </div>
 
-                    <div className="bg-white/50 dark:bg-black/20 rounded-lg p-4 min-h-[200px] flex flex-col">
+                    <div className="bg-white/50 dark:bg-black/20 rounded-lg p-4 flex-1 flex flex-col">
                         {topRanking.length === 0 ? (
                             <p className="text-center text-slate-500 dark:text-slate-400 text-sm my-auto">
                                 Nenhuma previsão feita ainda.
@@ -1022,7 +1020,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                 Nenhum jogo próximo.
                             </p>
                         ) : (
-                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-3">
                                 {upcomingMatches.map(match => {
                                     const home = getTeam(match.home_team)
                                     const away = getTeam(match.away_team)
@@ -1033,10 +1031,10 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                     const matchDate = new Date(match.match_date)
 
                                     return (
-                                        <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 shadow-sm overflow-hidden flex flex-col">
+                                        <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 shadow-sm overflow-hidden flex flex-col h-fit">
                                             {/* Parte Superior: Aposta */}
-                                            <div className="p-3 flex items-center gap-3">
-                                                <div className="flex flex-col items-center justify-center min-w-[45px] border-r border-slate-100 dark:border-slate-600 pr-3 my-1">
+                                            <div className="p-2 flex items-center gap-3">
+                                                <div className="flex flex-col items-center justify-center min-w-[45px] border-r border-slate-100 dark:border-slate-600 pr-3">
                                                     <span className="text-[10px] text-slate-400 font-bold leading-tight">{format(matchDate, "dd/MM", { locale: ptBR })}</span>
                                                     <span className="text-[10px] text-slate-500 dark:text-slate-300 font-black leading-tight">{format(matchDate, "HH:mm", { locale: ptBR })}</span>
                                                 </div>
@@ -1069,6 +1067,9 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                         handleInlineFocus(match.id, 'home')
                                                                         e.target.select()
                                                                     }}
+                                                                    onBlur={() => {
+                                                                        if (activeMatchId === match.id) handleSaveInlineBet(match.id)
+                                                                    }}
                                                                     autoFocus
                                                                     placeholder="-"
                                                                 />
@@ -1082,6 +1083,9 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                     onFocus={(e) => {
                                                                         handleInlineFocus(match.id, 'away')
                                                                         e.target.select()
+                                                                    }}
+                                                                    onBlur={() => {
+                                                                        if (activeMatchId === match.id) handleSaveInlineBet(match.id)
                                                                     }}
                                                                     placeholder="-"
                                                                 />
@@ -1109,17 +1113,11 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                         />
                                                     </div>
 
-                                                    {/* Edit Icon wrapper */}
-                                                    {!isEditing && (
-                                                        <div className="ml-1 text-slate-300">
-                                                            <Pencil className="w-3 h-3" />
-                                                        </div>
-                                                    )}
                                                 </div>
                                             </div>
 
                                             {/* Parte Inferior: Grupo */}
-                                            <div className="px-3 py-1.5 bg-slate-50/80 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-600/50 flex items-center justify-center">
+                                            <div className="px-3 py-1 bg-slate-50/80 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-600/50 flex items-center justify-center">
                                                 <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
                                                     {betCount} {betCount === 1 ? 'aposta feita' : 'apostas feitas'} no grupo
                                                 </span>
@@ -1143,7 +1141,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                 Nenhum jogo finalizado recentemente.
                             </p>
                         ) : (
-                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-3">
                                 {recentMatches.map(match => {
                                     const home = getTeam(match.home_team)
                                     const away = getTeam(match.away_team)
@@ -1151,10 +1149,10 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                     const matchDate = new Date(match.match_date)
 
                                     return (
-                                        <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 shadow-sm overflow-hidden flex flex-col">
+                                        <div key={match.id} className="bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 shadow-sm overflow-hidden flex flex-col h-fit">
                                             {/* Parte Superior: Minha Aposta */}
-                                            <div className="p-3 flex items-center gap-3">
-                                                <div className="flex flex-col items-center justify-center min-w-[45px] border-r border-slate-100 dark:border-slate-600 pr-3 my-1">
+                                            <div className="p-2 flex items-center gap-3">
+                                                <div className="flex flex-col items-center justify-center min-w-[45px] border-r border-slate-100 dark:border-slate-600 pr-3">
                                                     <span className="text-[10px] text-slate-400 font-bold leading-tight">{format(matchDate, "dd/MM", { locale: ptBR })}</span>
                                                     <span className="text-[10px] text-slate-500 dark:text-slate-300 font-black leading-tight">{format(matchDate, "HH:mm", { locale: ptBR })}</span>
                                                 </div>
@@ -1187,9 +1185,9 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                             </div>
 
                                             {/* Parte Inferior: Placar Real + Pontos + Apostas */}
-                                            <div className="px-3 py-2 bg-slate-50/80 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-600/50 flex items-center justify-between">
+                                            <div className="px-3 py-1 bg-slate-50/80 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-600/50 flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Real:</span>
+                                                    <span className="text-[9px] font-bold text-slate-400 font-mono uppercase tracking-tighter">PLACAR REAL:</span>
                                                     <span className="text-xs font-black text-slate-700 dark:text-slate-300">{match.home_score} x {match.away_score}</span>
                                                 </div>
 
@@ -1215,7 +1213,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                         )}
                     </div>
                 </div>
-            </div>
+            </div >
 
             {/* Bets Modal */}
             {
