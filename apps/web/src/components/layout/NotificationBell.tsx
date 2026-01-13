@@ -170,7 +170,8 @@ export function NotificationBell({ userId }: { userId: string }) {
         }
     }
 
-    const getIcon = (type: string) => {
+    const getIcon = (type?: string) => {
+        if (!type) return <Info className="h-4 w-4 text-blue-500" />
         switch (type) {
             case 'success': return <Star className="h-4 w-4 text-green-500" />
             case 'warning': return <AlertTriangle className="h-4 w-4 text-amber-500" />
@@ -240,7 +241,7 @@ export function NotificationBell({ userId }: { userId: string }) {
 
                         <div className="flex-1 overflow-y-auto sm:max-h-96">
                             {notifications.length > 0 ? (
-                                notifications.map((notification) => (
+                                notifications.filter(Boolean).map((notification) => (
                                     <div
                                         key={notification.id}
                                         onClick={() => {

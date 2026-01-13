@@ -196,7 +196,8 @@ function NotificationsContent() {
         }
     }
 
-    const getIcon = (type: string) => {
+    const getIcon = (type?: string) => {
+        if (!type) return <Info className="h-5 w-5 text-blue-500" />
         switch (type) {
             case 'success': return <Star className="h-5 w-5 text-green-500" />
             case 'warning': return <AlertTriangle className="h-5 w-5 text-amber-500" />
@@ -376,7 +377,7 @@ function NotificationsContent() {
                                         ))}
                                     </div>
                                 ) : notifications.length > 0 ? (
-                                    notifications.map((notification) => (
+                                    notifications.filter(Boolean).map((notification) => (
                                         <div
                                             key={notification.id}
                                             onClick={() => {

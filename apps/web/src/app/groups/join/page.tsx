@@ -125,6 +125,7 @@ function JoinGroupContent() {
 
                     setStatus('success')
                     setMessage('Sua solicitação de entrada foi enviada e aguarda aprovação do administrador.')
+                    router.refresh()
                     setTimeout(() => router.push('/groups'), 3000)
                 } else {
                     setMessage(`Entrando no grupo ${groupName || ''}...`)
@@ -142,6 +143,7 @@ function JoinGroupContent() {
                     // Joined successfully
                     setStatus('success')
                     setMessage(`Bem-vindo ao grupo ${groupName || ''}!`)
+                    router.refresh()
 
                     // Mark specific person invite as accepted
                     if (inviteType === 'token' && invitedEmail && !invitedEmail.startsWith('link_')) {
