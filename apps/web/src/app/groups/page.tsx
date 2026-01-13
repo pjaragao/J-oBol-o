@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Plus, Trophy, Users, Search, ArrowRight, Shield, Globe } from 'lucide-react'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 
 async function UserGroupsList({ userId }: { userId: string }) {
     const supabase = await createClient()
@@ -21,7 +22,6 @@ async function UserGroupsList({ userId }: { userId: string }) {
         `)
         .eq('user_id', userId)
 
-    // 2. Fetch groups where user has a pending request
     const { data: pending, error: pendingError } = await supabase
         .from('pending_members')
         .select(`
@@ -37,12 +37,34 @@ async function UserGroupsList({ userId }: { userId: string }) {
         .eq('user_id', userId)
         .eq('status', 'pending')
 
+    // 3. For groups where user is admin, fetch if there are pending requests to notify
+    const { data: adminMemberships } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+
+    const adminGroupIds = adminMemberships?.map(m => m.group_id) || []
+    let groupsWithPendingRequests: string[] = []
+
+    if (adminGroupIds.length > 0) {
+        const { data: pendingCounts } = await supabase
+            .from('pending_members')
+            .select('group_id')
+            .in('group_id', adminGroupIds)
+            .eq('status', 'pending')
+
+        if (pendingCounts) {
+            groupsWithPendingRequests = Array.from(new Set(pendingCounts.map(p => p.group_id)))
+        }
+    }
+
     if (membersError || pendingError) return <p className="text-red-500">Erro ao carregar seus grupos.</p>
 
     const allItems = [
         ...(members || []).map(m => ({ ...m, status: 'approved' })),
         ...(pending || []).map(p => ({ ...p, role: 'pending', status: 'pending' }))
-    ]
+    ].filter(item => item.groups)
 
     if (allItems.length === 0) {
         return (
@@ -71,7 +93,7 @@ async function UserGroupsList({ userId }: { userId: string }) {
                 >
                     <div className="flex justify-between items-start mb-3">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded">
-                            {item.groups.events.name}
+                            {item.groups.events?.name || 'Evento'}
                         </span>
                         <div className="flex items-center gap-2">
                             {item.status === 'pending' && (
@@ -99,6 +121,13 @@ async function UserGroupsList({ userId }: { userId: string }) {
                         )}>
                             {item.status === 'pending' ? 'Aguardando aprovação' : (item.role === 'admin' ? 'Fundador' : 'Membro')}
                         </span>
+
+                        {item.role === 'admin' && groupsWithPendingRequests.includes(item.groups.id) && (
+                            <div className="flex items-center gap-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full animate-pulse">
+                                <Users className="h-3 w-3" />
+                                <span className="text-[10px] font-black uppercase">Solicitações</span>
+                            </div>
+                        )}
                         <div className={cn(
                             "flex items-center gap-1",
                             item.status === 'pending' ? "text-amber-600" : "text-green-600"

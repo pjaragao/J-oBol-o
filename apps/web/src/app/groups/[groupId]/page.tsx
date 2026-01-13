@@ -4,7 +4,8 @@ import { GroupTabs } from '@/components/groups/GroupTabs'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { FinancialService } from '@/lib/financial-service'
-import { Info } from 'lucide-react'
+import { Info, Users } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { HeaderSetter } from '@/components/layout/HeaderSetter'
 
 export default async function GroupDetailsPage({ params }: { params: Promise<{ groupId: string }> }) {
@@ -112,7 +113,7 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
 
                                 <div className="min-w-0">
                                     <h2 className="text-sm sm:text-xl font-black text-white italic uppercase leading-none tracking-tight truncate">
-                                        {eventData?.name}
+                                        {group.events?.name}
                                     </h2>
                                     {/* Link sutil para descrição/info do grupo se necessário */}
                                     {group.description && (
@@ -138,7 +139,7 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
                         <div className="flex items-center gap-4 text-white/60 text-[9px] sm:text-xs font-bold uppercase tracking-widest">
                             <div className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded border border-white/5">
                                 <span className="text-green-400">👥</span>
-                                <span>{group.group_members[0].count} Participantes</span>
+                                <span>{(group.group_members?.[0]?.count || 0)} Participantes</span>
                             </div>
                             {startDate && endDate && (
                                 <div className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded border border-white/5">

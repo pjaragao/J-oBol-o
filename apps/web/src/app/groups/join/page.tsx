@@ -110,6 +110,21 @@ function JoinGroupContent() {
                 // 4. Handle Join Flow
                 setStatus('loading')
 
+                // 4. Check for existing pending request
+                const { data: existingPending } = await supabase
+                    .from('pending_members')
+                    .select('status')
+                    .eq('group_id', groupId)
+                    .eq('user_id', user.id)
+                    .maybeSingle()
+
+                if (existingPending?.status === 'pending') {
+                    setStatus('success')
+                    setMessage('⏳ Você já possui uma solicitação pendente para este grupo. Aguarde a aprovação do administrador.')
+                    setTimeout(() => router.push('/groups'), 3000)
+                    return
+                }
+
                 if (requiresApproval) {
                     setMessage(`Enviando solicitação para entrar no grupo ${groupName || ''}...`)
 
@@ -124,9 +139,9 @@ function JoinGroupContent() {
                     if (pendingError) throw pendingError
 
                     setStatus('success')
-                    setMessage('Sua solicitação de entrada foi enviada e aguarda aprovação do administrador.')
+                    setMessage('✅ Solicitação enviada! Este grupo exige aprovação de um administrador. Você será notificado assim que sua entrada for confirmada.')
                     router.refresh()
-                    setTimeout(() => router.push('/groups'), 3000)
+                    setTimeout(() => router.push('/groups'), 4000)
                 } else {
                     setMessage(`Entrando no grupo ${groupName || ''}...`)
 
@@ -142,7 +157,7 @@ function JoinGroupContent() {
 
                     // Joined successfully
                     setStatus('success')
-                    setMessage(`Bem-vindo ao grupo ${groupName || ''}!`)
+                    setMessage(`🏆 Bem-vindo ao grupo ${groupName || ''}! Sua entrada foi confirmada com sucesso.`)
                     router.refresh()
 
                     // Mark specific person invite as accepted
