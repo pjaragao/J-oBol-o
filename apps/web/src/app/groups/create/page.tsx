@@ -30,6 +30,7 @@ const createGroupSchema = z.object({
     entry_fee: z.number().min(0),
     is_public: z.boolean().default(true),
     allow_member_invites: z.boolean().default(true),
+    join_requires_approval: z.boolean().default(false),
     // Scoring Rules
     score_exact: z.number().min(1),
     score_winner_goals: z.number().min(1),
@@ -59,6 +60,7 @@ export default function CreateGroupPage() {
             entry_fee: 0,
             is_public: true,
             allow_member_invites: true,
+            join_requires_approval: false,
             score_exact: 10,
             score_winner_goals: 7,
             score_winner: 5,
@@ -137,6 +139,7 @@ export default function CreateGroupPage() {
                     max_members: data.max_members,
                     is_public: data.is_public,
                     allow_member_invites: data.allow_member_invites,
+                    join_requires_approval: data.join_requires_approval,
                     scoring_rules: scoringRules,
                     prize_distribution_strategy: { mode: 'WINNER_TAKES_ALL' } // Default for now
                 })
@@ -271,6 +274,21 @@ export default function CreateGroupPage() {
                                                     </label>
                                                     <p className="text-xs text-muted-foreground">
                                                         Participantes poderão ver o código e convidar amigos.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start space-x-3 space-y-0 rounded-xl border p-4 bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800">
+                                                <Checkbox
+                                                    id="join_requires_approval"
+                                                    checked={watch('join_requires_approval')}
+                                                    onCheckedChange={(v: boolean) => setValue('join_requires_approval', v)}
+                                                />
+                                                <div className="grid gap-1.5 leading-none">
+                                                    <label htmlFor="join_requires_approval" className="text-sm font-bold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
+                                                        Aprovação Manual
+                                                    </label>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Administradores devem aprovar cada novo membro.
                                                     </p>
                                                 </div>
                                             </div>
@@ -437,8 +455,8 @@ export default function CreateGroupPage() {
                                             <p className="font-bold text-sm">{watch('payment_method') === 'ONLINE' ? 'Plataforma' : 'Direto'}</p>
                                         </div>
                                         <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-center">
-                                            <p className="text-[10px] font-black text-slate-500 uppercase">Visibilidade</p>
-                                            <p className="font-bold text-sm">{watch('is_public') ? 'Público' : 'Privado'}</p>
+                                            <p className="text-[10px] font-black text-slate-500 uppercase">Aprovação</p>
+                                            <p className="font-bold text-sm">{watch('join_requires_approval') ? 'Manual' : 'Livre'}</p>
                                         </div>
                                     </div>
 

@@ -15,6 +15,7 @@ interface GroupSettingsProps {
         scoring_rules: any
         is_public: boolean
         allow_member_invites?: boolean
+        join_requires_approval?: boolean
         event_id: string
         created_by: string
         is_finished: boolean
@@ -28,6 +29,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
     const [description, setDescription] = useState(group.description || '')
     const [isPublic, setIsPublic] = useState(group.is_public)
     const [allowMemberInvites, setAllowMemberInvites] = useState(group.allow_member_invites ?? false)
+    const [joinRequiresApproval, setJoinRequiresApproval] = useState(group.join_requires_approval ?? false)
 
     // Financial Config State (for Offline Groups)
     const [offlineConfig, setOfflineConfig] = useState<{
@@ -302,6 +304,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                     description,
                     is_public: isPublic,
                     allow_member_invites: allowMemberInvites,
+                    join_requires_approval: joinRequiresApproval,
                     scoring_rules: rules
                 })
                 .eq('id', group.id)
@@ -441,6 +444,25 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                             <div className="ml-3 text-sm">
                                 <label htmlFor="allow_member_invites" className="font-medium text-gray-700 dark:text-slate-300">Membros podem convidar</label>
                                 <p className="text-gray-500 dark:text-slate-500">Se ativado, qualquer participante do grupo poderá enviar convites e ver o código.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="col-span-6">
+                        <div className="flex items-start">
+                            <div className="flex h-5 items-center">
+                                <input
+                                    id="join_requires_approval"
+                                    name="join_requires_approval"
+                                    type="checkbox"
+                                    checked={joinRequiresApproval}
+                                    onChange={e => setJoinRequiresApproval(e.target.checked)}
+                                    className="h-4 w-4 rounded border-gray-300 dark:border-slate-700 text-green-600 focus:ring-green-500 dark:bg-slate-800"
+                                />
+                            </div>
+                            <div className="ml-3 text-sm">
+                                <label htmlFor="join_requires_approval" className="font-medium text-gray-700 dark:text-slate-300">Exigir aprovação de novos membros</label>
+                                <p className="text-gray-500 dark:text-slate-500">Se ativado, o administrador deve aprovar cada pedido de entrada via link ou código.</p>
                             </div>
                         </div>
                     </div>

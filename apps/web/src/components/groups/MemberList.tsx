@@ -34,9 +34,23 @@ interface Invitation {
     }
 }
 
+interface PendingMember {
+    id: string
+    group_id: string
+    user_id: string
+    status: 'pending' | 'approved' | 'rejected'
+    requested_at: string
+    profiles: {
+        display_name: string
+        email: string
+        avatar_url: string | null
+    }
+}
+
 export function MemberList({ groupId }: { groupId: string }) {
     const [members, setMembers] = useState<Member[]>([])
     const [pendingInvites, setPendingInvites] = useState<Invitation[]>([])
+    const [pendingJoinRequests, setPendingJoinRequests] = useState<PendingMember[]>([])
     const [allowMemberInvites, setAllowMemberInvites] = useState(false)
     const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
     const [currentUserId, setCurrentUserId] = useState<string | null>(null)
@@ -102,6 +116,10 @@ export function MemberList({ groupId }: { groupId: string }) {
 
             setMembers(normalizedMembers)
 
+            // Determine current user role
+            const myMembership = membersData?.find(m => m.user_id === user?.id)
+            setCurrentUserRole(myMembership?.role || null)
+
             // ... invites fetching ...
             const { data: invitesData } = await supabase
                 .from('group_invitations')
@@ -119,9 +137,36 @@ export function MemberList({ groupId }: { groupId: string }) {
 
             setPendingInvites(invitesData || [] as any)
 
-            // Determine current user role
-            const myMembership = membersData?.find(m => m.user_id === user?.id)
-            setCurrentUserRole(myMembership?.role || null)
+            // 4. Fetch pending join requests (if admin)
+            if (myMembership?.role === 'admin') {
+                const { data: joinRequestsData } = await supabase
+                    .from('pending_members')
+                    .select(`
+                        id,
+                        group_id,
+                        user_id,
+                        status,
+                        requested_at,
+                        profiles:user_id (
+                            display_name,
+                            email,
+                            avatar_url
+                        )
+                    `)
+                    .eq('group_id', groupId)
+                    .eq('status', 'pending')
+                    .order('requested_at', { ascending: false })
+
+                const normalizedRequests = (joinRequestsData || []).map(r => ({
+                    ...r,
+                    profiles: Array.isArray(r.profiles) ? r.profiles[0] : r.profiles
+                })) as any
+
+                setPendingJoinRequests(normalizedRequests)
+            } else {
+                setPendingJoinRequests([])
+            }
+
         } catch (error) {
             console.error('Error fetching members:', error)
         } finally {
@@ -179,6 +224,25 @@ export function MemberList({ groupId }: { groupId: string }) {
             fetchMembers() // Refresh list
         } catch (error: any) {
             alert('Erro ao remover membro: ' + error.message)
+        }
+    }
+
+    const handleProcessJoinRequest = async (requestId: string, action: 'approve' | 'reject') => {
+        try {
+            setLoading(true)
+            const res = await fetch(`/api/groups/approve-member?id=${requestId}&action=${action}`)
+
+            if (res.ok) {
+                alert(action === 'approve' ? 'Membro aprovado com sucesso!' : 'Solicitação recusada.')
+                fetchMembers()
+            } else {
+                const data = await res.json()
+                throw new Error(data.error || 'Erro ao processar solicitação')
+            }
+        } catch (error: any) {
+            alert(error.message)
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -337,6 +401,57 @@ export function MemberList({ groupId }: { groupId: string }) {
 
     return (
         <div className="space-y-4">
+            {/* Pending Join Requests (for Admins) */}
+            {currentUserRole === 'admin' && pendingJoinRequests.length > 0 && (
+                <div className="mb-8">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                        Solicitações de Entrada
+                        <span className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs px-2 py-0.5 rounded-full">
+                            {pendingJoinRequests.length}
+                        </span>
+                    </h3>
+                    <div className="overflow-hidden bg-white dark:bg-slate-900 shadow sm:rounded-md border border-green-100 dark:border-green-900/20">
+                        <ul role="list" className="divide-y divide-gray-200 dark:divide-slate-800">
+                            {pendingJoinRequests.map((request) => (
+                                <li key={request.id}>
+                                    <div className="flex items-center px-4 py-4 sm:px-6 hover:bg-green-50/10 transition-colors">
+                                        <div className="flex min-w-0 flex-1 items-center">
+                                            <div className="flex-shrink-0">
+                                                {request.profiles?.avatar_url ? (
+                                                    <img className="h-10 w-10 rounded-full" src={request.profiles.avatar_url} alt="" />
+                                                ) : (
+                                                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-400 dark:bg-slate-700 text-white">
+                                                        {request.profiles?.display_name?.charAt(0).toUpperCase()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="min-w-0 flex-1 px-4">
+                                                <p className="truncate text-sm font-medium text-slate-900 dark:text-white">{request.profiles?.display_name}</p>
+                                                <p className="text-xs text-slate-500">{request.profiles?.email}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => handleProcessJoinRequest(request.id, 'approve')}
+                                                className="inline-flex items-center gap-1 rounded-md bg-green-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-green-700 transition-all"
+                                            >
+                                                <Check className="h-3 w-3" /> Aprovar
+                                            </button>
+                                            <button
+                                                onClick={() => handleProcessJoinRequest(request.id, 'reject')}
+                                                className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 transition-all"
+                                            >
+                                                <X className="h-3 w-3" /> Recusar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            )}
+
             {(currentUserRole === 'admin' || allowMemberInvites) && (
                 <div className="flex justify-end">
                     <button
