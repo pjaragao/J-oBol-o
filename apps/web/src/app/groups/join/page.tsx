@@ -33,13 +33,12 @@ function JoinGroupContent() {
 
                 // 1. Validate Invite (either via token or code)
                 if (token) {
-                    const { data: invitation, error: inviteError } = await supabase
-                        .from('group_invitations')
-                        .select('group_id, invited_email, status, expires_at, groups(name, join_requires_approval)')
-                        .eq('invite_token', token)
-                        .single()
+                    const { data: invitations, error: rpcError } = await supabase
+                        .rpc('get_group_by_invite_token', { p_token: token })
 
-                    if (inviteError || !invitation) {
+                    const invitation = invitations && invitations.length > 0 ? invitations[0] : null
+
+                    if (rpcError || !invitation) {
                         setStatus('error')
                         setMessage('Este convite é inválido ou já expirou.')
                         return
@@ -57,21 +56,19 @@ function JoinGroupContent() {
                         return
                     }
 
-                    const groupData = Array.isArray(invitation.groups) ? invitation.groups[0] : invitation.groups
                     groupId = invitation.group_id
                     invitationStatus = invitation.status
                     invitedEmail = invitation.invited_email
-                    setGroupName(groupData?.name || 'Grupo')
-                    requiresApproval = groupData?.join_requires_approval || false
+                    setGroupName(invitation.group_name || 'Grupo')
+                    requiresApproval = invitation.join_requires_approval || false
                 } else {
                     // Code-based join
-                    const { data: group, error: groupError } = await supabase
-                        .from('groups')
-                        .select('id, name, join_requires_approval')
-                        .eq('invite_code', code)
-                        .single()
+                    const { data: groups, error: rpcError } = await supabase
+                        .rpc('get_group_by_invite_code', { p_code: code })
 
-                    if (groupError || !group) {
+                    const group = groups && groups.length > 0 ? groups[0] : null
+
+                    if (rpcError || !group) {
                         setStatus('error')
                         setMessage('Código de grupo inválido.')
                         return
