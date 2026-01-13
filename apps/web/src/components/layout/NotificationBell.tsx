@@ -13,13 +13,16 @@ interface Notification {
     id: string
     title: string
     message: string
-    type: 'info' | 'success' | 'warning' | 'group_invite' | 'points'
+    type: 'info' | 'success' | 'warning' | 'group_invite' | 'points' | 'join_request' | 'join_request_result'
     is_read: boolean
     created_at: string
     data?: {
         group_id?: string
         group_name?: string
         link?: string
+        pending_member_id?: string
+        user_name?: string
+        action?: 'approve' | 'reject'
     }
 }
 
@@ -147,12 +150,34 @@ export function NotificationBell({ userId }: { userId: string }) {
         alert('Convite recusado.')
     }
 
+    const handleJoinRequest = async (notification: Notification, action: 'approve' | 'reject') => {
+        if (!notification.data?.pending_member_id) return
+
+        try {
+            const res = await fetch(`/api/groups/approve-member?id=${notification.data.pending_member_id}&action=${action}`)
+            if (res.ok) {
+                alert(action === 'approve' ? 'Solicitação aprovada!' : 'Solicitação recusada.')
+                await markAsRead(notification.id)
+                if (action === 'approve' && notification.data.group_id) {
+                    router.push(`/groups/${notification.data.group_id}`)
+                }
+            } else {
+                const data = await res.json()
+                throw new Error(data.error || 'Erro ao processar')
+            }
+        } catch (error: any) {
+            alert(error.message)
+        }
+    }
+
     const getIcon = (type: string) => {
         switch (type) {
             case 'success': return <Star className="h-4 w-4 text-green-500" />
             case 'warning': return <AlertTriangle className="h-4 w-4 text-amber-500" />
             case 'points': return <Trophy className="h-4 w-4 text-yellow-500" />
             case 'group_invite': return <Users className="h-4 w-4 text-purple-500" />
+            case 'join_request': return <Users className="h-4 w-4 text-blue-500" />
+            case 'join_request_result': return <Check className="h-4 w-4 text-green-500" />
             default: return <Info className="h-4 w-4 text-blue-500" />
         }
     }
@@ -243,7 +268,7 @@ export function NotificationBell({ userId }: { userId: string }) {
                                                     {notification.title}
                                                 </p>
                                                 <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                                                    {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: ptBR })}
+                                                    {notification.created_at ? formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: ptBR }) : ''}
                                                 </span>
                                             </div>
                                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
@@ -266,6 +291,31 @@ export function NotificationBell({ userId }: { userId: string }) {
                                                         onClick={(e) => {
                                                             e.stopPropagation()
                                                             declineInvitation(notification.id)
+                                                        }}
+                                                        className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 active:scale-95"
+                                                    >
+                                                        <X className="h-3 w-3" />
+                                                        Recusar
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {notification.type === 'join_request' && !notification.is_read && (
+                                                <div className="mt-3 flex flex-wrap gap-2">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            handleJoinRequest(notification, 'approve')
+                                                        }}
+                                                        className="inline-flex items-center gap-1 rounded-md bg-green-600 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95"
+                                                    >
+                                                        <Check className="h-3 w-3" />
+                                                        Aprovar
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            handleJoinRequest(notification, 'reject')
                                                         }}
                                                         className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 active:scale-95"
                                                     >

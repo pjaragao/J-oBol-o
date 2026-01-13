@@ -6,7 +6,8 @@ import Link from 'next/link'
 async function UserGroupsList({ userId }: { userId: string }) {
     const supabase = await createClient()
 
-    const { data: members, error } = await supabase
+    // 1. Fetch groups where user is a member
+    const { data: members, error: membersError } = await supabase
         .from('group_members')
         .select(`
             role,
@@ -20,9 +21,30 @@ async function UserGroupsList({ userId }: { userId: string }) {
         `)
         .eq('user_id', userId)
 
-    if (error) return <p className="text-red-500">Erro ao carregar seus grupos.</p>
+    // 2. Fetch groups where user has a pending request
+    const { data: pending, error: pendingError } = await supabase
+        .from('pending_members')
+        .select(`
+            status,
+            groups (
+                id,
+                name,
+                description,
+                is_public,
+                events ( name )
+            )
+        `)
+        .eq('user_id', userId)
+        .eq('status', 'pending')
 
-    if (!members || members.length === 0) {
+    if (membersError || pendingError) return <p className="text-red-500">Erro ao carregar seus grupos.</p>
+
+    const allItems = [
+        ...(members || []).map(m => ({ ...m, status: 'approved' })),
+        ...(pending || []).map(p => ({ ...p, role: 'pending', status: 'pending' }))
+    ]
+
+    if (allItems.length === 0) {
         return (
             <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
                 <Trophy className="h-12 w-12 mx-auto mb-4 text-slate-300" />
@@ -36,34 +58,52 @@ async function UserGroupsList({ userId }: { userId: string }) {
 
     return (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {members.map((member: any) => (
+            {allItems.map((item: any) => (
                 <Link
-                    key={member.groups.id}
-                    href={`/groups/${member.groups.id}`}
-                    className="group bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-green-500 transition-all shadow-sm"
+                    key={item.groups.id}
+                    href={`/groups/${item.groups.id}`}
+                    className={cn(
+                        "group bg-white dark:bg-slate-800 p-5 rounded-xl border transition-all shadow-sm",
+                        item.status === 'pending'
+                            ? "border-amber-200 dark:border-amber-900/30 opacity-80"
+                            : "border-slate-200 dark:border-slate-700 hover:border-green-500"
+                    )}
                 >
                     <div className="flex justify-between items-start mb-3">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded">
-                            {member.groups.events.name}
+                            {item.groups.events.name}
                         </span>
-                        {!member.groups.is_public ? (
-                            <Shield className="h-4 w-4 text-slate-400" />
-                        ) : (
-                            <Globe className="h-4 w-4 text-slate-400" />
-                        )}
+                        <div className="flex items-center gap-2">
+                            {item.status === 'pending' && (
+                                <span className="text-[10px] font-bold uppercase bg-amber-100 text-amber-700 px-2 py-0.5 rounded">
+                                    Pendente
+                                </span>
+                            )}
+                            {!item.groups.is_public ? (
+                                <Shield className="h-4 w-4 text-slate-400" />
+                            ) : (
+                                <Globe className="h-4 w-4 text-slate-400" />
+                            )}
+                        </div>
                     </div>
                     <h3 className="font-bold text-slate-900 dark:text-white truncate group-hover:text-green-600 transition-colors">
-                        {member.groups.name}
+                        {item.groups.name}
                     </h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-1 mt-1 mb-4">
-                        {member.groups.description || 'Sem descrição'}
+                        {item.groups.description || 'Sem descrição'}
                     </p>
                     <div className="flex items-center justify-between text-xs font-bold pt-3 border-t border-slate-100 dark:border-slate-700">
-                        <span className={member.role === 'admin' ? 'text-purple-600 dark:text-purple-400' : 'text-slate-400'}>
-                            {member.role === 'admin' ? 'Fundador' : 'Membro'}
+                        <span className={cn(
+                            item.role === 'admin' ? 'text-purple-600 dark:text-purple-400' : 'text-slate-400',
+                            item.status === 'pending' && 'text-amber-600'
+                        )}>
+                            {item.status === 'pending' ? 'Aguardando aprovação' : (item.role === 'admin' ? 'Fundador' : 'Membro')}
                         </span>
-                        <div className="flex items-center gap-1 text-green-600">
-                            Entrar <ArrowRight className="h-3 w-3" />
+                        <div className={cn(
+                            "flex items-center gap-1",
+                            item.status === 'pending' ? "text-amber-600" : "text-green-600"
+                        )}>
+                            {item.status === 'pending' ? 'Ver Status' : 'Entrar'} <ArrowRight className="h-3 w-3" />
                         </div>
                     </div>
                 </Link>
