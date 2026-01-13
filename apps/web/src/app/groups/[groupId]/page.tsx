@@ -41,7 +41,7 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
 
     const isAdmin = membership?.role === 'admin'
 
-    // Check if user has a pending request
+    // Check for existing pending request
     const { data: pendingMember } = await (await supabase)
         .from('pending_members')
         .select('status')
@@ -52,8 +52,13 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
 
     const isPending = !!pendingMember
 
-    // If not a member and not pending, and group is not public, redirect
-    if (!membership && !isPending && !group.is_public) {
+    // If pending, redirect to main groups page where they can see their status
+    if (isPending) {
+        redirect('/groups?pending=true')
+    }
+
+    // If not a member and group is not public, redirect
+    if (!membership && !group.is_public) {
         redirect('/groups')
     }
 
@@ -153,42 +158,13 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
             </div>
 
             <main className="-mt-10 sm:-mt-16 mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
-                {isPending ? (
-                    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-8 text-center max-w-2xl mx-auto border border-amber-100 dark:border-amber-900/20">
-                        <div className="mb-6 flex justify-center">
-                            <div className="bg-amber-100 dark:bg-amber-900/30 p-4 rounded-full">
-                                <Users className="h-10 w-10 text-amber-600 dark:text-amber-500 animate-pulse" />
-                            </div>
-                        </div>
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Aguardando Aprovação</h2>
-                        <p className="text-slate-600 dark:text-slate-400 mb-8 max-w-md mx-auto">
-                            Sua solicitação para entrar no grupo <span className="font-bold text-slate-900 dark:text-white">{group.name}</span> foi enviada.
-                            O administrador do grupo precisa aprovar sua entrada para que você possa ver os palpites e participar do ranking.
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <button
-                                onClick={() => window.location.reload()}
-                                className="inline-flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold px-6 py-3 rounded-lg transition-all"
-                            >
-                                <Users className="h-4 w-4" /> Verificar Status
-                            </button>
-                            <Link
-                                href="/groups"
-                                className="inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3 rounded-lg transition-all"
-                            >
-                                Voltar para Meus Grupos
-                            </Link>
-                        </div>
-                    </div>
-                ) : (
-                    <GroupTabs
-                        groupId={groupId}
-                        matches={matches || []}
-                        group={group}
-                        isAdmin={isAdmin}
-                        userId={user?.id || ''}
-                    />
-                )}
+                <GroupTabs
+                    groupId={groupId}
+                    matches={matches || []}
+                    group={group}
+                    isAdmin={isAdmin}
+                    userId={user?.id || ''}
+                />
             </main>
         </div>
     )

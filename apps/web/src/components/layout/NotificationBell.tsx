@@ -326,7 +326,7 @@ export function NotificationBell({ userId }: { userId: string }) {
                                                 </div>
                                             )}
 
-                                            {notification.data?.link && notification.type !== 'group_invite' && (
+                                            {notification.data?.link && notification.type !== 'group_invite' && notification.type !== 'join_request' && (
                                                 <div className="mt-3">
                                                     <button
                                                         className="inline-flex items-center gap-1 rounded-md bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-[10px] font-bold text-slate-700 dark:text-slate-300 transition-all hover:bg-slate-200 dark:hover:bg-slate-700"

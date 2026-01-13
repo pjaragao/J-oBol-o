@@ -80,63 +80,78 @@ async function UserGroupsList({ userId }: { userId: string }) {
 
     return (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {allItems.map((item: any) => (
-                <Link
-                    key={item.groups.id}
-                    href={`/groups/${item.groups.id}`}
-                    className={cn(
-                        "group bg-white dark:bg-slate-800 p-5 rounded-xl border transition-all shadow-sm",
-                        item.status === 'pending'
-                            ? "border-amber-200 dark:border-amber-900/30 opacity-80"
-                            : "border-slate-200 dark:border-slate-700 hover:border-green-500"
-                    )}
-                >
-                    <div className="flex justify-between items-start mb-3">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded">
-                            {item.groups.events?.name || 'Evento'}
-                        </span>
-                        <div className="flex items-center gap-2">
-                            {item.status === 'pending' && (
-                                <span className="text-[10px] font-bold uppercase bg-amber-100 text-amber-700 px-2 py-0.5 rounded">
-                                    Pendente
-                                </span>
-                            )}
-                            {!item.groups.is_public ? (
-                                <Shield className="h-4 w-4 text-slate-400" />
-                            ) : (
-                                <Globe className="h-4 w-4 text-slate-400" />
-                            )}
-                        </div>
-                    </div>
-                    <h3 className="font-bold text-slate-900 dark:text-white truncate group-hover:text-green-600 transition-colors">
-                        {item.groups.name}
-                    </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-1 mt-1 mb-4">
-                        {item.groups.description || 'Sem descrição'}
-                    </p>
-                    <div className="flex items-center justify-between text-xs font-bold pt-3 border-t border-slate-100 dark:border-slate-700">
-                        <span className={cn(
-                            item.role === 'admin' ? 'text-purple-600 dark:text-purple-400' : 'text-slate-400',
-                            item.status === 'pending' && 'text-amber-600'
-                        )}>
-                            {item.status === 'pending' ? 'Aguardando aprovação' : (item.role === 'admin' ? 'Fundador' : 'Membro')}
-                        </span>
+            {allItems.map((item: any) => {
+                const isPendingItem = item.status === 'pending'
+                const cardStyles = cn(
+                    "group bg-white dark:bg-slate-800 p-5 rounded-xl border transition-all shadow-sm block text-left",
+                    isPendingItem
+                        ? "border-amber-200 dark:border-amber-900/30 opacity-80 cursor-default"
+                        : "border-slate-200 dark:border-slate-700 hover:border-green-500"
+                )
 
-                        {item.role === 'admin' && groupsWithPendingRequests.includes(item.groups.id) && (
-                            <div className="flex items-center gap-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full animate-pulse">
-                                <Users className="h-3 w-3" />
-                                <span className="text-[10px] font-black uppercase">Solicitações</span>
+                const cardContent = (
+                    <>
+                        <div className="flex justify-between items-start mb-3">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded">
+                                {item.groups.events?.name || 'Evento'}
+                            </span>
+                            <div className="flex items-center gap-2">
+                                {isPendingItem && (
+                                    <span className="text-[10px] font-bold uppercase bg-amber-100 text-amber-700 px-2 py-0.5 rounded">
+                                        Pendente
+                                    </span>
+                                )}
+                                {!item.groups.is_public ? (
+                                    <Shield className="h-4 w-4 text-slate-400" />
+                                ) : (
+                                    <Globe className="h-4 w-4 text-slate-400" />
+                                )}
                             </div>
-                        )}
-                        <div className={cn(
-                            "flex items-center gap-1",
-                            item.status === 'pending' ? "text-amber-600" : "text-green-600"
-                        )}>
-                            {item.status === 'pending' ? 'Ver Status' : 'Entrar'} <ArrowRight className="h-3 w-3" />
                         </div>
-                    </div>
-                </Link>
-            ))}
+                        <h3 className="font-bold text-slate-900 dark:text-white truncate group-hover:text-green-600 transition-colors">
+                            {item.groups.name}
+                        </h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-1 mt-1 mb-4">
+                            {item.groups.description || 'Sem descrição'}
+                        </p>
+                        <div className="flex items-center justify-between text-xs font-bold pt-3 border-t border-slate-100 dark:border-slate-700">
+                            <span className={cn(
+                                item.role === 'admin' ? 'text-purple-600 dark:text-purple-400' : 'text-slate-400',
+                                isPendingItem && 'text-amber-600'
+                            )}>
+                                {isPendingItem ? 'Aguardando aprovação' : (item.role === 'admin' ? 'Fundador' : 'Membro')}
+                            </span>
+
+                            {item.role === 'admin' && groupsWithPendingRequests.includes(item.groups.id) && (
+                                <div className="flex items-center gap-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full animate-pulse">
+                                    <Users className="h-3 w-3" />
+                                    <span className="text-[10px] font-black uppercase">Solicitações</span>
+                                </div>
+                            )}
+                            <div className={cn(
+                                "flex items-center gap-1",
+                                isPendingItem ? "text-amber-600" : "text-green-600"
+                            )}>
+                                {isPendingItem ? 'Aguarde' : 'Entrar'} <ArrowRight className="h-3 w-3" />
+                            </div>
+                        </div>
+                    </>
+                )
+
+                if (isPendingItem) {
+                    return (
+                        <div key={item.groups.id} className={cardStyles}>
+                            {cardContent}
+                        </div>
+                    )
+                }
+
+                return (
+                    <Link key={item.groups.id} href={`/groups/${item.groups.id}`} className={cardStyles}>
+                        {cardContent}
+                    </Link>
+                )
+            })}
         </div>
     )
 }
