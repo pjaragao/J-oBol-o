@@ -222,29 +222,26 @@ function NotificationsContent() {
         <AppLayout user={user} profile={profile} isAdmin={isAdmin}>
             <HeaderSetter title="Notificações" />
             <div className="mx-auto max-w-4xl">
-                <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Notificações</h1>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Fique por dentro de tudo que acontece no seu JãoBolão.</p>
-                    </div>
-                    <div className="flex items-center gap-2">
+                <div className="mb-4">
+                    <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 flex-1">Fique por dentro de tudo que acontece no seu JãoBolão.</p>
                         <button
                             onClick={markAllAsRead}
-                            className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-green-700 active:scale-95 disabled:opacity-50"
+                            className="flex-shrink-0 flex items-center gap-1.5 rounded-lg bg-green-600/10 px-2 py-1.5 text-[10px] sm:text-xs font-semibold text-green-600 transition-all hover:bg-green-600 hover:text-white active:scale-95 disabled:opacity-50 dark:bg-green-500/10 dark:text-green-500 dark:hover:bg-green-500 dark:hover:text-white"
                             disabled={notifications.filter(n => !n.is_read).length === 0}
                         >
-                            <CheckCircle2 className="h-4 w-4" />
-                            Marcar todas como lidas
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Marcar lidas
                         </button>
                     </div>
                 </div>
 
                 {/* Filters */}
-                <div className="mb-6 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-1">
+                <div className="mb-6 flex items-center gap-1 border-b border-slate-200 dark:border-slate-800 pb-1 overflow-x-auto scrollbar-hide">
                     <button
                         onClick={() => setTab('all')}
                         className={cn(
-                            "px-4 py-2 text-sm font-medium transition-all relative",
+                            "px-2 py-2 text-sm font-medium transition-all relative flex-shrink-0",
                             filter === 'all'
                                 ? "text-green-600 dark:text-green-500 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-green-600 dark:after:bg-green-500"
                                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
@@ -255,7 +252,7 @@ function NotificationsContent() {
                     <button
                         onClick={() => setTab('unread')}
                         className={cn(
-                            "px-4 py-2 text-sm font-medium transition-all relative",
+                            "px-2 py-2 text-sm font-medium transition-all relative flex-shrink-0",
                             filter === 'unread'
                                 ? "text-green-600 dark:text-green-500 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-green-600 dark:after:bg-green-500"
                                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
@@ -271,7 +268,7 @@ function NotificationsContent() {
                     <button
                         onClick={() => setTab('read')}
                         className={cn(
-                            "px-4 py-2 text-sm font-medium transition-all relative",
+                            "px-2 py-2 text-sm font-medium transition-all relative flex-shrink-0",
                             filter === 'read'
                                 ? "text-green-600 dark:text-green-500 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-green-600 dark:after:bg-green-500"
                                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
@@ -282,7 +279,7 @@ function NotificationsContent() {
                     <button
                         onClick={() => setTab('invites')}
                         className={cn(
-                            "px-4 py-2 text-sm font-medium transition-all relative",
+                            "px-2 py-2 text-sm font-medium transition-all relative flex-shrink-0",
                             filter === 'invites'
                                 ? "text-green-600 dark:text-green-500 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-green-600 dark:after:bg-green-500"
                                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
@@ -298,13 +295,14 @@ function NotificationsContent() {
                     <button
                         onClick={() => setTab('settings')}
                         className={cn(
-                            "px-4 py-2 text-sm font-medium transition-all relative",
+                            "px-2 py-2 text-sm font-medium transition-all relative flex-shrink-0",
                             filter === 'settings'
                                 ? "text-green-600 dark:text-green-500 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-green-600 dark:after:bg-green-500"
                                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                         )}
+                        title="Configurações"
                     >
-                        Configurações
+                        <Settings className="h-4 w-4" />
                     </button>
                 </div>
 
