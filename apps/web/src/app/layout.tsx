@@ -8,6 +8,10 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
     title: 'JãoBolão',
     description: 'A melhor plataforma de bolões de futebol',
+    icons: {
+        icon: '/logo-circle.png',
+        shortcut: '/logo-circle.png',
+    },
 }
 
 export default function RootLayout({

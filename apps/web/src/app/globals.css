@@ -13,7 +13,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 221.2 83.2% 53.3%;
+    --primary: 111 100% 40%;
+    /* Slightly darker Neon Green for Light Mode contrast */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -29,14 +30,16 @@
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --input: 214.3 31.8% 85%;
+    /* Darker input border for better visibility */
+    --ring: 111 100% 40%;
 
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222.2 84% 2%;
+    /* Almost black */
     --foreground: 210 40% 98%;
 
     --card: 222.2 84% 4.9%;
@@ -45,7 +48,8 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217.2 91.2% 59.8%;
+    --primary: 111 100% 54%;
+    /* Neon Green */
     --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -62,7 +66,8 @@
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --ring: 111 100% 54%;
+    /* Neon Green Ring */
   }
 }
 

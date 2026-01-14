@@ -3,6 +3,7 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import Image from 'next/image'
 import { Crown, LayoutDashboard, Trophy, Ticket, Settings, Menu, X, ExternalLink, ChevronLeft, ChevronRight, Megaphone } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -58,7 +59,14 @@ export function AppSidebar({ className, isOpen, setIsOpen, isAdmin }: SidebarPro
                 {/* Header */}
                 <div className={cn("flex h-16 items-center bg-green-700 transition-all duration-300", isCollapsed ? "justify-center px-0" : "justify-between px-6")}>
                     <div className="flex items-center gap-2 font-bold text-xl tracking-tight overflow-hidden whitespace-nowrap text-white">
-                        <Trophy className="h-6 w-6 text-yellow-400 flex-shrink-0" />
+                        <div className="relative h-8 w-8 flex-shrink-0">
+                            <Image
+                                src="/logo-new.png"
+                                alt="JãoBolão"
+                                fill
+                                className="object-cover rounded-xl" // Rounded corners fix
+                            />
+                        </div>
                         <span className={cn("transition-opacity duration-300", isCollapsed ? "opacity-0 w-0" : "opacity-100")}>JãoBolão</span>
                     </div>
                     <button

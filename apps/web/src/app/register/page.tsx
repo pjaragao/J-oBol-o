@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { User, Mail, Lock as LockIcon, CreditCard, ChevronRight, AlertCircle, CheckCircle2 } from 'lucide-react'
+import Image from 'next/image'
 
 // Masks helpers
 const maskCPF = (value: string) => {
@@ -104,8 +105,14 @@ export default function RegisterPage() {
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="flex justify-center">
-                    <div className="h-12 w-12 bg-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-200 dark:shadow-none">
-                        <span className="text-white text-2xl font-black">J</span>
+                    <div className="relative w-32 h-32">
+                        <Image
+                            src="/logo-new.png"
+                            alt="Logo JãoBolão"
+                            fill
+                            className="object-contain drop-shadow-lg rounded-3xl"
+                            priority
+                        />
                     </div>
                 </div>
                 <h2 className="mt-6 text-center text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
