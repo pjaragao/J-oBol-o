@@ -34,6 +34,7 @@ export interface Database {
                     min_members: number
                     prize_distribution_strategy: Json | null
                     bet_lock_minutes: number
+                    join_requires_approval: boolean | null
                 }
                 Insert: {
                     id?: string
@@ -53,6 +54,7 @@ export interface Database {
                     min_members?: number
                     prize_distribution_strategy?: Json | null
                     bet_lock_minutes?: number
+                    join_requires_approval?: boolean | null
                 }
                 Update: {
                     id?: string
@@ -72,6 +74,7 @@ export interface Database {
                     min_members?: number
                     prize_distribution_strategy?: Json | null
                     bet_lock_minutes?: number
+                    join_requires_approval?: boolean | null
                 }
             }
             group_members: {
@@ -150,6 +153,35 @@ export interface Database {
                     created_at?: string
                     updated_at?: string
                     metadata?: Json | null
+                }
+            }
+            pending_members: {
+                Row: {
+                    id: string
+                    group_id: string
+                    user_id: string
+                    status: 'pending' | 'approved' | 'rejected'
+                    requested_at: string
+                    reviewed_at: string | null
+                    reviewed_by: string | null
+                }
+                Insert: {
+                    id?: string
+                    group_id: string
+                    user_id: string
+                    status?: 'pending' | 'approved' | 'rejected'
+                    requested_at?: string
+                    reviewed_at?: string | null
+                    reviewed_by?: string | null
+                }
+                Update: {
+                    id?: string
+                    group_id?: string
+                    user_id?: string
+                    status?: 'pending' | 'approved' | 'rejected'
+                    requested_at?: string
+                    reviewed_at?: string | null
+                    reviewed_by?: string | null
                 }
             }
         }

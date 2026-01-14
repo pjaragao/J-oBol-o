@@ -9,6 +9,7 @@ function JoinGroupContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const token = searchParams.get('token')
+    const code = searchParams.get('code')
     const supabase = createClient()
 
     const [status, setStatus] = useState<'loading' | 'error' | 'success' | 'checking_auth'>('loading')
@@ -16,51 +17,74 @@ function JoinGroupContent() {
     const [groupName, setGroupName] = useState<string | null>(null)
 
     useEffect(() => {
-        if (!token) {
+        if (!token && !code) {
             setStatus('error')
-            setMessage('Token de convite não encontrado ou inválido.')
+            setMessage('Código ou token de convite não encontrado.')
             return
         }
 
         async function processJoin() {
             try {
-                // 1. Validate Token and get Group Name
-                const { data: invitation, error: inviteError } = await supabase
-                    .from('group_invitations')
-                    .select('group_id, invited_email, groups(name), status, expires_at')
-                    .eq('invite_token', token)
-                    .single()
+                let groupId: string
+                let inviteType: 'token' | 'code' = token ? 'token' : 'code'
+                let invitationStatus: string | null = null
+                let invitedEmail: string | null = null
+                let requiresApproval = false
 
-                if (inviteError || !invitation) {
-                    setStatus('error')
-                    setMessage('Este convite é inválido ou já expirou.')
-                    return
+                // 1. Validate Invite (either via token or code)
+                if (token) {
+                    const { data: invitations, error: rpcError } = await supabase
+                        .rpc('get_group_by_invite_token', { p_token: token })
+
+                    const invitation = invitations && invitations.length > 0 ? invitations[0] : null
+
+                    if (rpcError || !invitation) {
+                        setStatus('error')
+                        setMessage('Este convite é inválido ou já expirou.')
+                        return
+                    }
+
+                    if (invitation.status !== 'pending' && !invitation.invited_email.startsWith('link_')) {
+                        setStatus('error')
+                        setMessage('Este convite já foi utilizado.')
+                        return
+                    }
+
+                    if (new Date(invitation.expires_at) < new Date()) {
+                        setStatus('error')
+                        setMessage('Este convite expirou.')
+                        return
+                    }
+
+                    groupId = invitation.group_id
+                    invitationStatus = invitation.status
+                    invitedEmail = invitation.invited_email
+                    setGroupName(invitation.group_name || 'Grupo')
+                    requiresApproval = invitation.join_requires_approval || false
+                } else {
+                    // Code-based join
+                    const { data: groups, error: rpcError } = await supabase
+                        .rpc('get_group_by_invite_code', { p_code: code })
+
+                    const group = groups && groups.length > 0 ? groups[0] : null
+
+                    if (rpcError || !group) {
+                        setStatus('error')
+                        setMessage('Código de grupo inválido.')
+                        return
+                    }
+
+                    groupId = group.id
+                    setGroupName(group.name)
+                    requiresApproval = group.join_requires_approval || false
                 }
-
-                if (invitation.status !== 'pending' && !invitation.invited_email.startsWith('link_')) {
-                    // Only generic links (startsWith link_) can be reused multiple times easily
-                    // But we'll allow multiple joins if it's a link-type invitation
-                    setStatus('error')
-                    setMessage('Este convite já foi utilizado.')
-                    return
-                }
-
-                if (new Date(invitation.expires_at) < new Date()) {
-                    setStatus('error')
-                    setMessage('Este convite expirou.')
-                    return
-                }
-
-                const groupData = Array.isArray(invitation.groups) ? invitation.groups[0] : invitation.groups
-                setGroupName(groupData?.name || 'Grupo')
 
                 // 2. Check Authentication
                 setStatus('checking_auth')
                 const { data: { user } } = await supabase.auth.getUser()
 
                 if (!user) {
-                    // Store the join intent in session storage or just rely on the redirect param
-                    const redirectUrl = encodeURIComponent(`/groups/join?token=${token}`)
+                    const redirectUrl = encodeURIComponent(`/groups/join?${token ? `token=${token}` : `code=${code}`}`)
                     setMessage('Você precisa estar logado para entrar no grupo. Redirecionando para o login...')
                     setTimeout(() => {
                         router.push(`/login?redirect=${redirectUrl}`)
@@ -68,41 +92,83 @@ function JoinGroupContent() {
                     return
                 }
 
-                // 3. Join Group
-                setStatus('loading')
-                setMessage(`Entrando no grupo ${groupData?.name || ''}...`)
-
-                const { error: joinError } = await supabase
+                // 3. Check if already a member
+                const { data: existingMember } = await supabase
                     .from('group_members')
-                    .insert({
-                        group_id: invitation.group_id,
-                        user_id: user.id,
-                        role: 'member'
-                    })
+                    .select('id')
+                    .eq('group_id', groupId)
+                    .eq('user_id', user.id)
+                    .maybeSingle()
 
-                if (joinError) {
-                    if (joinError.code === '23505') {
-                        // Already a member
-                        setStatus('success')
-                        setMessage('Você já é membro deste grupo!')
-                        setTimeout(() => router.push(`/groups/${invitation.group_id}`), 2000)
-                    } else {
-                        throw joinError
-                    }
+                if (existingMember) {
+                    setStatus('success')
+                    setMessage('Você já é membro deste grupo!')
+                    setTimeout(() => router.push(`/groups/${groupId}`), 2000)
+                    return
+                }
+
+                // 4. Handle Join Flow
+                setStatus('loading')
+
+                // 4. Check for existing pending request
+                const { data: existingPending } = await supabase
+                    .from('pending_members')
+                    .select('status')
+                    .eq('group_id', groupId)
+                    .eq('user_id', user.id)
+                    .maybeSingle()
+
+                if (existingPending?.status === 'pending') {
+                    setStatus('success')
+                    setMessage('⏳ Você já possui uma solicitação pendente para este grupo. Aguarde a aprovação do administrador.')
+                    setTimeout(() => router.push('/groups'), 3000)
+                    return
+                }
+
+                if (requiresApproval) {
+                    setMessage(`Enviando solicitação para entrar no grupo ${groupName || ''}...`)
+
+                    const { error: pendingError } = await supabase
+                        .from('pending_members')
+                        .upsert({
+                            group_id: groupId,
+                            user_id: user.id,
+                            status: 'pending'
+                        }, { onConflict: 'group_id,user_id' })
+
+                    if (pendingError) throw pendingError
+
+                    setStatus('success')
+                    setMessage('✅ Solicitação enviada! Este grupo exige aprovação de um administrador. Você será notificado assim que sua entrada for confirmada.')
+                    router.refresh()
+                    setTimeout(() => router.push('/groups'), 4000)
                 } else {
+                    setMessage(`Entrando no grupo ${groupName || ''}...`)
+
+                    const { error: joinError } = await supabase
+                        .from('group_members')
+                        .insert({
+                            group_id: groupId,
+                            user_id: user.id,
+                            role: 'member'
+                        })
+
+                    if (joinError) throw joinError
+
                     // Joined successfully
                     setStatus('success')
-                    setMessage(`Bem-vindo ao grupo ${groupData?.name || ''}!`)
+                    setMessage(`🏆 Bem-vindo ao grupo ${groupName || ''}! Sua entrada foi confirmada com sucesso.`)
+                    router.refresh()
 
                     // Mark specific person invite as accepted
-                    if (!invitation.invited_email.startsWith('link_')) {
+                    if (inviteType === 'token' && invitedEmail && !invitedEmail.startsWith('link_')) {
                         await supabase
                             .from('group_invitations')
                             .update({ status: 'accepted', accepted_at: new Date().toISOString() })
                             .eq('invite_token', token)
                     }
 
-                    setTimeout(() => router.push(`/groups/${invitation.group_id}`), 2000)
+                    setTimeout(() => router.push(`/groups/${groupId}`), 2000)
                 }
 
             } catch (error: any) {
@@ -113,7 +179,7 @@ function JoinGroupContent() {
         }
 
         processJoin()
-    }, [token, supabase, router])
+    }, [token, code, supabase, router, groupName])
 
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-4 dark:bg-slate-950">

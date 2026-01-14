@@ -2,8 +2,6 @@
 
 import React, { useEffect, useState, useCallback, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { AppHeader } from '@/components/layout/AppHeader'
-import { AppSidebar } from '@/components/layout/AppSidebar'
 import {
     Bell,
     Check,
@@ -23,12 +21,14 @@ import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { AppLayout } from '@/components/layout/AppLayout'
+import { HeaderSetter } from '@/components/layout/HeaderSetter'
 
 interface Notification {
     id: string
     title: string
     message: string
-    type: 'info' | 'success' | 'warning' | 'group_invite' | 'points'
+    type: 'info' | 'success' | 'warning' | 'group_invite' | 'points' | 'join_request' | 'join_request_result'
     is_read: boolean
     created_at: string
     data?: any
@@ -38,7 +38,6 @@ function NotificationsContent() {
     const [user, setUser] = useState<any>(null)
     const [profile, setProfile] = useState<any>(null)
     const [isAdmin, setIsAdmin] = useState(false)
-    const [sidebarOpen, setSidebarOpen] = useState(false)
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [loading, setLoading] = useState(true)
     const searchParams = useSearchParams()
@@ -176,12 +175,35 @@ function NotificationsContent() {
         alert('Convite recusado.')
     }
 
-    const getIcon = (type: string) => {
+    const handleJoinRequest = async (notification: Notification, action: 'approve' | 'reject') => {
+        if (!notification.data?.pending_member_id) return
+
+        try {
+            const res = await fetch(`/api/groups/approve-member?id=${notification.data.pending_member_id}&action=${action}`)
+            if (res.ok) {
+                alert(action === 'approve' ? 'Solicitação aprovada!' : 'Solicitação recusada.')
+                await markAsRead(notification.id, false)
+                if (action === 'approve' && notification.data.group_id) {
+                    router.push(`/groups/${notification.data.group_id}`)
+                }
+            } else {
+                const data = await res.json()
+                throw new Error(data.error || 'Erro ao processar')
+            }
+        } catch (error: any) {
+            alert(error.message)
+        }
+    }
+
+    const getIcon = (type?: string) => {
+        if (!type) return <Info className="h-5 w-5 text-blue-500" />
         switch (type) {
             case 'success': return <Star className="h-5 w-5 text-green-500" />
             case 'warning': return <AlertTriangle className="h-5 w-5 text-amber-500" />
             case 'points': return <Trophy className="h-5 w-5 text-yellow-500" />
             case 'group_invite': return <Users className="h-5 w-5 text-purple-500" />
+            case 'join_request': return <Users className="h-5 w-5 text-blue-500" />
+            case 'join_request_result': return <Check className="h-5 w-5 text-green-500" />
             default: return <Info className="h-5 w-5 text-blue-500" />
         }
     }
@@ -197,295 +219,313 @@ function NotificationsContent() {
     }
 
     return (
-        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-            <AppSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} isAdmin={isAdmin} />
+        <AppLayout user={user} profile={profile} isAdmin={isAdmin}>
+            <HeaderSetter title="Notificações" />
+            <div className="mx-auto max-w-4xl">
+                <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Notificações</h1>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Fique por dentro de tudo que acontece no seu JãoBolão.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={markAllAsRead}
+                            className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-green-700 active:scale-95 disabled:opacity-50"
+                            disabled={notifications.filter(n => !n.is_read).length === 0}
+                        >
+                            <CheckCircle2 className="h-4 w-4" />
+                            Marcar todas como lidas
+                        </button>
+                    </div>
+                </div>
 
-            <div className="flex flex-1 flex-col overflow-hidden">
-                <AppHeader setSidebarOpen={setSidebarOpen} user={user} profile={profile} />
+                {/* Filters */}
+                <div className="mb-6 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-1">
+                    <button
+                        onClick={() => setTab('all')}
+                        className={cn(
+                            "px-4 py-2 text-sm font-medium transition-all relative",
+                            filter === 'all'
+                                ? "text-green-600 dark:text-green-500 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-green-600 dark:after:bg-green-500"
+                                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        )}
+                    >
+                        Todas
+                    </button>
+                    <button
+                        onClick={() => setTab('unread')}
+                        className={cn(
+                            "px-4 py-2 text-sm font-medium transition-all relative",
+                            filter === 'unread'
+                                ? "text-green-600 dark:text-green-500 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-green-600 dark:after:bg-green-500"
+                                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        )}
+                    >
+                        Não Lidas
+                        {notifications.filter(n => !n.is_read).length > 0 && filter !== 'unread' && (
+                            <span className="ml-2 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                                {notifications.filter(n => !n.is_read).length}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setTab('read')}
+                        className={cn(
+                            "px-4 py-2 text-sm font-medium transition-all relative",
+                            filter === 'read'
+                                ? "text-green-600 dark:text-green-500 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-green-600 dark:after:bg-green-500"
+                                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        )}
+                    >
+                        Lidas
+                    </button>
+                    <button
+                        onClick={() => setTab('invites')}
+                        className={cn(
+                            "px-4 py-2 text-sm font-medium transition-all relative",
+                            filter === 'invites'
+                                ? "text-green-600 dark:text-green-500 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-green-600 dark:after:bg-green-500"
+                                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        )}
+                    >
+                        Convites
+                        {notifications.filter(n => n.type === 'group_invite' && !n.is_read).length > 0 && filter !== 'invites' && (
+                            <span className="ml-2 rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                                {notifications.filter(n => n.type === 'group_invite' && !n.is_read).length}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setTab('settings')}
+                        className={cn(
+                            "px-4 py-2 text-sm font-medium transition-all relative",
+                            filter === 'settings'
+                                ? "text-green-600 dark:text-green-500 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-green-600 dark:after:bg-green-500"
+                                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        )}
+                    >
+                        Configurações
+                    </button>
+                </div>
 
-                <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-                    <div className="mx-auto max-w-4xl">
-                        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Notificações</h1>
-                                <p className="text-sm text-slate-500 dark:text-slate-400">Fique por dentro de tudo que acontece no seu JãoBolão.</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={markAllAsRead}
-                                    className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-green-700 active:scale-95 disabled:opacity-50"
-                                    disabled={notifications.filter(n => !n.is_read).length === 0}
-                                >
-                                    <CheckCircle2 className="h-4 w-4" />
-                                    Marcar todas como lidas
-                                </button>
-                            </div>
+                {/* Content */}
+                {filter === 'settings' ? (
+                    <div className="space-y-6 rounded-xl bg-white p-6 shadow-sm border border-slate-200 dark:bg-slate-900 dark:border-slate-800">
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Preferências de Notificação</h2>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Escolha quais avisos você deseja ver no seu painel.</p>
                         </div>
 
-                        {/* Filters */}
-                        <div className="mb-6 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-1">
-                            <button
-                                onClick={() => setTab('all')}
-                                className={cn(
-                                    "px-4 py-2 text-sm font-medium transition-all relative",
-                                    filter === 'all'
-                                        ? "text-green-600 dark:text-green-500 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-green-600 dark:after:bg-green-500"
-                                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                                )}
-                            >
-                                Todas
-                            </button>
-                            <button
-                                onClick={() => setTab('unread')}
-                                className={cn(
-                                    "px-4 py-2 text-sm font-medium transition-all relative",
-                                    filter === 'unread'
-                                        ? "text-green-600 dark:text-green-500 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-green-600 dark:after:bg-green-500"
-                                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                                )}
-                            >
-                                Não Lidas
-                                {notifications.filter(n => !n.is_read).length > 0 && filter !== 'unread' && (
-                                    <span className="ml-2 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-600 dark:bg-red-900/30 dark:text-red-400">
-                                        {notifications.filter(n => !n.is_read).length}
-                                    </span>
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setTab('read')}
-                                className={cn(
-                                    "px-4 py-2 text-sm font-medium transition-all relative",
-                                    filter === 'read'
-                                        ? "text-green-600 dark:text-green-500 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-green-600 dark:after:bg-green-500"
-                                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                                )}
-                            >
-                                Lidas
-                            </button>
-                            <button
-                                onClick={() => setTab('invites')}
-                                className={cn(
-                                    "px-4 py-2 text-sm font-medium transition-all relative",
-                                    filter === 'invites'
-                                        ? "text-green-600 dark:text-green-500 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-green-600 dark:after:bg-green-500"
-                                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                                )}
-                            >
-                                Convites
-                                {notifications.filter(n => n.type === 'group_invite' && !n.is_read).length > 0 && filter !== 'invites' && (
-                                    <span className="ml-2 rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
-                                        {notifications.filter(n => n.type === 'group_invite' && !n.is_read).length}
-                                    </span>
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setTab('settings')}
-                                className={cn(
-                                    "px-4 py-2 text-sm font-medium transition-all relative",
-                                    filter === 'settings'
-                                        ? "text-green-600 dark:text-green-500 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-green-600 dark:after:bg-green-500"
-                                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                                )}
-                            >
-                                Configurações
-                            </button>
-                        </div>
-
-                        {/* Content */}
-                        {filter === 'settings' ? (
-                            <div className="space-y-6 rounded-xl bg-white p-6 shadow-sm border border-slate-200 dark:bg-slate-900 dark:border-slate-800">
-                                <div>
-                                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Preferências de Notificação</h2>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Escolha quais avisos você deseja ver no seu painel.</p>
-                                </div>
-
-                                <div className="space-y-4 pt-4">
-                                    {[
-                                        { id: 'new_member', label: 'Novos Membros no Grupo', desc: 'Avisar quando alguém entrar em um grupo que você administra.' },
-                                        { id: 'points_rank', label: 'Pontos e Ranking', desc: 'Notificar quando seus palpites forem computados com sua nova posição.' },
-                                        { id: 'rule_change', label: 'Mudanças de Regras', desc: 'Alertar se o administrador alterar a pontuação do grupo.' },
-                                        { id: 'bet_reminder', label: 'Lembretes de Palpite', desc: 'Avisar 2 horas antes de jogos que você esqueceu de palpitar.' }
-                                    ].map((setting) => (
-                                        <div key={setting.id} className="flex items-center justify-between gap-4 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                            <div className="flex-1">
-                                                <p className="text-sm font-bold text-slate-900 dark:text-white">{setting.label}</p>
-                                                <p className="text-xs text-slate-500 dark:text-slate-400">{setting.desc}</p>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="sr-only peer"
-                                                    checked={profile?.notification_settings?.[setting.id] !== false}
-                                                    onChange={async (e) => {
-                                                        const newVal = e.target.checked
-                                                        const newSettings = {
-                                                            ...(profile?.notification_settings || {
-                                                                new_member: true,
-                                                                points_rank: true,
-                                                                rule_change: true,
-                                                                bet_reminder: true
-                                                            }),
-                                                            [setting.id]: newVal
-                                                        }
-
-                                                        const { error } = await supabase
-                                                            .from('profiles')
-                                                            .update({ notification_settings: newSettings })
-                                                            .eq('id', user.id)
-
-                                                        if (!error) {
-                                                            setProfile({ ...profile, notification_settings: newSettings })
-                                                        }
-                                                    }}
-                                                />
-                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none dark:bg-slate-700 rounded-full peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                                            </label>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : (
-                            /* Notifications List */
-                            <div className="space-y-3">
-                                {loading ? (
-                                    <div className="space-y-3">
-                                        {[1, 2, 3].map(i => (
-                                            <div key={i} className="h-24 w-full animate-pulse rounded-xl bg-white dark:bg-slate-900 shadow-sm" />
-                                        ))}
+                        <div className="space-y-4 pt-4">
+                            {[
+                                { id: 'new_member', label: 'Novos Membros no Grupo', desc: 'Avisar quando alguém entrar em um grupo que você administra.' },
+                                { id: 'points_rank', label: 'Pontos e Ranking', desc: 'Notificar quando seus palpites forem computados com sua nova posição.' },
+                                { id: 'rule_change', label: 'Mudanças de Regras', desc: 'Alertar se o administrador alterar a pontuação do grupo.' },
+                                { id: 'bet_reminder', label: 'Lembretes de Palpite', desc: 'Avisar 2 horas antes de jogos que você esqueceu de palpitar.' }
+                            ].map((setting) => (
+                                <div key={setting.id} className="flex items-center justify-between gap-4 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <div className="flex-1">
+                                        <p className="text-sm font-bold text-slate-900 dark:text-white">{setting.label}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{setting.desc}</p>
                                     </div>
-                                ) : notifications.length > 0 ? (
-                                    notifications.map((notification) => (
-                                        <div
-                                            key={notification.id}
-                                            onClick={() => {
-                                                if (!notification.is_read) markAsRead(notification.id, false)
-                                                if (notification.data?.link) {
-                                                    router.push(notification.data.link)
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={profile?.notification_settings?.[setting.id] !== false}
+                                            onChange={async (e) => {
+                                                const newVal = e.target.checked
+                                                const newSettings = {
+                                                    ...(profile?.notification_settings || {
+                                                        new_member: true,
+                                                        points_rank: true,
+                                                        rule_change: true,
+                                                        bet_reminder: true
+                                                    }),
+                                                    [setting.id]: newVal
+                                                }
+
+                                                const { error } = await supabase
+                                                    .from('profiles')
+                                                    .update({ notification_settings: newSettings })
+                                                    .eq('id', user.id)
+
+                                                if (!error) {
+                                                    setProfile({ ...profile, notification_settings: newSettings })
                                                 }
                                             }}
-                                            className={cn(
-                                                "group relative flex gap-4 rounded-xl border p-4 transition-all duration-200 cursor-pointer",
-                                                notification.is_read
-                                                    ? "bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800"
-                                                    : "bg-green-50/50 border-green-100 dark:bg-green-950/10 dark:border-green-900/30 shadow-sm",
-                                                notification.data?.link && "hover:border-green-500 dark:hover:border-green-500"
-                                            )}
-                                        >
-                                            <div className="mt-1 flex-shrink-0">
-                                                <div className={cn(
-                                                    "flex h-10 w-10 items-center justify-center rounded-full",
-                                                    notification.is_read ? "bg-slate-100 dark:bg-slate-800" : "bg-green-100 dark:bg-green-900/40"
-                                                )}>
-                                                    {getIcon(notification.type)}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                                                    <h3 className={cn(
-                                                        "text-sm font-bold",
-                                                        notification.is_read ? "text-slate-700 dark:text-slate-300" : "text-green-900 dark:text-green-400"
-                                                    )}>
-                                                        {notification.title}
-                                                    </h3>
-                                                    <span className="text-xs text-slate-400">
-                                                        {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: ptBR })}
-                                                    </span>
-                                                </div>
-                                                <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                                                    {notification.message}
-                                                </p>
-
-                                                {notification.type === 'group_invite' && !notification.is_read && (
-                                                    <div className="mt-4 flex flex-wrap gap-2">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation()
-                                                                acceptInvitation(notification)
-                                                            }}
-                                                            className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95"
-                                                        >
-                                                            <Check className="h-3.5 w-3.5" />
-                                                            Aceitar Convite
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation()
-                                                                declineInvitation(notification.id)
-                                                            }}
-                                                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 active:scale-95"
-                                                        >
-                                                            <CloseIcon className="h-3.5 w-3.5" />
-                                                            Recusar
-                                                        </button>
-                                                    </div>
-                                                )}
-
-                                                {notification.data?.link && notification.type !== 'group_invite' && (
-                                                    <div className="mt-4">
-                                                        <button
-                                                            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all hover:bg-slate-200 dark:hover:bg-slate-700"
-                                                        >
-                                                            Ver Detalhes
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="flex flex-shrink-0 items-start gap-1 ml-2">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        markAsRead(notification.id, notification.is_read)
-                                                    }}
-                                                    className={cn(
-                                                        "p-2 rounded-lg transition-colors",
-                                                        notification.is_read
-                                                            ? "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                                                            : "text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40"
-                                                    )}
-                                                    title={notification.is_read ? "Marcar como não lida" : "Marcar como lida"}
-                                                >
-                                                    {notification.is_read ? <Bell className="h-4 w-4" /> : <Check className="h-4 w-4" />}
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        deleteNotification(notification.id)
-                                                    }}
-                                                    className="p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 rounded-lg transition-colors"
-                                                    title="Excluir"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
+                                        />
+                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none dark:bg-slate-700 rounded-full peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                                    </label>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    /* Notifications List */
+                    <div className="space-y-3">
+                        {loading ? (
+                            <div className="space-y-3">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="h-24 w-full animate-pulse rounded-xl bg-white dark:bg-slate-900 shadow-sm" />
+                                ))}
+                            </div>
+                        ) : notifications.length > 0 ? (
+                            notifications.filter(Boolean).map((notification) => (
+                                <div
+                                    key={notification.id}
+                                    onClick={() => {
+                                        if (!notification.is_read) markAsRead(notification.id, false)
+                                        if (notification.data?.link) {
+                                            router.push(notification.data.link)
+                                        }
+                                    }}
+                                    className={cn(
+                                        "group relative flex gap-4 rounded-xl border p-4 transition-all duration-200 cursor-pointer",
+                                        notification.is_read
+                                            ? "bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800"
+                                            : "bg-green-50/50 border-green-100 dark:bg-green-950/10 dark:border-green-900/30 shadow-sm",
+                                        notification.data?.link && "hover:border-green-500 dark:hover:border-green-500"
+                                    )}
+                                >
+                                    <div className="mt-1 flex-shrink-0">
+                                        <div className={cn(
+                                            "flex h-10 w-10 items-center justify-center rounded-full",
+                                            notification.is_read ? "bg-slate-100 dark:bg-slate-800" : "bg-green-100 dark:bg-green-900/40"
+                                        )}>
+                                            {getIcon(notification.type)}
                                         </div>
-                                    ))
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center py-20 text-center">
-                                        <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-900">
-                                            <Bell className="h-10 w-10 text-slate-300 dark:text-slate-700" />
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                            <h3 className={cn(
+                                                "text-sm font-bold",
+                                                notification.is_read ? "text-slate-700 dark:text-slate-300" : "text-green-900 dark:text-green-400"
+                                            )}>
+                                                {notification.title}
+                                            </h3>
+                                            <span className="text-xs text-slate-400">
+                                                {notification.created_at ? formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: ptBR }) : ''}
+                                            </span>
                                         </div>
-                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Nada por aqui!</h3>
-                                        <p className="max-w-xs text-sm text-slate-500 dark:text-slate-400">
-                                            {filter === 'unread'
-                                                ? "Você não tem notificações não lidas no momento."
-                                                : "Sua caixa de notificações está vazia."}
+                                        <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                                            {notification.message}
                                         </p>
+
+                                        {notification.type === 'group_invite' && !notification.is_read && (
+                                            <div className="mt-4 flex flex-wrap gap-2">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        acceptInvitation(notification)
+                                                    }}
+                                                    className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95"
+                                                >
+                                                    <Check className="h-3.5 w-3.5" />
+                                                    Aceitar Convite
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        declineInvitation(notification.id)
+                                                    }}
+                                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 active:scale-95"
+                                                >
+                                                    <CloseIcon className="h-3.5 w-3.5" />
+                                                    Recusar
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {notification.type === 'join_request' && !notification.is_read && (
+                                            <div className="mt-4 flex flex-wrap gap-2">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handleJoinRequest(notification, 'approve')
+                                                    }}
+                                                    className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95"
+                                                >
+                                                    <Check className="h-3.5 w-3.5" />
+                                                    Aprovar Solicitação
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handleJoinRequest(notification, 'reject')
+                                                    }}
+                                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 active:scale-95"
+                                                >
+                                                    <CloseIcon className="h-3.5 w-3.5" />
+                                                    Recusar
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {notification.data?.link && notification.type !== 'group_invite' && notification.type !== 'join_request' && (
+                                            <div className="mt-4">
+                                                <button
+                                                    className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all hover:bg-slate-200 dark:hover:bg-slate-700"
+                                                >
+                                                    Ver Detalhes
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex flex-shrink-0 items-start gap-1 ml-2">
                                         <button
-                                            onClick={() => setTab('all')}
-                                            className="mt-6 text-sm font-semibold text-green-600 hover:text-green-700 dark:text-green-500"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                markAsRead(notification.id, notification.is_read)
+                                            }}
+                                            className={cn(
+                                                "p-2 rounded-lg transition-colors",
+                                                notification.is_read
+                                                    ? "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                                    : "text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40"
+                                            )}
+                                            title={notification.is_read ? "Marcar como não lida" : "Marcar como lida"}
                                         >
-                                            Ver todas as notificações
+                                            {notification.is_read ? <Bell className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                deleteNotification(notification.id)
+                                            }}
+                                            className="p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 rounded-lg transition-colors"
+                                            title="Excluir"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
                                         </button>
                                     </div>
-                                )}
+                                </div>
+                            ))
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-20 text-center">
+                                <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-900">
+                                    <Bell className="h-10 w-10 text-slate-300 dark:text-slate-700" />
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Nada por aqui!</h3>
+                                <p className="max-w-xs text-sm text-slate-500 dark:text-slate-400">
+                                    {filter === 'unread'
+                                        ? "Você não tem notificações não lidas no momento."
+                                        : "Sua caixa de notificações está vazia."}
+                                </p>
+                                <button
+                                    onClick={() => setTab('all')}
+                                    className="mt-6 text-sm font-semibold text-green-600 hover:text-green-700 dark:text-green-500"
+                                >
+                                    Ver todas as notificações
+                                </button>
                             </div>
                         )}
                     </div>
-                </main>
+                )}
             </div>
-        </div>
+        </AppLayout>
     )
 }
 

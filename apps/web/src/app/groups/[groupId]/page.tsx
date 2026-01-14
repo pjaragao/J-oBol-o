@@ -4,7 +4,8 @@ import { GroupTabs } from '@/components/groups/GroupTabs'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { FinancialService } from '@/lib/financial-service'
-import { Info } from 'lucide-react'
+import { Info, Users } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { HeaderSetter } from '@/components/layout/HeaderSetter'
 
 export default async function GroupDetailsPage({ params }: { params: Promise<{ groupId: string }> }) {
@@ -30,15 +31,36 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
         notFound()
     }
 
-    // Check if current user is admin
+    // Fetch user membership
     const { data: membership } = await (await supabase)
         .from('group_members')
         .select('role')
         .eq('group_id', groupId)
-        .eq('user_id', user?.id)
-        .single()
+        .eq('user_id', user.id)
+        .maybeSingle()
 
     const isAdmin = membership?.role === 'admin'
+
+    // Check for existing pending request
+    const { data: pendingMember } = await (await supabase)
+        .from('pending_members')
+        .select('status')
+        .eq('group_id', groupId)
+        .eq('user_id', user.id)
+        .eq('status', 'pending')
+        .maybeSingle()
+
+    const isPending = !!pendingMember
+
+    // If pending, redirect to main groups page where they can see their status
+    if (isPending) {
+        redirect('/groups?pending=true')
+    }
+
+    // If not a member and group is not public, redirect
+    if (!membership && !group.is_public) {
+        redirect('/groups')
+    }
 
     const { data: matches } = await (await supabase)
         .from('matches')
@@ -96,7 +118,7 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
 
                                 <div className="min-w-0">
                                     <h2 className="text-sm sm:text-xl font-black text-white italic uppercase leading-none tracking-tight truncate">
-                                        {eventData?.name}
+                                        {group.events?.name}
                                     </h2>
                                     {/* Link sutil para descrição/info do grupo se necessário */}
                                     {group.description && (
@@ -122,7 +144,7 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
                         <div className="flex items-center gap-4 text-white/60 text-[9px] sm:text-xs font-bold uppercase tracking-widest">
                             <div className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded border border-white/5">
                                 <span className="text-green-400">👥</span>
-                                <span>{group.group_members[0].count} Participantes</span>
+                                <span>{(group.group_members?.[0]?.count || 0)} Participantes</span>
                             </div>
                             {startDate && endDate && (
                                 <div className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded border border-white/5">
