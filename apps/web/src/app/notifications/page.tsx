@@ -23,7 +23,11 @@ import { ptBR, enUS, es } from 'date-fns/locale'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { HeaderSetter } from '@/components/layout/HeaderSetter'
+// ... (skip lines 54-340 handled by context matching or separate edits if logic is split? No, I need to insert specific blocks)
+// I will split this into multiple chunks for safety.
+
+// Chunk 1: Import
+
 
 interface Notification {
     id: string
@@ -47,6 +51,7 @@ function NotificationsContent() {
     const t = useTranslations('notifications')
     const locale = useLocale()
     const [mounted, setMounted] = useState(false)
+    const { isSupported, subscription, subscribeToPush, testPush, loading: pushLoading, error: pushError } = usePushNotifications()
 
     useEffect(() => {
         setMounted(true)
@@ -344,6 +349,42 @@ function NotificationsContent() {
                         </div>
 
                         <div className="space-y-4 pt-4">
+                            {/* Push Notifications Section */}
+                            <div className="rounded-lg bg-green-50 p-4 border border-green-100 dark:bg-green-950/10 dark:border-green-900/30">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="font-bold text-green-900 dark:text-green-400">Notificações Push (App)</h3>
+                                        <p className="text-sm text-green-800/80 dark:text-green-500/80">
+                                            Receba alertas no seu dispositivo mesmo com o app fechado via PWA.
+                                        </p>
+                                    </div>
+                                    {!isSupported ? (
+                                        <span className="text-xs text-red-500 font-medium">Navegador não suportado</span>
+                                    ) : (
+                                        <button
+                                            onClick={subscription ? () => { } : subscribeToPush}
+                                            disabled={pushLoading || !!subscription}
+                                            className={cn(
+                                                "px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                                                subscription
+                                                    ? "bg-green-200 text-green-800 cursor-default"
+                                                    : "bg-green-600 text-white hover:bg-green-700 active:scale-95 shadow-sm"
+                                            )}
+                                        >
+                                            {pushLoading ? 'Carregando...' : subscription ? 'Ativado ✓' : 'Ativar Agora'}
+                                        </button>
+                                    )}
+                                </div>
+                                {subscription && (
+                                    <div className="mt-3 flex items-center gap-2">
+                                        <button onClick={testPush} className="text-xs font-semibold text-green-700 underline hover:text-green-800 dark:text-green-500 dark:hover:text-green-400">
+                                            Testar Notificação
+                                        </button>
+                                    </div>
+                                )}
+                                {pushError && <p className="mt-2 text-xs text-red-500 font-medium">{pushError}</p>}
+                            </div>
+
                             {[
                                 { id: 'new_member', label: t('preferences.newMemberTitle'), desc: t('preferences.newMemberDesc') },
                                 { id: 'points_rank', label: t('preferences.pointsRankTitle'), desc: t('preferences.pointsRankDesc') },

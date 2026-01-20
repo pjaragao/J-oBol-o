@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { sendPushToUser } from '@/lib/push'
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
@@ -69,6 +70,14 @@ export async function GET(request: Request) {
                 throw joinError
             }
 
+            // Notify User
+            await sendPushToUser(
+                pendingMember.user_id,
+                'Solicitação Aprovada! 🥳',
+                'Você foi aceito no grupo! Clique para ver.',
+                `/groups/${pendingMember.group_id}`
+            )
+
             // Redirect to members list with success
             return NextResponse.redirect(new URL(`/groups/${pendingMember.group_id}?tab=members&approved=true`, request.url))
 
@@ -83,6 +92,14 @@ export async function GET(request: Request) {
                 .eq('id', pendingMemberId)
 
             if (updateError) throw updateError
+
+            // Notify User
+            await sendPushToUser(
+                pendingMember.user_id,
+                'Solicitação Recusada',
+                'Sua solicitação de entrada no grupo foi recusada pelo administrador.',
+                `/groups`
+            )
 
             return NextResponse.redirect(new URL(`/groups/${pendingMember.group_id}?tab=members&rejected=true`, request.url))
         }

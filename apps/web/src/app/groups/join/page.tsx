@@ -4,6 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, Users, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { notifyAdminsOfJoinRequest } from '@/actions/groups'
 
 function JoinGroupContent() {
     const router = useRouter()
@@ -137,6 +138,9 @@ function JoinGroupContent() {
                         }, { onConflict: 'group_id,user_id' })
 
                     if (pendingError) throw pendingError
+
+                    // Notify Admins
+                    await notifyAdminsOfJoinRequest(groupId)
 
                     setStatus('success')
                     setMessage('✅ Solicitação enviada! Este grupo exige aprovação de um administrador. Você será notificado assim que sua entrada for confirmada.')

@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { footballData } from '@/lib/api-football/client'
 import { syncLogger } from '@/lib/sync-logger'
+import { sendPushToUser } from '@/lib/push'
 import { localizeExternalImage } from '@/lib/supabase/storage-utils'
 
 // Helper function from update-matches
@@ -321,6 +322,14 @@ export async function sendReminders() {
                                 type: 'bet_reminder'
                             }
                         })
+
+                    // Send Push Notification
+                    await sendPushToUser(
+                        member.user_id,
+                        'Lembrete de Palpite! ⏳',
+                        `O jogo ${homeName} x ${awayName} começa em breve!`,
+                        `/groups/${group.id}`
+                    )
 
                     results.push({ user: member.user_id, match: match.id, group: group.id })
                 }

@@ -1,5 +1,33 @@
--- Migration: Initial Schema for JãoBolão (Consolidated)
--- Description: Creates all tables, indexes, and constraints
+-- Migration: 001_consolidated_schema.sql
+-- Description: Consolidated Schema Definitions (Tables, Indexes, Enums)
+
+-- ============================================
+-- ENUMS
+-- ============================================
+
+DO $$ BEGIN
+    CREATE TYPE public.payment_method_type AS ENUM ('ONLINE', 'OFFLINE');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE public.payment_status_type AS ENUM ('PENDING', 'PAID', 'EXEMPT');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE public.transaction_type AS ENUM ('ENTRY_FEE', 'PRIZE_PAYOUT', 'PLATFORM_FEE_ONLINE', 'CREATOR_ADMISSION_FEE', 'CREATOR_UPGRADE_FEE');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE public.transaction_status AS ENUM ('PENDING', 'COMPLETED', 'FAILED', 'WAIVED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- ============================================
 -- TEAMS TABLE
@@ -11,6 +39,7 @@ CREATE TABLE IF NOT EXISTS public.teams (
     logo_url TEXT,
     api_id INTEGER UNIQUE,
     country TEXT,
+    tla TEXT, -- Added from 014
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -52,24 +81,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 COMMENT ON TABLE public.profiles IS 'User profiles extending Supabase auth.users';
 
--- Trigger to auto-create profile on user signup
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-    INSERT INTO public.profiles (id, email, display_name)
-    VALUES (
-        NEW.id,
-        NEW.email,
-        COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1))
-    );
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE OR REPLACE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
 -- ============================================
 -- SUBSCRIPTIONS TABLE
 -- ============================================
@@ -88,8 +99,6 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
     UNIQUE(provider, provider_subscription_id)
 );
 
-COMMENT ON TABLE public.subscriptions IS 'User subscription records from Stripe/RevenueCat';
-
 -- ============================================
 -- EVENTS TABLE (Tournaments/Competitions)
 -- ============================================
@@ -104,12 +113,14 @@ CREATE TABLE IF NOT EXISTS public.events (
     api_id INTEGER UNIQUE,
     logo_url TEXT,
     is_active BOOLEAN DEFAULT TRUE,
+    current_matchday INTEGER, -- Added from 014
+    -- Financials (Added from 011)
+    hosting_fee DECIMAL(10, 2) DEFAULT 0.00,
+    online_fee_percent DECIMAL(5, 2) DEFAULT 10.0,
+    offline_fee_per_slot DECIMAL(10, 2) DEFAULT 0.00,
+    offline_base_fee DECIMAL(10, 2) DEFAULT 0.00,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
-COMMENT ON TABLE public.events IS 'Football tournaments and competitions';
-COMMENT ON COLUMN public.events.display_name IS 'Custom display name (overrides API name)';
-COMMENT ON COLUMN public.events.season IS 'Season year (e.g., 2024)';
 
 -- ============================================
 -- MATCHES TABLE
@@ -122,7 +133,8 @@ CREATE TABLE IF NOT EXISTS public.matches (
     match_date TIMESTAMPTZ NOT NULL,
     home_score INTEGER,
     away_score INTEGER,
-    status TEXT DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'live', 'finished', 'postponed', 'cancelled', 'FT', 'AET', 'PEN')),
+    score_detailed JSONB, -- Added from 014
+    status TEXT DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'live', 'finished', 'postponed', 'cancelled', 'FT', 'AET', 'PEN', 'TIMED', 'IN_PLAY', 'PAUSED', 'SUSPENDED')), -- Expanded enum used in app code often
     api_id INTEGER UNIQUE,
     round TEXT,
     group_name TEXT,
@@ -130,8 +142,6 @@ CREATE TABLE IF NOT EXISTS public.matches (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-
-COMMENT ON TABLE public.matches IS 'Individual matches within events';
 
 -- ============================================
 -- GROUPS TABLE (Betting pools)
@@ -143,43 +153,70 @@ CREATE TABLE IF NOT EXISTS public.groups (
     event_id UUID NOT NULL REFERENCES public.events(id),
     invite_code TEXT UNIQUE DEFAULT substr(md5(random()::text), 1, 8),
     is_public BOOLEAN DEFAULT FALSE,
-    max_members INTEGER DEFAULT 50,
+    max_members INTEGER DEFAULT 50, -- Nullable/adjustable
     created_by UUID NOT NULL REFERENCES public.profiles(id),
     scoring_rules JSONB DEFAULT '{"exact": 10, "winner": 5, "goals": 3}'::jsonb,
     requires_premium BOOLEAN DEFAULT FALSE,
+    -- Added columns
+    allow_member_invites BOOLEAN DEFAULT FALSE, -- 007
+    join_requires_approval BOOLEAN DEFAULT FALSE, -- 015
+    is_finished BOOLEAN DEFAULT FALSE, -- 013
+    finished_at TIMESTAMPTZ, -- 013
+    -- Financials (011)
+    payment_method payment_method_type DEFAULT 'ONLINE',
+    is_paid BOOLEAN DEFAULT FALSE,
+    entry_fee DECIMAL(10, 2) DEFAULT 0,
+    min_members INTEGER DEFAULT 5,
+    prize_distribution_strategy JSONB DEFAULT '{"mode": "WINNER_TAKES_ALL"}'::jsonb,
+    bet_lock_minutes INTEGER DEFAULT 5,
+    
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-COMMENT ON TABLE public.groups IS 'Betting pool groups';
-COMMENT ON COLUMN public.groups.scoring_rules IS 'Customizable scoring: exact=exact score, winner=correct winner/draw, goals=correct goal difference';
-
 -- ============================================
--- GROUP_MEMBERS TABLE (N:N relationship)
+-- GROUP_MEMBERS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS public.group_members (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     group_id UUID NOT NULL REFERENCES public.groups(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     role TEXT DEFAULT 'member' CHECK (role IN ('admin', 'moderator', 'member')),
+    payment_status payment_status_type DEFAULT 'PENDING',
+    paid_at TIMESTAMPTZ,
     joined_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(group_id, user_id)
 );
 
-COMMENT ON TABLE public.group_members IS 'Group membership with roles';
+-- ============================================
+-- PENDING_MEMBERS TABLE (015)
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.pending_members (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id UUID NOT NULL REFERENCES public.groups(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    requested_at TIMESTAMPTZ DEFAULT NOW(),
+    reviewed_at TIMESTAMPTZ,
+    reviewed_by UUID REFERENCES public.profiles(id),
+    UNIQUE(group_id, user_id)
+);
 
--- Trigger to add creator as admin when group is created
-CREATE OR REPLACE FUNCTION public.handle_new_group()
-RETURNS TRIGGER AS $$
-BEGIN
-    INSERT INTO public.group_members (group_id, user_id, role)
-    VALUES (NEW.id, NEW.created_by, 'admin');
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE OR REPLACE TRIGGER on_group_created
-    AFTER INSERT ON public.groups
-    FOR EACH ROW EXECUTE FUNCTION public.handle_new_group();
+-- ============================================
+-- GROUP_INVITATIONS TABLE (006)
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.group_invitations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id UUID NOT NULL REFERENCES public.groups(id) ON DELETE CASCADE,
+    invited_email TEXT NOT NULL,
+    invited_user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL, -- Added from 008
+    invited_by UUID NOT NULL REFERENCES public.profiles(id),
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'expired', 'cancelled')),
+    invite_token TEXT UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex'),
+    expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '7 days'),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    accepted_at TIMESTAMPTZ,
+    UNIQUE(group_id, invited_email, status)
+);
 
 -- ============================================
 -- BETS TABLE
@@ -197,19 +234,19 @@ CREATE TABLE IF NOT EXISTS public.bets (
     UNIQUE(user_id, group_id, match_id)
 );
 
-COMMENT ON TABLE public.bets IS 'User bets on matches within groups';
-
 -- ============================================
--- SYNC_LOGS TABLE
+-- TRANSACTIONS TABLE (011)
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.sync_logs (
+CREATE TABLE IF NOT EXISTS public.transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    reosurce_type TEXT NOT NULL, -- 'league', 'fixtures', 'teams'
-    details JSONB,
-    status TEXT NOT NULL, -- 'success', 'error', 'running'
-    error_message TEXT,
-    created_by UUID REFERENCES auth.users(id)
+    user_id UUID REFERENCES public.profiles(id),
+    group_id UUID REFERENCES public.groups(id) ON DELETE CASCADE,
+    type transaction_type NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    status transaction_status DEFAULT 'PENDING',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    metadata JSONB
 );
 
 -- ============================================
@@ -220,61 +257,32 @@ CREATE TABLE IF NOT EXISTS public.notifications (
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     message TEXT,
-    type TEXT, -- 'info', 'success', 'warning', 'group_invite', 'points'
+    type TEXT,
     data JSONB DEFAULT '{}'::jsonb,
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ============================================
--- INDEXES FOR PERFORMANCE
+-- SYNC_LOGS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.sync_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reosurce_type TEXT NOT NULL, -- Keeping legacy typo to avoid breaking code: reosurce_type
+    details JSONB,
+    status TEXT NOT NULL,
+    error_message TEXT,
+    created_by UUID REFERENCES auth.users(id)
+);
+
+-- ============================================
+-- INDEXES
 -- ============================================
 CREATE INDEX IF NOT EXISTS idx_profiles_subscription ON public.profiles(subscription_tier, subscription_status);
-CREATE INDEX IF NOT EXISTS idx_profiles_cpf ON public.profiles(cpf);
-CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON public.subscriptions(user_id);
-CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON public.subscriptions(status);
 CREATE INDEX IF NOT EXISTS idx_matches_event ON public.matches(event_id);
 CREATE INDEX IF NOT EXISTS idx_matches_date ON public.matches(match_date);
-CREATE INDEX IF NOT EXISTS idx_matches_status ON public.matches(status);
-CREATE INDEX IF NOT EXISTS idx_matches_api_id ON public.matches(api_id);
-CREATE INDEX IF NOT EXISTS idx_matches_group_name ON public.matches(group_name);
-CREATE INDEX IF NOT EXISTS idx_bets_user ON public.bets(user_id);
-CREATE INDEX IF NOT EXISTS idx_bets_group ON public.bets(group_id);
-CREATE INDEX IF NOT EXISTS idx_bets_match ON public.bets(match_id);
 CREATE INDEX IF NOT EXISTS idx_bets_composite ON public.bets(group_id, match_id);
-CREATE INDEX IF NOT EXISTS idx_group_members_user ON public.group_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_group_members_group ON public.group_members(group_id);
-CREATE INDEX IF NOT EXISTS idx_groups_event ON public.groups(event_id);
-CREATE INDEX IF NOT EXISTS idx_groups_invite ON public.groups(invite_code);
-CREATE INDEX IF NOT EXISTS idx_events_api_id ON public.events(api_id);
-CREATE INDEX IF NOT EXISTS idx_teams_api_id ON public.teams(api_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_group ON public.transactions(group_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON public.notifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_read ON public.notifications(user_id, is_read);
-
--- ============================================
--- UPDATED_AT TRIGGER FUNCTION
--- ============================================
-CREATE OR REPLACE FUNCTION public.update_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Apply updated_at trigger to relevant tables
-CREATE OR REPLACE TRIGGER update_profiles_updated_at
-    BEFORE UPDATE ON public.profiles
-    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
-
-CREATE OR REPLACE TRIGGER update_subscriptions_updated_at
-    BEFORE UPDATE ON public.subscriptions
-    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
-
-CREATE OR REPLACE TRIGGER update_matches_updated_at
-    BEFORE UPDATE ON public.matches
-    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
-
-CREATE OR REPLACE TRIGGER update_bets_updated_at
-    BEFORE UPDATE ON public.bets
-    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();

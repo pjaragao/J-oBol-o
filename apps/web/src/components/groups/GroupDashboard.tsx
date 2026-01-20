@@ -26,6 +26,7 @@ interface Match {
     home_score: number | null
     away_score: number | null
     status: string
+    venue?: string | null
     user_bet?: {
         home_score_bet: number
         away_score_bet: number

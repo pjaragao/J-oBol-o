@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Plus, X, Mail, Loader2, UserPlus, Link as LinkIcon, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
+import { notifyUserOfInvite } from '@/actions/groups'
 
 interface Member {
     id: string
@@ -325,6 +326,11 @@ export function MemberList({ groupId }: { groupId: string }) {
                     })
 
                 if (notifyError) throw notifyError
+
+                if (notifyError) throw notifyError
+
+                // Notify via Push (Server Action)
+                await notifyUserOfInvite(profile.id, groupId)
 
                 alert('Convite enviado com sucesso! O usuário aparecerá na lista de pendentes até aceitar.')
                 setInviteEmail('')
