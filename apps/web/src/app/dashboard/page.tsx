@@ -3,8 +3,10 @@ import { redirect } from 'next/navigation'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Plus, Trophy, Users, Ticket, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 
 async function UserGroupsCardList({ userId }: { userId: string }) {
+    const t = await getTranslations('dashboard');
     const supabase = await createClient()
 
     const { data: members, error } = await supabase
@@ -20,17 +22,17 @@ async function UserGroupsCardList({ userId }: { userId: string }) {
         `)
         .eq('user_id', userId)
 
-    if (error) return <p className="text-red-500">Erro ao carregar grupos.</p>
+    if (error) return <p className="text-red-500">{t('loadError') || 'Erro ao carregar grupos.'}</p>
 
     if (!members || members.length === 0) {
         return (
             <div className="col-span-full flex flex-col items-center justify-center py-12 px-4 bg-white dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
                 <Trophy className="h-12 w-12 mb-4 text-slate-300" />
-                <p className="text-lg font-medium mb-1">Nada por aqui ainda</p>
-                <p className="text-sm mb-4">Você ainda não participa de nenhum bolão.</p>
+                <p className="text-lg font-medium mb-1">{t('noGroupsTitle') || 'Nada por aqui ainda'}</p>
+                <p className="text-sm mb-4">{t('noGroups') || 'Você ainda não participa de nenhum bolão.'}</p>
                 <Link href="/groups/create" className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm font-medium text-sm">
                     <Plus className="h-4 w-4" />
-                    Criar meu primeiro grupo
+                    {t('createFirst') || 'Criar meu primeiro grupo'}
                 </Link>
             </div>
         )
@@ -53,7 +55,7 @@ async function UserGroupsCardList({ userId }: { userId: string }) {
                                 ? 'bg-purple-50 text-purple-700 ring-purple-700/10 dark:bg-purple-400/10 dark:text-purple-400 dark:ring-purple-400/30'
                                 : 'bg-slate-50 text-slate-600 ring-slate-500/10 dark:bg-slate-400/10 dark:text-slate-400 dark:ring-slate-400/30'
                                 }`}>
-                                {member.role === 'admin' ? 'Admin' : 'Membro'}
+                                {member.role === 'admin' ? t('admin') || 'Admin' : t('member') || 'Membro'}
                             </span>
                         </div>
                         <h3 className="text-lg font-semibold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1">
@@ -66,7 +68,7 @@ async function UserGroupsCardList({ userId }: { userId: string }) {
                         )}
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-800/50 px-5 py-3 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                        <span>Ver Detalhes</span>
+                        <span>{t('viewDetails') || 'Ver Detalhes'}</span>
                         <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
                     </div>
                 </Link>
@@ -76,6 +78,7 @@ async function UserGroupsCardList({ userId }: { userId: string }) {
 }
 
 export default async function DashboardPage() {
+    const t = await getTranslations('dashboard');
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -114,10 +117,10 @@ export default async function DashboardPage() {
                 <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-600 to-emerald-800 p-8 shadow-lg text-white">
                     <div className="relative z-10 max-w-2xl">
                         <h1 className="text-3xl font-bold mb-2">
-                            Bem-vindo de volta, {profile?.display_name?.split(' ')[0] || 'Apostador'}! 👋
+                            {t('welcome')}, {profile?.display_name?.split(' ')[0] || 'Apostador'}! 👋
                         </h1>
                         <p className="text-green-50 text-lg opacity-90">
-                            Pronto para fazer algumas previsões vencedoras? Vamos ver o que está acontecendo nos seus bolões.
+                            {t('welcomeMessage') || 'Pronto para fazer algumas previsões vencedoras? Vamos ver o que está acontecendo nos seus bolões.'}
                         </p>
                     </div>
                     {/* Abstract Shapes Decoration */}
@@ -132,7 +135,7 @@ export default async function DashboardPage() {
                             <Users className="h-6 w-6" />
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Grupos Participados</p>
+                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{t('groupsJoined') || 'Grupos Participados'}</p>
                             <p className="text-2xl font-bold text-slate-900 dark:text-white">{groupsCount || 0}</p>
                         </div>
                     </div>
@@ -141,7 +144,7 @@ export default async function DashboardPage() {
                             <Ticket className="h-6 w-6" />
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Previsões Feitas</p>
+                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{t('betsMade') || 'Previsões Feitas'}</p>
                             <p className="text-2xl font-bold text-slate-900 dark:text-white">{betsCount || 0}</p>
                         </div>
                     </div>
@@ -150,7 +153,7 @@ export default async function DashboardPage() {
                             <Trophy className="h-6 w-6" />
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Torneios Ativos</p>
+                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{t('activeTournaments') || 'Torneios Ativos'}</p>
                             <p className="text-2xl font-bold text-slate-900 dark:text-white">{activeTournaments || 0}</p>
                         </div>
                     </div>
@@ -159,13 +162,13 @@ export default async function DashboardPage() {
                 {/* Groups Section */}
                 <div>
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Seus Grupos</h2>
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('yourGroups')}</h2>
                         <Link
                             href="/groups/create"
                             className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 transition-colors"
                         >
                             <Plus className="h-4 w-4" />
-                            Criar Novo Grupo
+                            {t('createNewGroup') || 'Criar Novo Grupo'}
                         </Link>
                     </div>
 

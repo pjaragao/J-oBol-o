@@ -4,8 +4,11 @@ import { createClient } from '@/lib/supabase/client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { User, Mail, Lock as LockIcon, CreditCard, ChevronRight, AlertCircle, CheckCircle2 } from 'lucide-react'
 import Image from 'next/image'
+import { User, Mail, Lock as LockIcon, CreditCard, ChevronRight, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { LanguageSelector } from '@/components/ui/LanguageSelector'
+import type { Locale } from '@/i18n/config'
 
 // Masks helpers
 const maskCPF = (value: string) => {
@@ -20,6 +23,8 @@ const maskCPF = (value: string) => {
 export default function RegisterPage() {
     const router = useRouter()
     const supabase = createClient()
+    const t = useTranslations('auth.register')
+    const tCommon = useTranslations('common')
 
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -32,7 +37,8 @@ export default function RegisterPage() {
         cpf: '',
         email: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        locale: 'pt' as Locale
     })
 
     const handleRegister = async (e: React.FormEvent) => {
@@ -42,13 +48,13 @@ export default function RegisterPage() {
 
         // Validation
         if (formData.password !== formData.confirmPassword) {
-            setError('As senhas não coincidem.')
+            setError(t('passwordMismatch'))
             setLoading(false)
             return
         }
 
         if (formData.password.length < 6) {
-            setError('A senha deve ter pelo menos 6 caracteres.')
+            setError(t('passwordTooShort'))
             setLoading(false)
             return
         }
@@ -62,7 +68,8 @@ export default function RegisterPage() {
                     data: {
                         display_name: formData.displayName,
                         full_name: formData.fullName,
-                        cpf: formData.cpf
+                        cpf: formData.cpf,
+                        locale: formData.locale
                     }
                 }
             })
@@ -80,6 +87,7 @@ export default function RegisterPage() {
                         display_name: formData.displayName,
                         full_name: formData.fullName,
                         cpf: formData.cpf,
+                        locale: formData.locale,
                         updated_at: new Date().toISOString(),
                     })
 
@@ -95,7 +103,7 @@ export default function RegisterPage() {
                 }, 1500)
             }
         } catch (err: any) {
-            setError(err.message || 'Ocorreu um erro ao criar sua conta.')
+            setError(err.message || t('errorCreating'))
         } finally {
             setLoading(false)
         }
@@ -116,10 +124,10 @@ export default function RegisterPage() {
                     </div>
                 </div>
                 <h2 className="mt-6 text-center text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
-                    Crie sua conta
+                    {t('title')}
                 </h2>
                 <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">
-                    Comece a palpitar e ganhar prêmios agora mesmo
+                    {t('subtitle')}
                 </p>
             </div>
 
@@ -130,8 +138,8 @@ export default function RegisterPage() {
                             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/30">
                                 <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Conta criada com sucesso!</h3>
-                            <p className="text-slate-500 dark:text-slate-400">Redirecionando para o dashboard...</p>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">{t('success')}</h3>
+                            <p className="text-slate-500 dark:text-slate-400">{t('redirecting')}</p>
                         </div>
                     ) : (
                         <form className="space-y-6" onSubmit={handleRegister}>
@@ -143,9 +151,17 @@ export default function RegisterPage() {
                             )}
 
                             <div className="grid grid-cols-1 gap-6">
+                                {/* Seletor de Idioma */}
+                                <LanguageSelector
+                                    variant="inline"
+                                    value={formData.locale}
+                                    onChange={(locale) => setFormData({ ...formData, locale })}
+                                    showLabel={true}
+                                />
+
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                        Nome de Exibição
+                                        {t('displayName')}
                                     </label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -157,14 +173,14 @@ export default function RegisterPage() {
                                             value={formData.displayName}
                                             onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
                                             className="block w-full pl-10 pr-3 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all sm:text-sm"
-                                            placeholder="Como quer ser chamado"
+                                            placeholder={t('displayNamePlaceholder')}
                                         />
                                     </div>
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                        Nome Completo
+                                        {t('fullName')}
                                     </label>
                                     <input
                                         type="text"
@@ -172,14 +188,14 @@ export default function RegisterPage() {
                                         value={formData.fullName}
                                         onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                                         className="block w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all sm:text-sm"
-                                        placeholder="Seu nome completo"
+                                        placeholder={t('fullNamePlaceholder')}
                                     />
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-1">
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                            CPF
+                                            {t('cpf')}
                                         </label>
                                         <div className="relative">
                                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -191,7 +207,7 @@ export default function RegisterPage() {
                                                 value={formData.cpf}
                                                 onChange={(e) => setFormData({ ...formData, cpf: maskCPF(e.target.value) })}
                                                 className="block w-full pl-10 pr-3 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all sm:text-sm"
-                                                placeholder="000.000.000-00"
+                                                placeholder={t('cpfPlaceholder')}
                                             />
                                         </div>
                                     </div>
@@ -199,7 +215,7 @@ export default function RegisterPage() {
 
                                 <div className="border-t border-slate-100 dark:border-slate-700 pt-6">
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                        E-mail
+                                        {t('email')}
                                     </label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -219,7 +235,7 @@ export default function RegisterPage() {
                                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                            Senha
+                                            {t('password')}
                                         </label>
                                         <div className="relative">
                                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -231,13 +247,13 @@ export default function RegisterPage() {
                                                 value={formData.password}
                                                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                                 className="block w-full pl-10 pr-3 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all sm:text-sm"
-                                                placeholder="••••••"
+                                                placeholder={t('passwordPlaceholder')}
                                             />
                                         </div>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                            Confirmar
+                                            {t('confirmPassword')}
                                         </label>
                                         <input
                                             type="password"
@@ -245,7 +261,7 @@ export default function RegisterPage() {
                                             value={formData.confirmPassword}
                                             onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                                             className="block w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all sm:text-sm"
-                                            placeholder="••••••"
+                                            placeholder={t('passwordPlaceholder')}
                                         />
                                     </div>
                                 </div>
@@ -261,7 +277,7 @@ export default function RegisterPage() {
                                         <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                     ) : (
                                         <>
-                                            Criar Minha Conta
+                                            {t('submit')}
                                             <ChevronRight className="ml-2 h-4 w-4" />
                                         </>
                                     )}
@@ -270,9 +286,9 @@ export default function RegisterPage() {
 
                             <div className="text-center mt-4">
                                 <p className="text-sm text-slate-500">
-                                    Já tem uma conta?{' '}
+                                    {t('alreadyHaveAccount')}{' '}
                                     <Link href="/login" className="font-bold text-green-600 hover:text-green-500 transition-colors">
-                                        Fazer Login
+                                        {t('doLogin')}
                                     </Link>
                                 </p>
                             </div>

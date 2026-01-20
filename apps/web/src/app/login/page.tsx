@@ -6,8 +6,10 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Mail, Lock as LockIcon, ChevronRight, AlertCircle } from 'lucide-react'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 
 export default function LoginPage() {
+    const t = useTranslations('auth.login');
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
@@ -28,7 +30,7 @@ export default function LoginPage() {
 
             if (error) {
                 if (error.message === 'Invalid login credentials') {
-                    throw new Error('E-mail ou senha incorretos.')
+                    throw new Error(t('invalidCredentials'))
                 }
                 throw error
             }
@@ -58,10 +60,10 @@ export default function LoginPage() {
                     </div>
                 </div>
                 <h2 className="mt-6 text-center text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
-                    JãoBolão
+                    {t('title')}
                 </h2>
                 <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">
-                    Acesse sua conta para começar os palpites
+                    {t('subtitle')}
                 </p>
             </div>
 
@@ -78,7 +80,7 @@ export default function LoginPage() {
                         <div className="space-y-4">
                             <div>
                                 <label htmlFor="email" className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                    E-mail
+                                    {t('email')}
                                 </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -92,7 +94,7 @@ export default function LoginPage() {
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         className="block w-full pl-10 pr-3 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all sm:text-sm"
-                                        placeholder="seu@email.com"
+                                        placeholder={t('emailPlaceholder')}
                                         suppressHydrationWarning
                                     />
                                 </div>
@@ -100,7 +102,7 @@ export default function LoginPage() {
 
                             <div>
                                 <label htmlFor="password" className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                    Senha
+                                    {t('password')}
                                 </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -114,7 +116,7 @@ export default function LoginPage() {
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         className="block w-full pl-10 pr-3 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all sm:text-sm"
-                                        placeholder="••••••••"
+                                        placeholder={t('passwordPlaceholder')}
                                         suppressHydrationWarning
                                     />
                                 </div>
@@ -131,7 +133,7 @@ export default function LoginPage() {
                                     <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 ) : (
                                     <>
-                                        Entrar No Jogo
+                                        {t('submit')}
                                         <ChevronRight className="ml-2 h-4 w-4" />
                                     </>
                                 )}
@@ -143,7 +145,7 @@ export default function LoginPage() {
                                 <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
                             </div>
                             <div className="relative flex justify-center text-sm uppercase">
-                                <span className="px-2 bg-white dark:bg-slate-800 text-slate-500 font-bold tracking-widest">Ou</span>
+                                <span className="px-2 bg-white dark:bg-slate-800 text-slate-500 font-bold tracking-widest">{t('or') || 'Ou'}</span>
                             </div>
                         </div>
 
@@ -152,7 +154,7 @@ export default function LoginPage() {
                                 href="/register"
                                 className="w-full flex justify-center items-center py-4 px-4 border-2 border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-black uppercase tracking-widest text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all"
                             >
-                                Criar Nova Conta
+                                {t('createAccount')}
                             </Link>
                         </div>
                     </form>

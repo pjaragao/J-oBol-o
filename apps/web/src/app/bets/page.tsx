@@ -2,8 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AppLayout } from '@/components/layout/AppLayout'
 import BetsClient from './BetsClient'
+import { getTranslations } from 'next-intl/server'
 
 export default async function MyBetsPage() {
+    const t = await getTranslations('bets');
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -48,8 +50,8 @@ export default async function MyBetsPage() {
         <AppLayout user={user} profile={profile} isAdmin={isAdmin}>
             <div className="space-y-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Minhas Apostas</h1>
-                    <p className="text-slate-500 dark:text-slate-400">Gerencie todos os seus palpites em um só lugar.</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('title')}</h1>
+                    <p className="text-slate-500 dark:text-slate-400">{t('subtitle')}</p>
                 </div>
 
                 <BetsClient initialGroups={groups} userId={user.id} />

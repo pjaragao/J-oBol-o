@@ -3,8 +3,10 @@ import { redirect } from 'next/navigation'
 import { Plus, Trophy, Users, Search, ArrowRight, Shield, Globe } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { getTranslations } from 'next-intl/server'
 
 async function UserGroupsList({ userId }: { userId: string }) {
+    const t = await getTranslations('groups');
     const supabase = await createClient()
 
     // 1. Fetch groups where user is a member
@@ -59,7 +61,7 @@ async function UserGroupsList({ userId }: { userId: string }) {
         }
     }
 
-    if (membersError || pendingError) return <p className="text-red-500">Erro ao carregar seus grupos.</p>
+    if (membersError || pendingError) return <p className="text-red-500">{t('loadError')}</p>
 
     const allItems = [
         ...(members || []).map(m => ({ ...m, status: 'approved' })),
@@ -70,9 +72,9 @@ async function UserGroupsList({ userId }: { userId: string }) {
         return (
             <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
                 <Trophy className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                <p className="text-slate-500 dark:text-slate-400">Você ainda não participa de nenhum grupo.</p>
+                <p className="text-slate-500 dark:text-slate-400">{t('noGroups')}</p>
                 <Link href="/groups/create" className="text-green-600 font-bold hover:underline mt-2 inline-block">
-                    Criar meu primeiro grupo
+                    {t('createFirst')}
                 </Link>
             </div>
         )
@@ -93,12 +95,12 @@ async function UserGroupsList({ userId }: { userId: string }) {
                     <>
                         <div className="flex justify-between items-start mb-3">
                             <span className="text-[10px] font-bold uppercase tracking-widest text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded">
-                                {item.groups.events?.name || 'Evento'}
+                                {item.groups.events?.name || t('event')}
                             </span>
                             <div className="flex items-center gap-2">
                                 {isPendingItem && (
                                     <span className="text-[10px] font-bold uppercase bg-amber-100 text-amber-700 px-2 py-0.5 rounded">
-                                        Pendente
+                                        {t('pending')}
                                     </span>
                                 )}
                                 {!item.groups.is_public ? (
@@ -112,27 +114,27 @@ async function UserGroupsList({ userId }: { userId: string }) {
                             {item.groups.name}
                         </h3>
                         <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-1 mt-1 mb-4">
-                            {item.groups.description || 'Sem descrição'}
+                            {item.groups.description || t('noDescription')}
                         </p>
                         <div className="flex items-center justify-between text-xs font-bold pt-3 border-t border-slate-100 dark:border-slate-700">
                             <span className={cn(
                                 item.role === 'admin' ? 'text-purple-600 dark:text-purple-400' : 'text-slate-400',
                                 isPendingItem && 'text-amber-600'
                             )}>
-                                {isPendingItem ? 'Aguardando aprovação' : (item.role === 'admin' ? 'Fundador' : 'Membro')}
+                                {isPendingItem ? t('waitingApproval') : (item.role === 'admin' ? t('founder') : t('member'))}
                             </span>
 
                             {item.role === 'admin' && groupsWithPendingRequests.includes(item.groups.id) && (
                                 <div className="flex items-center gap-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full animate-pulse">
                                     <Users className="h-3 w-3" />
-                                    <span className="text-[10px] font-black uppercase">Solicitações</span>
+                                    <span className="text-[10px] font-black uppercase">{t('requests')}</span>
                                 </div>
                             )}
                             <div className={cn(
                                 "flex items-center gap-1",
                                 isPendingItem ? "text-amber-600" : "text-green-600"
                             )}>
-                                {isPendingItem ? 'Aguarde' : 'Entrar'} <ArrowRight className="h-3 w-3" />
+                                {isPendingItem ? t('wait') : t('enter')} <ArrowRight className="h-3 w-3" />
                             </div>
                         </div>
                     </>
@@ -157,6 +159,7 @@ async function UserGroupsList({ userId }: { userId: string }) {
 }
 
 export default async function GroupsHubPage() {
+    const t = await getTranslations('groups');
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -169,15 +172,15 @@ export default async function GroupsHubPage() {
             {/* Header com CTA */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">MEUS GRUPOS</h1>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">Gerencie seus bolões ativos ou encontre novos desafios.</p>
+                    <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{t('myGroups')}</h1>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">{t('subtitle')}</p>
                 </div>
                 <Link
                     href="/groups/create"
                     className="inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-green-200 dark:shadow-none whitespace-nowrap"
                 >
                     <Plus className="h-5 w-5" />
-                    CRIAR NOVO GRUPO
+                    {t('createNew')}
                 </Link>
             </div>
 
@@ -185,7 +188,7 @@ export default async function GroupsHubPage() {
             <section className="space-y-4">
                 <div className="flex items-center gap-2 border-l-4 border-green-500 pl-3">
                     <Trophy className="h-5 w-5 text-green-600" />
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight">Ativos</h2>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight">{t('active')}</h2>
                 </div>
                 <UserGroupsList userId={user.id} />
             </section>
@@ -195,7 +198,7 @@ export default async function GroupsHubPage() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-2 border-l-4 border-slate-300 pl-3">
                         <Search className="h-5 w-5 text-slate-500" />
-                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight">Explorar Públicos</h2>
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight">{t('explorePublic')}</h2>
                     </div>
 
                     {/* Barra de Busca Simples (Placeholder para funcionalidade futura) */}
@@ -203,7 +206,7 @@ export default async function GroupsHubPage() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Buscar grupos públicos..."
+                            placeholder={t('searchPlaceholder')}
                             disabled
                             className="w-full pl-9 pr-4 py-2 text-sm bg-slate-100 dark:bg-slate-800 border-none rounded-lg focus:ring-2 focus:ring-green-500 dark:text-white cursor-not-allowed opacity-60"
                         />
@@ -212,9 +215,9 @@ export default async function GroupsHubPage() {
 
                 <div className="bg-slate-50 dark:bg-slate-900/40 p-10 rounded-2xl text-center border border-slate-100 dark:border-slate-800">
                     <Globe className="h-10 w-10 mx-auto mb-3 text-slate-300" />
-                    <h3 className="font-bold text-slate-700 dark:text-slate-300">Em Breve</h3>
+                    <h3 className="font-bold text-slate-700 dark:text-slate-300">{t('comingSoon')}</h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
-                        Você poderá buscar e participar de grupos públicos de outros usuários para testar seus conhecimentos.
+                        {t('comingSoonDesc')}
                     </p>
                 </div>
             </section>

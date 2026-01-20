@@ -4,22 +4,9 @@ import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
-import { Crown, LayoutDashboard, Trophy, Ticket, Settings, Menu, X, ExternalLink, ChevronLeft, ChevronRight, Megaphone } from 'lucide-react'
+import { Crown, LayoutDashboard, Trophy, Ticket, Settings, Menu, X, ExternalLink, ChevronLeft, ChevronRight, Megaphone, Languages } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-const sidebarItems = [
-    { title: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-    { title: 'Meus Grupos', icon: Trophy, href: '/groups' },
-    { title: 'Minhas Apostas', icon: Ticket, href: '/bets' },
-]
-
-const adminItems = [
-    { title: 'Início Admin', icon: LayoutDashboard, href: '/admin' },
-    { title: 'Gerenciar Eventos', icon: Settings, href: '/admin/events' },
-    { title: 'Gerenciar Times', icon: Crown, href: '/admin/teams' },
-    { title: 'Marketing', icon: Megaphone, href: '/admin/marketing' },
-    { title: 'Logs de Sincronização', icon: ExternalLink, href: '/admin/logs' },
-]
+import { useTranslations } from 'next-intl'
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
     isOpen: boolean
@@ -29,6 +16,24 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function AppSidebar({ className, isOpen, setIsOpen, isAdmin }: SidebarProps) {
     const pathname = usePathname()
+    const t = useTranslations('sidebar')
+
+    // Menu items com traduções
+    const sidebarItems = [
+        { title: t('dashboard'), icon: LayoutDashboard, href: '/dashboard' },
+        { title: t('myGroups'), icon: Trophy, href: '/groups' },
+        { title: t('myBets'), icon: Ticket, href: '/bets' },
+    ]
+
+    const adminItems = [
+        { title: t('adminHome'), icon: LayoutDashboard, href: '/admin' },
+        { title: t('manageEvents'), icon: Settings, href: '/admin/events' },
+        { title: t('manageTeams'), icon: Crown, href: '/admin/teams' },
+        { title: t('marketing'), icon: Megaphone, href: '/admin/marketing' },
+        { title: t('syncLogs'), icon: ExternalLink, href: '/admin/logs' },
+        { title: t('translations'), icon: Languages, href: '/admin/i18n' },
+    ]
+
     // Local state for desktop collapse, defaulting to false (expanded)
     const [isCollapsed, setIsCollapsed] = React.useState(false)
 
@@ -82,7 +87,7 @@ export function AppSidebar({ className, isOpen, setIsOpen, isAdmin }: SidebarPro
                     <button
                         onClick={() => setIsCollapsed(!isCollapsed)}
                         className="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                        title={isCollapsed ? "Expandir" : "Recolher"}
+                        title={isCollapsed ? t('expand') : t('collapse')}
                     >
                         {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
                     </button>
@@ -119,7 +124,7 @@ export function AppSidebar({ className, isOpen, setIsOpen, isAdmin }: SidebarPro
                     {isAdmin && (
                         <div>
                             <div className={cn("mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 whitespace-nowrap overflow-hidden transition-all", isCollapsed ? "opacity-0 h-0 my-0" : "opacity-100")}>
-                                Admin
+                                {t('admin')}
                             </div>
                             <div className="space-y-1 border-t border-slate-200 dark:border-slate-800 pt-4 mt-2">
                                 {adminItems.map((item) => {
@@ -156,8 +161,8 @@ export function AppSidebar({ className, isOpen, setIsOpen, isAdmin }: SidebarPro
                     <div className={cn("rounded-xl bg-slate-50 dark:bg-slate-800 p-4 border border-slate-200 dark:border-slate-700 overflow-hidden whitespace-nowrap transition-colors", isCollapsed ? "p-2 bg-transparent border-0" : "")}>
                         {!isCollapsed && (
                             <>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">JãoBolão v2.0</p>
-                                <p className="text-[10px] text-slate-400 dark:text-slate-500">Desenvolvido com 💚</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">{t('version')}</p>
+                                <p className="text-[10px] text-slate-400 dark:text-slate-500">{t('madeWith')}</p>
                             </>
                         )}
                         {isCollapsed && <div className="w-2 h-2 rounded-full bg-green-500 mx-auto" title="Online" />}

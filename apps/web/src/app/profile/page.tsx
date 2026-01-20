@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation'
 import AvatarUpload from '@/components/profile/AvatarUpload'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { User, Mail, CreditCard, MapPin, Hash, Home, Map, Building2, Globe2, Trophy, Check, ChevronDown } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { LanguageSelector } from '@/components/ui/LanguageSelector'
+import type { Locale } from '@/i18n/config'
 
 // Masks helpers
 const maskCPF = (value: string) => {
@@ -39,6 +42,8 @@ const BRAZIL_STATES = [
 export default function ProfilePage() {
     const supabase = createClient()
     const router = useRouter()
+    const t = useTranslations('profile')
+    const tCommon = useTranslations('common')
 
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -59,7 +64,8 @@ export default function ProfilePage() {
         addressComplement: '',
         addressNeighborhood: '',
         addressCity: '',
-        addressState: ''
+        addressState: '',
+        locale: 'pt' as Locale
     })
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
@@ -96,7 +102,8 @@ export default function ProfilePage() {
                     addressComplement: data.address_complement || '',
                     addressNeighborhood: data.address_neighborhood || '',
                     addressCity: data.address_city || '',
-                    addressState: data.address_state || ''
+                    addressState: data.address_state || '',
+                    locale: (data.locale || 'pt') as Locale
                 })
             }
         } catch (error: any) {
@@ -174,6 +181,7 @@ export default function ProfilePage() {
                     address_city: formData.addressCity,
                     address_state: formData.addressState,
                     avatar_url: avatarUrl,
+                    locale: formData.locale,
                     updated_at: new Date().toISOString(),
                 })
 
@@ -190,7 +198,7 @@ export default function ProfilePage() {
 
     if (loading) return (
         <div className="flex items-center justify-center min-h-screen dark:bg-slate-900">
-            <div className="text-slate-500 animate-pulse font-medium">Carregando perfil...</div>
+            <div className="text-slate-500 animate-pulse font-medium">{t('loadingProfile')}</div>
         </div>
     )
 
@@ -198,9 +206,9 @@ export default function ProfilePage() {
         <div className="max-w-4xl mx-auto py-8 px-4">
             <div className="mb-8">
                 <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase border-l-4 border-green-500 pl-4">
-                    Meu Perfil
+                    {t('title')}
                 </h1>
-                <p className="text-slate-500 dark:text-slate-400 mt-1 ml-4">Mantenha seus dados atualizados para participar dos bolões.</p>
+                <p className="text-slate-500 dark:text-slate-400 mt-1 ml-4">{t('subtitle')}</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -220,10 +228,10 @@ export default function ProfilePage() {
 
                     <div className="bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/30 rounded-2xl p-6">
                         <h3 className="text-green-800 dark:text-green-400 font-bold text-sm mb-2 flex items-center gap-2">
-                            <Trophy className="h-4 w-4" /> Dica de Campeão
+                            <Trophy className="h-4 w-4" /> {t('championTip')}
                         </h3>
                         <p className="text-xs text-green-700/80 dark:text-green-500/80 leading-relaxed">
-                            Complete seu endereço para participar de bolões com prêmios físicos! Isso ajuda os administradores na logística.
+                            {t('championTipText')}
                         </p>
                     </div>
                 </div>
@@ -236,11 +244,11 @@ export default function ProfilePage() {
                             {/* Identificação Section */}
                             <section>
                                 <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-                                    <Hash className="h-3 w-3" /> Identificação e Contato
+                                    <Hash className="h-3 w-3" /> {t('identificationSection')}
                                 </h3>
                                 <div className="grid gap-6">
                                     <div className="grid gap-2">
-                                        <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Nome de Exibição</label>
+                                        <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('displayName')}</label>
                                         <div className="relative">
                                             <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                             <input
@@ -248,25 +256,25 @@ export default function ProfilePage() {
                                                 value={formData.displayName}
                                                 onChange={(e) => setFormData(p => ({ ...p, displayName: e.target.value }))}
                                                 className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none dark:text-white"
-                                                placeholder="Como quer ser chamado"
+                                                placeholder={t('displayNamePlaceholder')}
                                             />
                                         </div>
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Nome Completo</label>
+                                        <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('fullName')}</label>
                                         <input
                                             type="text"
                                             value={formData.fullName}
                                             onChange={(e) => setFormData(p => ({ ...p, fullName: e.target.value }))}
                                             className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none dark:text-white"
-                                            placeholder="Seu nome completo"
+                                            placeholder={t('fullNamePlaceholder')}
                                         />
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="grid gap-2">
-                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Email</label>
+                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('email')}</label>
                                             <div className="relative">
                                                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                                 <input
@@ -278,7 +286,7 @@ export default function ProfilePage() {
                                             </div>
                                         </div>
                                         <div className="grid gap-2">
-                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">CPF</label>
+                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('cpf')}</label>
                                             <div className="relative">
                                                 <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                                 <input
@@ -286,7 +294,7 @@ export default function ProfilePage() {
                                                     value={formData.cpf}
                                                     onChange={(e) => setFormData(p => ({ ...p, cpf: maskCPF(e.target.value) }))}
                                                     className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none dark:text-white"
-                                                    placeholder="000.000.000-00"
+                                                    placeholder={t('cpfPlaceholder')}
                                                 />
                                             </div>
                                         </div>
@@ -297,22 +305,22 @@ export default function ProfilePage() {
                             {/* Localização Section */}
                             <section>
                                 <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-                                    <MapPin className="h-3 w-3" /> Endereço e Localização
+                                    <MapPin className="h-3 w-3" /> {t('addressSection')}
                                 </h3>
                                 <div className="grid gap-6">
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         <div className="grid gap-2">
-                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">CEP</label>
+                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('cep')}</label>
                                             <input
                                                 type="text"
                                                 value={formData.cep}
                                                 onChange={(e) => setFormData(p => ({ ...p, cep: maskCEP(e.target.value) }))}
                                                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none dark:text-white"
-                                                placeholder="00000-000"
+                                                placeholder={t('cepPlaceholder')}
                                             />
                                         </div>
                                         <div className="md:col-span-2 grid gap-2">
-                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Rua / Logradouro</label>
+                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('street')}</label>
                                             <div className="relative">
                                                 <Home className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                                 <input
@@ -320,7 +328,7 @@ export default function ProfilePage() {
                                                     value={formData.addressStreet}
                                                     onChange={(e) => setFormData(p => ({ ...p, addressStreet: e.target.value }))}
                                                     className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none dark:text-white"
-                                                    placeholder="Nome da rua"
+                                                    placeholder={t('streetPlaceholder')}
                                                 />
                                             </div>
                                         </div>
@@ -328,30 +336,30 @@ export default function ProfilePage() {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="grid gap-2">
-                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Número</label>
+                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('number')}</label>
                                             <input
                                                 type="text"
                                                 value={formData.addressNumber}
                                                 onChange={(e) => setFormData(p => ({ ...p, addressNumber: e.target.value }))}
                                                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none dark:text-white"
-                                                placeholder="123"
+                                                placeholder={t('numberPlaceholder')}
                                             />
                                         </div>
                                         <div className="grid gap-2">
-                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Complemento</label>
+                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('complement')}</label>
                                             <input
                                                 type="text"
                                                 value={formData.addressComplement}
                                                 onChange={(e) => setFormData(p => ({ ...p, addressComplement: e.target.value }))}
                                                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none dark:text-white"
-                                                placeholder="Apto, Bloco, etc"
+                                                placeholder={t('complementPlaceholder')}
                                             />
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                                         <div className="md:col-span-4 grid gap-2">
-                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Bairro</label>
+                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('neighborhood')}</label>
                                             <div className="relative">
                                                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                                 <input
@@ -359,12 +367,12 @@ export default function ProfilePage() {
                                                     value={formData.addressNeighborhood}
                                                     onChange={(e) => setFormData(p => ({ ...p, addressNeighborhood: e.target.value }))}
                                                     className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none dark:text-white"
-                                                    placeholder="Nome do bairro"
+                                                    placeholder={t('neighborhoodPlaceholder')}
                                                 />
                                             </div>
                                         </div>
                                         <div className="md:col-span-3 grid gap-2">
-                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Estado</label>
+                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('state')}</label>
                                             <div className="relative">
                                                 <select
                                                     value={formData.addressState}
@@ -373,7 +381,7 @@ export default function ProfilePage() {
                                                     onBlur={() => setShowFullStates(false)}
                                                     className="w-full pl-3 pr-8 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none dark:text-white appearance-none cursor-pointer text-sm"
                                                 >
-                                                    <option value="">UF</option>
+                                                    <option value="">{t('stateSelect')}</option>
                                                     {BRAZIL_STATES.map(s => (
                                                         <option key={s.uf} value={s.uf}>
                                                             {showFullStates ? `${s.uf} - ${s.name}` : s.uf}
@@ -384,7 +392,7 @@ export default function ProfilePage() {
                                             </div>
                                         </div>
                                         <div className="md:col-span-5 grid gap-2">
-                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Cidade</label>
+                                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('city')}</label>
                                             <div className="relative">
                                                 <Map className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                                                 <input
@@ -393,7 +401,7 @@ export default function ProfilePage() {
                                                     value={formData.addressCity}
                                                     onChange={(e) => setFormData(p => ({ ...p, addressCity: e.target.value }))}
                                                     className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none dark:text-white"
-                                                    placeholder="Nome da sua cidade"
+                                                    placeholder={t('cityPlaceholder')}
                                                 />
                                                 <datalist id="cities-list">
                                                     {cities.map(c => (
@@ -403,6 +411,25 @@ export default function ProfilePage() {
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                            </section>
+
+                            {/* Preferências Section */}
+                            <section>
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+                                    <Globe2 className="h-3 w-3" /> {t('preferencesSection')}
+                                </h3>
+                                <div className="grid gap-6">
+                                    <LanguageSelector
+                                        variant="inline"
+                                        value={formData.locale}
+                                        onChange={(locale) => {
+                                            setFormData(p => ({ ...p, locale }));
+                                            // Salvar no cookie também
+                                            document.cookie = `locale=${locale};path=/;max-age=31536000`;
+                                        }}
+                                        showLabel={true}
+                                    />
                                 </div>
                             </section>
 
@@ -416,14 +443,14 @@ export default function ProfilePage() {
                                     {saving ? (
                                         <>
                                             <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                            Salvando...
+                                            {t('saving')}
                                         </>
                                     ) : saved ? (
                                         <>
-                                            <Check className="h-5 w-5" /> Perfil Atualizado!
+                                            <Check className="h-5 w-5" /> {t('saved')}
                                         </>
                                     ) : (
-                                        <>Salvar Alterações</>
+                                        <>{t('saveChanges')}</>
                                     )}
                                 </button>
                             </div>
