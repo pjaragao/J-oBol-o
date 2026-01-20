@@ -404,9 +404,11 @@ function NotificationsContent() {
                                         <p className="text-sm font-bold text-slate-900 dark:text-white">{setting.label}</p>
                                         <p className="text-xs text-slate-500 dark:text-slate-400">{setting.desc}</p>
                                     </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
+                                    <label className="relative inline-flex items-center cursor-pointer" htmlFor={`toggle-${setting.id}`}>
                                         <input
                                             type="checkbox"
+                                            id={`toggle-${setting.id}`}
+                                            name={setting.id}
                                             className="sr-only peer"
                                             checked={profile?.notification_settings?.[setting.id] !== false}
                                             onChange={async (e) => {

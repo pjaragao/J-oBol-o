@@ -17,6 +17,7 @@ self.addEventListener('push', function (event) {
 
     try {
         if (event.data) {
+            console.log('[Service Worker] Push data type:', typeof event.data);
             const rawText = event.data.text();
             console.log('[Service Worker] Raw Push Text:', rawText);
 

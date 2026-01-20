@@ -22,7 +22,10 @@ export async function sendPushToUser(userId: string, title: string, message: str
 
     if (!subs || subs.length === 0) return { success: false, error: 'No subscriptions found' }
 
-    const payload = JSON.stringify({ title, body: message, url })
+    const payloadObj = { title, body: message, url }
+    const payload = JSON.stringify(payloadObj)
+    console.log('[Push] Payload to send:', payload)
+
     const results = []
 
     // 2. Send to all endpoints
