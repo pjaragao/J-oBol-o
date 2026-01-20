@@ -48,7 +48,7 @@ function NotificationsContent() {
     const t = useTranslations('notifications')
     const locale = useLocale()
     const [mounted, setMounted] = useState(false)
-    const { isSupported, subscription, subscribeToPush, testPush, loading: pushLoading, error: pushError } = usePushNotifications()
+    const { isSupported, subscription, subscribeToPush, unsubscribeFromPush, testPush, loading: pushLoading, error: pushError } = usePushNotifications()
 
     useEffect(() => {
         setMounted(true)
@@ -380,11 +380,13 @@ function NotificationsContent() {
                                         <span className="text-slate-300 dark:text-slate-700">|</span>
                                         <button
                                             onClick={async () => {
-                                                const { unsubscribeFromPush } = usePushNotifications; // Wait, this is wrong in JSX
+                                                if (confirm('Isso irá remover sua assinatura atual e permitir que você se inscreva novamente. Continuar?')) {
+                                                    await unsubscribeFromPush();
+                                                }
                                             }}
-                                            className="hidden" // Placeholder fix below
+                                            className="text-xs font-semibold text-slate-500 underline hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-300"
                                         >
-                                            Reset
+                                            Reiniciar / Limpar
                                         </button>
                                     </div>
                                 )}
