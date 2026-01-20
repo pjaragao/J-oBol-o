@@ -187,6 +187,19 @@ export function NotificationBell({ userId }: { userId: string }) {
         }
     }
 
+    const translateNotification = (text: string, data?: any) => {
+        if (!text) return ''
+        if (text.startsWith('notifications.')) {
+            const key = text.substring('notifications.'.length)
+            try {
+                return t(key, data)
+            } catch (e) {
+                return text
+            }
+        }
+        return text
+    }
+
     const getIcon = (type?: string) => {
         if (!type) return <Info className="h-4 w-4 text-blue-500" />
         switch (type) {
@@ -284,14 +297,14 @@ export function NotificationBell({ userId }: { userId: string }) {
                                                     "text-xs font-bold truncate",
                                                     notification.is_read ? "text-slate-600 dark:text-slate-400" : "text-slate-900 dark:text-white"
                                                 )}>
-                                                    {notification.title}
+                                                    {translateNotification(notification.title, notification.data)}
                                                 </p>
                                                 <span className="text-[10px] text-slate-400 whitespace-nowrap" suppressHydrationWarning>
                                                     {mounted && notification.created_at ? formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: getLocale() }) : ''}
                                                 </span>
                                             </div>
                                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-                                                {notification.message}
+                                                {translateNotification(notification.message, notification.data)}
                                             </p>
 
                                             {notification.type === 'group_invite' && !notification.is_read && (

@@ -60,6 +60,19 @@ function NotificationsContent() {
         }
     }
 
+    const translateNotification = (text: string, data?: any) => {
+        if (!text) return ''
+        if (text.startsWith('notifications.')) {
+            const key = text.substring('notifications.'.length)
+            try {
+                return t(key, data)
+            } catch (e) {
+                return text
+            }
+        }
+        return text
+    }
+
     // Sync filter with URL
     const filter = (searchParams.get('tab') || 'all') as 'all' | 'unread' | 'read' | 'invites' | 'settings'
 
@@ -417,14 +430,14 @@ function NotificationsContent() {
                                                 "text-sm font-bold",
                                                 notification.is_read ? "text-slate-700 dark:text-slate-300" : "text-green-900 dark:text-green-400"
                                             )}>
-                                                {notification.title}
+                                                {translateNotification(notification.title, notification.data)}
                                             </h3>
                                             <span className="text-xs text-slate-400" suppressHydrationWarning>
                                                 {mounted && notification.created_at ? formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: getLocale() }) : ''}
                                             </span>
                                         </div>
                                         <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                                            {notification.message}
+                                            {translateNotification(notification.message, notification.data)}
                                         </p>
 
                                         {notification.type === 'group_invite' && !notification.is_read && (

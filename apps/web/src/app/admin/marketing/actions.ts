@@ -24,6 +24,37 @@ export interface CampaignData {
     fixedLink?: string
     targetTab?: 'dashboard' | 'bets' | 'ranking' | 'members' | 'settings'
     matchFilter?: 'all' | 'pending' | 'completed' | 'missed'
+    translations?: Record<string, { title: string, message: string }>
+}
+
+export async function translateCampaign(title: string, message: string, targetLocales: string[]) {
+    // This is a mock AI translation service. 
+    // In a real app, you would call OpenAI, Anthropic, or a translation API here.
+    try {
+        const results: Record<string, { title: string, message: string }> = {};
+
+        for (const locale of targetLocales) {
+            // Simulated AI translations
+            if (locale === 'en') {
+                results.en = {
+                    title: `[AI EN] ${title}`,
+                    message: `[AI EN] ${message}`
+                };
+            } else if (locale === 'es') {
+                results.es = {
+                    title: `[AI ES] ${title}`,
+                    message: `[AI ES] ${message}`
+                };
+            }
+        }
+
+        // Simulating network delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        return { success: true, translations: results };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
 }
 
 export async function getAdminGroups(userId: string) {
@@ -201,12 +232,24 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
             const { data: users, error } = await query
             if (error) throw error
 
+            const { data: userLocales } = await supabase.from('profiles').select('id, locale').in('id', users.map(u => u.id))
+            const localeMap = Object.fromEntries((userLocales || []).map(u => [u.id, u.locale || 'pt']))
+
             notificationsToInsert = users.map(u => {
                 const userName = u.display_name || 'Usuário'
+                const userLocale = localeMap[u.id] || 'pt'
+
+                const campaignTitle = (userLocale !== 'pt' && data.translations?.[userLocale])
+                    ? data.translations[userLocale].title
+                    : data.title
+                const campaignMsg = (userLocale !== 'pt' && data.translations?.[userLocale])
+                    ? data.translations[userLocale].message
+                    : data.message
+
                 return {
                     user_id: u.id,
-                    title: data.title.replace(/{user_name}/g, userName),
-                    message: data.message.replace(/{user_name}/g, userName),
+                    title: campaignTitle.replace(/{user_name}/g, userName),
+                    message: campaignMsg.replace(/{user_name}/g, userName),
                     type: data.type,
                     is_read: false,
                     data: {
@@ -217,17 +260,26 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
         } else if (filters.audience === 'manual') {
             const { data: users, error } = await supabase
                 .from('profiles')
-                .select('id, display_name')
+                .select('id, display_name, locale')
                 .in('id', filters.selectedUserIds || [])
 
             if (error) throw error
 
             notificationsToInsert = users.map(u => {
                 const userName = u.display_name || 'Usuário'
+                const userLocale = u.locale || 'pt'
+
+                const campaignTitle = (userLocale !== 'pt' && data.translations?.[userLocale])
+                    ? data.translations[userLocale].title
+                    : data.title
+                const campaignMsg = (userLocale !== 'pt' && data.translations?.[userLocale])
+                    ? data.translations[userLocale].message
+                    : data.message
+
                 return {
                     user_id: u.id,
-                    title: data.title.replace(/{user_name}/g, userName),
-                    message: data.message.replace(/{user_name}/g, userName),
+                    title: campaignTitle.replace(/{user_name}/g, userName),
+                    message: campaignMsg.replace(/{user_name}/g, userName),
                     type: data.type,
                     is_read: false,
                     data: {
@@ -260,7 +312,7 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
                 // To support {group_name} and dynamic links per group, we should send one per group-user pair
                 const { data: members, error } = await supabase
                     .from('group_members')
-                    .select('user_id, group_id, groups(name), profiles(id, display_name)')
+                    .select('user_id, group_id, groups(name), profiles(id, display_name, locale)')
                     .in('group_id', targetGroupIds)
 
                 if (error) throw error
@@ -269,6 +321,14 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
                     const userName = m.profiles.display_name || 'Usuário'
                     const groupName = m.groups.name
                     const groupId = m.group_id
+                    const userLocale = m.profiles.locale || 'pt'
+
+                    const campaignTitle = (userLocale !== 'pt' && data.translations?.[userLocale])
+                        ? data.translations[userLocale].title
+                        : data.title
+                    const campaignMsg = (userLocale !== 'pt' && data.translations?.[userLocale])
+                        ? data.translations[userLocale].message
+                        : data.message
 
                     let link = data.actionLinkType === 'fixed' ? data.fixedLink : undefined
                     if (data.actionLinkType === 'dynamic') {
@@ -277,8 +337,8 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
 
                     return {
                         user_id: m.user_id,
-                        title: data.title.replace(/{user_name}/g, userName).replace(/{group_name}/g, groupName),
-                        message: data.message.replace(/{user_name}/g, userName).replace(/{group_name}/g, groupName),
+                        title: campaignTitle.replace(/{user_name}/g, userName).replace(/{group_name}/g, groupName),
+                        message: campaignMsg.replace(/{user_name}/g, userName).replace(/{group_name}/g, groupName),
                         type: data.type,
                         is_read: false,
                         data: {
@@ -298,11 +358,20 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
             if (error) throw error
 
             const userIds = Array.from(new Set((targets as any[]).map(t => t.user_id)))
-            const { data: users } = await supabase.from('profiles').select('id, display_name').in('id', userIds)
-            const userMap = Object.fromEntries((users || []).map(u => [u.id, u.display_name]))
+            const { data: users } = await supabase.from('profiles').select('id, display_name, locale').in('id', userIds)
+            const userMap = Object.fromEntries((users || []).map(u => [u.id, { name: u.display_name, locale: u.locale || 'pt' }]))
 
             notificationsToInsert = (targets as any[]).map(t => {
-                const userName = userMap[t.user_id] || 'Usuário'
+                const userData = userMap[t.user_id] || { name: 'Usuário', locale: 'pt' }
+                const userName = userData.name || 'Usuário'
+                const userLocale = userData.locale || 'pt'
+
+                const campaignTitle = (userLocale !== 'pt' && data.translations?.[userLocale])
+                    ? data.translations[userLocale].title
+                    : data.title
+                const campaignMsg = (userLocale !== 'pt' && data.translations?.[userLocale])
+                    ? data.translations[userLocale].message
+                    : data.message
 
                 let link = data.actionLinkType === 'fixed' ? data.fixedLink : undefined
                 if (data.actionLinkType === 'dynamic') {
@@ -311,8 +380,8 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
 
                 return {
                     user_id: t.user_id,
-                    title: data.title.replace(/{user_name}/g, userName).replace(/{group_name}/g, t.group_name),
-                    message: data.message.replace(/{user_name}/g, userName).replace(/{group_name}/g, t.group_name),
+                    title: campaignTitle.replace(/{user_name}/g, userName).replace(/{group_name}/g, t.group_name),
+                    message: campaignMsg.replace(/{user_name}/g, userName).replace(/{group_name}/g, t.group_name),
                     type: data.type,
                     is_read: false,
                     data: {

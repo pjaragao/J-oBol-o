@@ -33,15 +33,15 @@ BEGIN
         INSERT INTO public.notifications (user_id, title, message, type, data)
         VALUES (
             admin_id,
-            '🔔 Solicitação de Entrada',
-            requester_name || ' quer entrar no grupo "' || group_name_var || '"',
+            'notifications.system.join_request.title',
+            'notifications.system.join_request.message',
             'join_request',
             jsonb_build_object(
                 'pending_member_id', NEW.id,
                 'group_id', NEW.group_id,
-                'group_name', group_name_var,
+                'group', group_name_var,
                 'requester_id', NEW.user_id,
-                'requester_name', requester_name,
+                'name', requester_name,
                 'link', '/groups/' || NEW.group_id::TEXT
             )
         );

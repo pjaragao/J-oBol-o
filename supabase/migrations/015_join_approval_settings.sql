@@ -91,15 +91,15 @@ BEGIN
         INSERT INTO public.notifications (user_id, title, message, type, data)
         VALUES (
             admin_id,
-            '🔔 Solicitação de Entrada',
-            requester_name || ' quer entrar no grupo "' || group_name || '"',
+            'notifications.system.join_request.title',
+            'notifications.system.join_request.message',
             'join_request',
             jsonb_build_object(
                 'pending_member_id', NEW.id,
                 'group_id', NEW.group_id,
-                'group_name', group_name,
+                'group', group_name,
                 'requester_id', NEW.user_id,
-                'requester_name', requester_name,
+                'name', requester_name,
                 'action_approve', '/api/groups/approve-member?id=' || NEW.id::TEXT || '&action=approve',
                 'action_reject', '/api/groups/approve-member?id=' || NEW.id::TEXT || '&action=reject'
             )
@@ -131,17 +131,17 @@ BEGIN
         VALUES (
             NEW.user_id,
             CASE 
-                WHEN NEW.status = 'approved' THEN '✅ Entrada Aprovada!'
-                ELSE '❌ Entrada Recusada'
+                WHEN NEW.status = 'approved' THEN 'notifications.system.join_approved.title'
+                ELSE 'notifications.system.join_rejected.title'
             END,
             CASE 
-                WHEN NEW.status = 'approved' THEN 'Sua solicitação para entrar no grupo "' || group_name || '" foi aprovada!'
-                ELSE 'Sua solicitação para entrar no grupo "' || group_name || '" foi recusada.'
+                WHEN NEW.status = 'approved' THEN 'notifications.system.join_approved.message'
+                ELSE 'notifications.system.join_rejected.message'
             END,
             'join_request_result',
             jsonb_build_object(
                 'group_id', NEW.group_id,
-                'group_name', group_name,
+                'group', group_name,
                 'status', NEW.status
             )
         );

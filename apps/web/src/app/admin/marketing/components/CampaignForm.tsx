@@ -15,7 +15,9 @@ import {
     Search,
     Loader2,
     Gamepad2,
-    Shield
+    Shield,
+    Languages,
+    Sparkles
 } from 'lucide-react'
 import {
     getAudiencePreview,
@@ -25,7 +27,8 @@ import {
     getEvents,
     searchUsers,
     searchGroups,
-    getAdminGroups
+    getAdminGroups,
+    translateCampaign
 } from '../actions'
 import { cn } from '@/lib/utils'
 
@@ -125,6 +128,33 @@ export function CampaignForm() {
         matchFilter: 'pending'
     })
 
+    const [translations, setTranslations] = useState<Record<string, { title: string, message: string }>>({
+        en: { title: '', message: '' },
+        es: { title: '', message: '' }
+    })
+    const [activeTab, setActiveTab] = useState<'pt' | 'en' | 'es'>('pt')
+    const [isTranslating, setIsTranslating] = useState(false)
+
+    const handleAutoTranslate = async () => {
+        if (!data.title || !data.message) {
+            setStatus({ type: 'error', message: 'Preencha o título e a mensagem em Português primeiro.' })
+            return
+        }
+
+        setIsTranslating(true)
+        setStatus(null)
+
+        const result = await translateCampaign(data.title, data.message, ['en', 'es'])
+
+        if (result.success && result.translations) {
+            setTranslations(result.translations)
+            setStatus({ type: 'success', message: 'Traduções geradas com sucesso! Por favor, valide os textos.' })
+        } else {
+            setStatus({ type: 'error', message: result.message || 'Erro ao traduzir.' })
+        }
+        setIsTranslating(false)
+    }
+
     useEffect(() => {
         async function loadEvents() {
             const { success, data } = await getEvents()
@@ -163,7 +193,7 @@ export function CampaignForm() {
         setStatus(null)
 
         try {
-            const result = await sendCampaign(filters, data)
+            const result = await sendCampaign(filters, { ...data, translations })
             if (result.success) {
                 setStatus({ type: 'success', message: result.message })
                 // Optional: clear message but keep filters
@@ -568,6 +598,93 @@ export function CampaignForm() {
                             </p>
                         </div>
 
+                        {/* Translation Section */}
+                        <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-2">
+                                    <Languages className="h-5 w-5 text-blue-600" />
+                                    <h2 className="text-lg font-bold">3. Multi-idioma (Opcional)</h2>
+                                </div>
+                                <button
+                                    onClick={handleAutoTranslate}
+                                    disabled={isTranslating || !data.title || !data.message}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-95"
+                                >
+                                    {isTranslating ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        <Sparkles className="h-3.5 w-3.5" />
+                                    )}
+                                    Traduzir com IA
+                                </button>
+                            </div>
+
+                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-2 flex gap-1 mb-4 border border-slate-100 dark:border-slate-800">
+                                {[
+                                    { id: 'pt', label: 'Português', flag: '🇧🇷' },
+                                    { id: 'en', label: 'English', flag: '🇺🇸' },
+                                    { id: 'es', label: 'Español', flag: '🇪🇸' }
+                                ].map(lang => (
+                                    <button
+                                        key={lang.id}
+                                        onClick={() => setActiveTab(lang.id as any)}
+                                        className={cn(
+                                            "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2",
+                                            activeTab === lang.id
+                                                ? "bg-white dark:bg-slate-900 shadow-sm text-green-700 dark:text-green-500"
+                                                : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                        )}
+                                    >
+                                        <span>{lang.flag}</span>
+                                        {lang.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                {activeTab === 'pt' ? (
+                                    <div className="p-4 bg-green-50/50 dark:bg-green-500/5 border border-green-100 dark:border-green-900/50 rounded-xl">
+                                        <p className="text-xs text-green-700 dark:text-green-400 font-medium">
+                                            Edite os campos acima para alterar o texto base em Português.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
+                                                Título ({activeTab.toUpperCase()})
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={translations[activeTab].title}
+                                                onChange={(e) => setTranslations({
+                                                    ...translations,
+                                                    [activeTab]: { ...translations[activeTab], title: e.target.value }
+                                                })}
+                                                placeholder={`Título em ${activeTab === 'en' ? 'Inglês' : 'Espanhol'}`}
+                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
+                                                Mensagem ({activeTab.toUpperCase()})
+                                            </label>
+                                            <textarea
+                                                value={translations[activeTab].message}
+                                                onChange={(e) => setTranslations({
+                                                    ...translations,
+                                                    [activeTab]: { ...translations[activeTab], message: e.target.value }
+                                                })}
+                                                rows={3}
+                                                placeholder={`Mensagem em ${activeTab === 'en' ? 'Inglês' : 'Espanhol'}`}
+                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-bold mb-1.5 text-slate-700 dark:text-slate-300">
@@ -685,7 +802,7 @@ export function CampaignForm() {
                     <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
                         <div className="flex items-center gap-2 mb-6">
                             <Send className="h-5 w-5 text-green-600" />
-                            <h2 className="text-lg font-bold">3. Revisão e Envio</h2>
+                            <h2 className="text-lg font-bold">4. Revisão e Envio</h2>
                         </div>
 
                         <div className="space-y-4">

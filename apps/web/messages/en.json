@@ -354,6 +354,32 @@
             "approveSuccess": "Request approved!",
             "rejectSuccess": "Request declined.",
             "processError": "Error processing"
+        },
+        "system": {
+            "join_request": {
+                "title": "🔔 Join Request",
+                "message": "{name} wants to join \"{group}\""
+            },
+            "join_approved": {
+                "title": "✅ Join Approved!",
+                "message": "Your request to join \"{group}\" was approved!"
+            },
+            "join_rejected": {
+                "title": "❌ Join Rejected",
+                "message": "Your request to join \"{group}\" was rejected."
+            },
+            "new_member": {
+                "title": "New Member in Group!",
+                "message": "{name} just joined group {group}"
+            },
+            "points_updated": {
+                "title": "Points Updated!",
+                "message": "You scored {points} points in {match}. Your position in group {group} is now {rank}."
+            },
+            "rules_changed": {
+                "title": "Rules Changed!",
+                "message": "The administrator changed the scoring rules for group {group}."
+            }
         }
     },
     "header": {

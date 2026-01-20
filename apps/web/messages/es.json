@@ -354,6 +354,32 @@
             "approveSuccess": "¡Solicitud aprobada!",
             "rejectSuccess": "Solicitud rechazada.",
             "processError": "Error al procesar"
+        },
+        "system": {
+            "join_request": {
+                "title": "🔔 Solicitud de Entrada",
+                "message": "{name} quiere entrar al grupo \"{group}\""
+            },
+            "join_approved": {
+                "title": "✅ ¡Entrada Aprobada!",
+                "message": "¡Tu solicitud para entrar al grupo \"{group}\" fue aprobada!"
+            },
+            "join_rejected": {
+                "title": "❌ Entrada Rechazada",
+                "message": "Tu solicitud para entrar al grupo \"{group}\" fue rechazada."
+            },
+            "new_member": {
+                "title": "¡Nuevo miembro en el grupo!",
+                "message": "{name} acaba de entrar al grupo {group}"
+            },
+            "points_updated": {
+                "title": "¡Puntuación actualizada!",
+                "message": "Marcaste {points} puntos en {match}. Tu posición en el grupo {group} ahora es {rank}º."
+            },
+            "rules_changed": {
+                "title": "¡Reglas modificadas!",
+                "message": "El administrador cambió las reglas de puntuación del grupo {group}."
+            }
         }
     },
     "header": {

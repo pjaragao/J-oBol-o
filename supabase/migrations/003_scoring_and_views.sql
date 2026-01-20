@@ -144,10 +144,15 @@ BEGIN
             INSERT INTO public.notifications (user_id, title, message, type, data)
             VALUES (
                 group_admin_id,
-                'Novo membro no grupo!',
-                joiner_name || ' acabou de entrar no grupo ' || group_name,
+                'notifications.system.new_member.title',
+                'notifications.system.new_member.message',
                 'info',
-                jsonb_build_object('group_id', NEW.group_id, 'user_id', NEW.user_id)
+                jsonb_build_object(
+                    'group_id', NEW.group_id, 
+                    'user_id', NEW.user_id,
+                    'name', joiner_name,
+                    'group', group_name
+                )
             );
         END IF;
     END IF;
@@ -207,10 +212,17 @@ BEGIN
             INSERT INTO public.notifications (user_id, title, message, type, data)
             VALUES (
                 NEW.user_id,
-                'Pontuação atualizada!',
-                'Você marcou ' || NEW.points || ' pontos em ' || match_desc || '. Sua posição no grupo ' || g_name || ' agora é ' || u_rank || 'º.',
+                'notifications.system.points_updated.title',
+                'notifications.system.points_updated.message',
                 'points',
-                jsonb_build_object('group_id', NEW.group_id, 'match_id', NEW.match_id, 'points', NEW.points, 'rank', u_rank)
+                jsonb_build_object(
+                    'group_id', NEW.group_id, 
+                    'match_id', NEW.match_id, 
+                    'points', NEW.points, 
+                    'rank', u_rank,
+                    'match', match_desc,
+                    'group', g_name
+                )
             );
         END IF;
     END IF;
@@ -234,10 +246,13 @@ BEGIN
         INSERT INTO public.notifications (user_id, title, message, type, data)
         SELECT 
             gm.user_id,
-            'Regras alteradas!',
-            'O administrador alterou as regras de pontuação do grupo ' || NEW.name || '.',
+            'notifications.system.rules_changed.title',
+            'notifications.system.rules_changed.message',
             'warning',
-            jsonb_build_object('group_id', NEW.id)
+            jsonb_build_object(
+                'group_id', NEW.id,
+                'group', NEW.name
+            )
         FROM public.group_members gm
         JOIN public.profiles p ON gm.user_id = p.id
         WHERE gm.group_id = NEW.id
