@@ -9,41 +9,47 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('push', function (event) {
     console.log('[Service Worker] Push Received.');
 
+    let notificationData = {
+        title: 'JãoBolão',
+        body: 'Você tem uma nova atualização!',
+        url: '/'
+    };
+
     try {
-        if (!event.data) {
-            console.warn('[Service Worker] Push event but no data');
-            return;
-        }
+        if (event.data) {
+            const rawText = event.data.text();
+            console.log('[Service Worker] Raw Push Text:', rawText);
 
-        const data = event.data.json();
-        console.log('[Service Worker] Push Data:', data);
-
-        const options = {
-            body: data.body || 'Nova notificação',
-            icon: '/logo-circle.png',
-            badge: '/logo-circle.png',
-            vibrate: [100, 50, 100],
-            data: {
-                dateOfArrival: Date.now(),
-                url: data.url || '/'
+            try {
+                const parsed = JSON.parse(rawText);
+                notificationData = {
+                    title: parsed.title || notificationData.title,
+                    body: parsed.body || notificationData.body,
+                    url: parsed.url || notificationData.url
+                };
+            } catch (jsonErr) {
+                console.warn('[Service Worker] Push data is not JSON, using as body');
+                notificationData.body = rawText;
             }
-        };
-
-        event.waitUntil(
-            self.registration.showNotification(data.title || 'JãoBolão', options)
-        );
+        }
     } catch (err) {
-        console.error('[Service Worker] Error handling push event:', err);
-
-        // Fallback notification if JSON parsing fails but data exists
-        const fallbackOptions = {
-            body: 'Você recebeu uma nova atualização no JãoBolão.',
-            icon: '/logo-circle.png'
-        };
-        event.waitUntil(
-            self.registration.showNotification('JãoBolão', fallbackOptions)
-        );
+        console.error('[Service Worker] Error extracting push data:', err);
     }
+
+    const options = {
+        body: notificationData.body,
+        icon: '/logo-circle.png',
+        badge: '/logo-circle.png',
+        vibrate: [100, 50, 100],
+        data: {
+            dateOfArrival: Date.now(),
+            url: notificationData.url
+        }
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(notificationData.title, options)
+    );
 });
 
 self.addEventListener('notificationclick', function (event) {

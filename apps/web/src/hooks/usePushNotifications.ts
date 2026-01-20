@@ -106,10 +106,28 @@ export function usePushNotifications() {
         }
     }
 
+    const unsubscribeFromPush = async () => {
+        setLoading(true)
+        try {
+            if (subscription) {
+                await subscription.unsubscribe()
+                setSubscription(null)
+            }
+            return true
+        } catch (err: any) {
+            console.error('Failed to unsubscribe:', err)
+            setError(err.message)
+            return false
+        } finally {
+            setLoading(false)
+        }
+    }
+
     return {
         isSupported,
         subscription,
         subscribeToPush,
+        unsubscribeFromPush,
         testPush,
         loading,
         error

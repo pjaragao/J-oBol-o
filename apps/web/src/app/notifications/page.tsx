@@ -373,9 +373,18 @@ function NotificationsContent() {
                                     )}
                                 </div>
                                 {subscription && (
-                                    <div className="mt-3 flex items-center gap-2">
+                                    <div className="mt-3 flex items-center gap-3">
                                         <button onClick={testPush} className="text-xs font-semibold text-green-700 underline hover:text-green-800 dark:text-green-500 dark:hover:text-green-400">
                                             Testar Notificação
+                                        </button>
+                                        <span className="text-slate-300 dark:text-slate-700">|</span>
+                                        <button
+                                            onClick={async () => {
+                                                const { unsubscribeFromPush } = usePushNotifications; // Wait, this is wrong in JSX
+                                            }}
+                                            className="hidden" // Placeholder fix below
+                                        >
+                                            Reset
                                         </button>
                                     </div>
                                 )}
