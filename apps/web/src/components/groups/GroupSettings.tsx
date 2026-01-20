@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Trophy, DollarSign, AlertTriangle, Wallet, ArrowUp, ArrowDown } from 'lucide-react'
 import { calculateLivePoints } from '@/lib/utils/points'
 import Link from 'next/link'
+import { useTranslations, useFormatter } from 'next-intl'
 
 interface GroupSettingsProps {
     group: {
@@ -25,6 +26,8 @@ interface GroupSettingsProps {
 }
 
 export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
+    const t = useTranslations('group');
+    const format = useFormatter();
     const [name, setName] = useState(group.name)
     const [description, setDescription] = useState(group.description || '')
     const [isPublic, setIsPublic] = useState(group.is_public)
@@ -156,7 +159,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                     const totalWithLive = pointsMapLiveTotal.get(userId) || 0
                     return {
                         user_id: userId,
-                        display_name: profile?.display_name || 'Usuário',
+                        display_name: profile?.display_name || t('user'),
                         avatar_url: profile?.avatar_url,
                         total_points: totalWithLive,
                         live_points: livePointsOnlyMap.get(userId) || 0,
@@ -281,11 +284,11 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
 
             if (error) throw error
 
-            alert('Grupo deletado com sucesso.')
+            alert(t('deleteSuccess'))
             router.push('/dashboard')
         } catch (error: any) {
             console.error('Delete error:', error)
-            alert('Erro ao deletar grupo: ' + error.message)
+            alert((t('errorDeleting') || 'Erro ao deletar grupo: ') + error.message)
             setLoading(false)
         } finally {
             setShowDeleteConfirm(false)
@@ -311,9 +314,9 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
 
             if (error) throw error
 
-            alert('Configurações atualizadas com sucesso!')
+            alert(t('saved'))
         } catch (error: any) {
-            alert('Erro ao atualizar: ' + error.message)
+            alert((t('errorSaving') || 'Erro ao atualizar: ') + error.message)
         } finally {
             setLoading(false)
         }
@@ -334,17 +337,17 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
 
             // 2. Refresh local state
             setOfflineConfig(prev => prev ? { ...prev, max_members: newLimit } : null)
-            alert('Limite de participantes aumentado com sucesso!')
+            alert(t('upgradeConfirmed'))
             setShowUpgradeModal(false)
         } catch (error: any) {
-            alert('Erro ao aumentar limite: ' + error.message)
+            alert((t('errorUpgrading') || 'Erro ao aumentar limite: ') + error.message)
         } finally {
             setLoading(false)
         }
     }
 
     const handleFinalizeGroup = async () => {
-        if (!confirm("Tem certeza que deseja FINALIZAR este bolão? Isso irá distribuir os prêmios (simulado) e encerrar novas apostas.")) return
+        if (!confirm(t('finishGroupConfirm'))) return
 
         setLoading(true)
         try {
@@ -369,11 +372,11 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
             if (error) throw error
 
             setIsFinished(true)
-            alert("🏆 Bolão finalizado com sucesso! Prêmios distribuídos (em transações).")
+            alert(t('finishGroupSuccess'))
             router.refresh()
         } catch (error: any) {
             console.error('Error finalizing group:', error)
-            alert('Erro ao finalizar bolão: ' + error.message)
+            alert((t('errorSaving') || 'Erro ao finalizar bolão: ') + error.message)
         } finally {
             setLoading(false)
         }
@@ -381,13 +384,13 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
 
     return (
         <div className="bg-white dark:bg-slate-900 px-4 py-5 shadow sm:rounded-lg sm:p-6 relative border border-gray-100 dark:border-slate-800">
-            <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-6">Configurações do Grupo</h3>
+            <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-6">{t('groupSettings_title')}</h3>
 
             <form onSubmit={handleUpdate}>
                 {/* ... existing form fields ... */}
                 <div className="grid grid-cols-6 gap-6">
                     <div className="col-span-6 sm:col-span-4">
-                        <label htmlFor="group-name" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Nome do Grupo</label>
+                        <label htmlFor="group-name" className="block text-sm font-medium text-gray-700 dark:text-slate-300">{t('groupName')}</label>
                         <input
                             type="text"
                             name="group-name"
@@ -399,7 +402,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                     </div>
 
                     <div className="col-span-6">
-                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Descrição</label>
+                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-slate-300">{t('description')}</label>
                         <textarea
                             name="description"
                             id="description"
@@ -423,8 +426,8 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                                 />
                             </div>
                             <div className="ml-3 text-sm">
-                                <label htmlFor="is_public" className="font-medium text-gray-700 dark:text-slate-300">Grupo Público</label>
-                                <p className="text-gray-500 dark:text-slate-500">Permite que qualquer pessoa encontre e entre no grupo.</p>
+                                <label htmlFor="is_public" className="font-medium text-gray-700 dark:text-slate-300">{t('publicGroup')}</label>
+                                <p className="text-gray-500 dark:text-slate-500">{t('publicGroupDesc')}</p>
                             </div>
                         </div>
                     </div>
@@ -442,8 +445,8 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                                 />
                             </div>
                             <div className="ml-3 text-sm">
-                                <label htmlFor="allow_member_invites" className="font-medium text-gray-700 dark:text-slate-300">Membros podem convidar</label>
-                                <p className="text-gray-500 dark:text-slate-500">Se ativado, qualquer participante do grupo poderá enviar convites e ver o código.</p>
+                                <label htmlFor="allow_member_invites" className="font-medium text-gray-700 dark:text-slate-300">{t('membersCanInvite')}</label>
+                                <p className="text-gray-500 dark:text-slate-500">{t('membersCanInviteDesc')}</p>
                             </div>
                         </div>
                     </div>
@@ -461,29 +464,29 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                                 />
                             </div>
                             <div className="ml-3 text-sm">
-                                <label htmlFor="join_requires_approval" className="font-medium text-gray-700 dark:text-slate-300">Exigir aprovação de novos membros</label>
-                                <p className="text-gray-500 dark:text-slate-500">Se ativado, o administrador deve aprovar cada pedido de entrada via link ou código.</p>
+                                <label htmlFor="join_requires_approval" className="font-medium text-gray-700 dark:text-slate-300">{t('requireApproval')}</label>
+                                <p className="text-gray-500 dark:text-slate-500">{t('requireApprovalDesc')}</p>
                             </div>
                         </div>
                     </div>
 
                     <div className="col-span-6 pt-6 border-t dark:border-slate-800">
                         <div className="flex justify-between items-center mb-4">
-                            <h4 className="text-md font-medium text-gray-900 dark:text-white">Regras de Pontuação</h4>
+                            <h4 className="text-md font-medium text-gray-900 dark:text-white">{t('scoringRules')}</h4>
                             {hasStarted && (
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800/50">
-                                    🔒 Bloqueado: Campeonato em andamento
+                                    🔒 {t('locked')}
                                 </span>
                             )}
                         </div>
                         {hasStarted && (
                             <p className="text-sm text-gray-500 dark:text-slate-400 mb-4 bg-gray-50 dark:bg-slate-800/50 p-3 rounded-md border border-gray-200 dark:border-slate-700">
-                                As regras de pontuação não podem ser alteradas pois o campeonato já começou.
+                                {t('rulesCannotBeChanged')}
                             </p>
                         )}
                         <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
                             <div>
-                                <label htmlFor="points-exact" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Placar Exato (Cravada)</label>
+                                <label htmlFor="points-exact" className="block text-sm font-medium text-gray-700 dark:text-slate-300">{t('exactScore')}</label>
                                 <div className="mt-1 flex rounded-md shadow-sm">
                                     <input
                                         type="number"
@@ -493,13 +496,13 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                                         disabled={hasStarted}
                                         className={`block w-full flex-1 rounded-l-md border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:border-green-500 focus:ring-green-500 sm:text-sm p-2 border transition-colors ${hasStarted ? 'bg-gray-100 dark:bg-slate-700 cursor-not-allowed' : ''}`}
                                     />
-                                    <span className="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 text-gray-500 dark:text-slate-400 sm:text-sm">pts</span>
+                                    <span className="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 text-gray-500 dark:text-slate-400 sm:text-sm">{t('points_short')?.toLowerCase() || 'pts'}</span>
                                 </div>
-                                <p className="mt-1 text-xs text-gray-500 dark:text-slate-500">Acertar o placar exato do jogo.</p>
+                                <p className="mt-1 text-xs text-gray-500 dark:text-slate-500">{t('exactScoreDesc')}</p>
                             </div>
 
                             <div>
-                                <label htmlFor="points-winner-diff" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Vencedor + Diferença de Gols</label>
+                                <label htmlFor="points-winner-diff" className="block text-sm font-medium text-gray-700 dark:text-slate-300">{t('winnerPlusDiff')}</label>
                                 <div className="mt-1 flex rounded-md shadow-sm">
                                     <input
                                         type="number"
@@ -509,13 +512,13 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                                         disabled={hasStarted}
                                         className={`block w-full flex-1 rounded-l-md border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:border-green-500 focus:ring-green-500 sm:text-sm p-2 border transition-colors ${hasStarted ? 'bg-gray-100 dark:bg-slate-700 cursor-not-allowed' : ''}`}
                                     />
-                                    <span className="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 text-gray-500 dark:text-slate-400 sm:text-sm">pts</span>
+                                    <span className="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 text-gray-500 dark:text-slate-400 sm:text-sm">{t('points_short')?.toLowerCase() || 'pts'}</span>
                                 </div>
-                                <p className="mt-1 text-xs text-gray-500 dark:text-slate-500">Acertar vencedor e a diferença de gols (ex: Apostou 2-0, foi 3-1).</p>
+                                <p className="mt-1 text-xs text-gray-500 dark:text-slate-500">{t('winnerPlusDiffDesc')}</p>
                             </div>
 
                             <div>
-                                <label htmlFor="points-winner" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Só Vencedor</label>
+                                <label htmlFor="points-winner" className="block text-sm font-medium text-gray-700 dark:text-slate-300">{t('winnerOnly')}</label>
                                 <div className="mt-1 flex rounded-md shadow-sm">
                                     <input
                                         type="number"
@@ -525,13 +528,13 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                                         disabled={hasStarted}
                                         className={`block w-full flex-1 rounded-l-md border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:border-green-500 focus:ring-green-500 sm:text-sm p-2 border transition-colors ${hasStarted ? 'bg-gray-100 dark:bg-slate-700 cursor-not-allowed' : ''}`}
                                     />
-                                    <span className="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 text-gray-500 dark:text-slate-400 sm:text-sm">pts</span>
+                                    <span className="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 text-gray-500 dark:text-slate-400 sm:text-sm">{t('points_short')?.toLowerCase() || 'pts'}</span>
                                 </div>
-                                <p className="mt-1 text-xs text-gray-500 dark:text-slate-500">Acertar quem ganhou (ou empate) mas errar placar/diferença.</p>
+                                <p className="mt-1 text-xs text-gray-500 dark:text-slate-500">{t('winnerOnlyDesc')}</p>
                             </div>
 
                             <div>
-                                <label htmlFor="points-one-score" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Um Placar Correto</label>
+                                <label htmlFor="points-one-score" className="block text-sm font-medium text-gray-700 dark:text-slate-300">{t('oneScoreCorrect')}</label>
                                 <div className="mt-1 flex rounded-md shadow-sm">
                                     <input
                                         type="number"
@@ -541,9 +544,9 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                                         disabled={hasStarted}
                                         className={`block w-full flex-1 rounded-l-md border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:border-green-500 focus:ring-green-500 sm:text-sm p-2 border transition-colors ${hasStarted ? 'bg-gray-100 dark:bg-slate-700 cursor-not-allowed' : ''}`}
                                     />
-                                    <span className="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 text-gray-500 dark:text-slate-400 sm:text-sm">pts</span>
+                                    <span className="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 text-gray-500 dark:text-slate-400 sm:text-sm">{t('points_short')?.toLowerCase() || 'pts'}</span>
                                 </div>
-                                <p className="mt-1 text-xs text-gray-500 dark:text-slate-500">Acertar os gols de pelo menos um time (Um Placar Correto).</p>
+                                <p className="mt-1 text-xs text-gray-500 dark:text-slate-500">{t('oneScoreCorrectDesc')}</p>
                             </div>
                         </div>
                     </div>
@@ -555,7 +558,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                         disabled={loading}
                         className="ml-3 inline-flex justify-center rounded-md border border-transparent bg-green-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
                     >
-                        {loading ? 'Salvando...' : 'Salvar Alterações'}
+                        {loading ? t('saving') : t('saveChanges')}
                     </button>
                 </div>
             </form >
@@ -563,15 +566,15 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
             {/* Offline Group Limits Upgrade */}
             {offlineConfig && offlineConfig.payment_method === 'OFFLINE' && (
                 <div className="mt-10 pt-6 border-t border-gray-200 dark:border-slate-800">
-                    <h4 className="text-md font-medium text-slate-900 dark:text-white mb-4 font-bold">Limite de Participantes (Cobrança Offline)</h4>
+                    <h4 className="text-md font-medium text-slate-900 dark:text-white mb-4 font-bold">{t('memberLimit')}</h4>
                     <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-md p-4 flex items-center justify-between">
                         <div>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-2xl font-bold text-slate-900 dark:text-white">{offlineConfig.max_members}</span>
-                                <span className="text-sm text-slate-500 dark:text-slate-400">máx. participantes</span>
+                                <span className="text-sm text-slate-500 dark:text-slate-400">{t('maxParticipants')}</span>
                             </div>
                             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-md">
-                                Você pode aumentar o limite de participantes pagando a taxa adicional por vaga.
+                                {t('memberLimitDesc')}
                             </p>
                         </div>
                         <button
@@ -579,7 +582,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                             onClick={() => setShowUpgradeModal(true)}
                             className="ml-3 inline-flex justify-center rounded-md border border-transparent bg-slate-800 dark:bg-slate-700 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-slate-900 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
                         >
-                            Aumentar Limite
+                            {t('increaseLimit')}
                         </button>
                     </div>
                 </div>
@@ -588,16 +591,16 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
             {/* Finalization Zone Section */}
             {group.created_by === userId && !isFinished && (
                 <div className="mt-10 pt-6 border-t border-red-200 dark:border-red-900/50">
-                    <h4 className="text-md font-medium text-red-600 dark:text-red-400 mb-4 font-bold">Encerrar Bolão</h4>
+                    <h4 className="text-md font-medium text-red-600 dark:text-red-400 mb-4 font-bold">{t('finishGroup')}</h4>
                     <div className="bg-red-50/50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-md p-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
                                 <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
                             </div>
                             <div>
-                                <p className="text-sm font-bold text-red-900 dark:text-red-200">Finalizar e distribuir prêmios</p>
+                                <p className="text-sm font-bold text-red-900 dark:text-red-200">{t('finishGroupAction')}</p>
                                 <p className="text-xs text-red-600 dark:text-red-400">
-                                    Prêmio total: <strong>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financials?.net_pot || 0)}</strong>
+                                    {t('realScoreTitle')} <strong>{format.number(financials?.net_pot || 0, { style: 'currency', currency: 'BRL' })}</strong>
                                 </p>
                             </div>
                         </div>
@@ -607,7 +610,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                             disabled={loading}
                             className="inline-flex justify-center rounded-md border border-transparent bg-red-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors disabled:opacity-50"
                         >
-                            {loading ? 'Finalizando...' : 'Encerrar Bolão'}
+                            {loading ? t('finalizing') : t('finishGroup')}
                         </button>
                     </div>
                 </div>
@@ -617,20 +620,20 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                 <div className="mt-10 pt-6 border-t border-green-200 dark:border-green-900/50">
                     <div className="p-6 rounded-xl border-2 border-green-500 bg-green-50 dark:bg-green-900/10 flex flex-col items-center text-center gap-2">
                         <Trophy className="w-12 h-12 text-yellow-500 mb-2" />
-                        <h3 className="text-xl font-black text-green-900 dark:text-green-200">ESTE BOLÃO FOI FINALIZADO!</h3>
+                        <h3 className="text-xl font-black text-green-900 dark:text-green-200">{t('groupFinishedTitle')}</h3>
                         <p className="text-sm text-green-700 dark:text-green-400">
-                            Prêmios distribuídos e ranking congelado.
+                            {t('groupFinishedSubtitle')}
                         </p>
                     </div>
                 </div>
             )}
 
             <div className="mt-10 pt-6 border-t border-red-200 dark:border-red-900/50">
-                <h4 className="text-md font-medium text-red-600 dark:text-red-400 mb-4 font-bold">Zona de Perigo</h4>
+                <h4 className="text-md font-medium text-red-600 dark:text-red-400 mb-4 font-bold">{t('dangerZone')}</h4>
                 <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-md p-4 flex items-center justify-between">
                     <div>
-                        <h5 className="text-sm font-bold text-red-800 dark:text-red-300">Deletar este grupo</h5>
-                        <p className="text-sm text-red-600 dark:text-red-400 mt-1">Uma vez deletado, não há volta. Todas as apostas e rankings serão perdidos.</p>
+                        <h5 className="text-sm font-bold text-red-800 dark:text-red-300">{t('deleteThisGroup')}</h5>
+                        <p className="text-sm text-red-600 dark:text-red-400 mt-1">{t('deleteGroupDesc')}</p>
                     </div>
                     <button
                         type="button"
@@ -638,7 +641,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                         disabled={loading}
                         className="ml-3 inline-flex justify-center rounded-md border border-transparent bg-red-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 transition-colors shadow-red-200 dark:shadow-none"
                     >
-                        Deletar Grupo
+                        {t('deleteGroup')}
                     </button>
                 </div>
             </div>
@@ -648,12 +651,12 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                 <div className="fixed inset-0 bg-black/60 dark:bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm transition-opacity">
                     <div className="bg-white dark:bg-slate-900 rounded-lg max-w-md w-full p-6 shadow-2xl border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Aumentar Limite de Participantes</h3>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('increaseLimit')}</h3>
                             <button
                                 onClick={() => setShowUpgradeModal(false)}
                                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                             >
-                                <span className="sr-only">Fechar</span>
+                                <span className="sr-only">{t('close')}</span>
                                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -663,7 +666,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                         <div className="mb-6 space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                    Novo Limite Máximo
+                                    {t('newLimitLabel')}
                                 </label>
                                 <div className="flex items-center gap-3">
                                     <input
@@ -674,34 +677,34 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                                         className="block w-32 rounded-md border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm p-2 border"
                                     />
                                     <span className="text-sm text-slate-500">
-                                        Atual: <strong>{offlineConfig.max_members}</strong>
+                                        {t('currentLimit')}: <strong>{offlineConfig.max_members}</strong>
                                     </span>
                                 </div>
                             </div>
 
                             <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/30 rounded-md p-4 space-y-2">
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-slate-600 dark:text-slate-400">Vagas Adicionais:</span>
+                                    <span className="text-slate-600 dark:text-slate-400">{t('additionalSlots')}:</span>
                                     <span className="font-bold text-slate-900 dark:text-white">
                                         +{Math.max(0, newLimit - (offlineConfig.max_members || 0))}
                                     </span>
                                 </div>
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-slate-600 dark:text-slate-400">Taxa por vaga:</span>
+                                    <span className="text-slate-600 dark:text-slate-400">{t('slotFee')}:</span>
                                     <span className="font-medium text-slate-900 dark:text-white">
-                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(offlineConfig.event_fees?.offline_fee_per_slot || 0)}
+                                        {format.number(offlineConfig.event_fees?.offline_fee_per_slot || 0, { style: 'currency', currency: 'BRL' })}
                                     </span>
                                 </div>
                                 <div className="border-t border-yellow-200 dark:border-yellow-900/30 pt-2 flex justify-between items-center mt-2">
-                                    <span className="font-bold text-yellow-800 dark:text-yellow-500">Total a Pagar:</span>
+                                    <span className="font-bold text-yellow-800 dark:text-yellow-500">{t('totalToPay')}:</span>
                                     <span className="text-xl font-black text-yellow-800 dark:text-yellow-500">
-                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(upgradeFee)}
+                                        {format.number(upgradeFee, { style: 'currency', currency: 'BRL' })}
                                     </span>
                                 </div>
                             </div>
 
                             <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
-                                Ao confirmar, o novo limite será aplicado imediatamente. A cobrança será registrada no seu histórico.
+                                {t('upgradeDisclaimer')}
                             </p>
                         </div>
 
@@ -712,7 +715,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                                 disabled={loading}
                                 className="flex-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-300 py-2 rounded-md font-medium hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
                             >
-                                Cancelar
+                                {t('cancel')}
                             </button>
                             <button
                                 type="button"
@@ -720,7 +723,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                                 disabled={loading || upgradeFee <= 0}
                                 className="flex-1 bg-green-600 text-white py-2 rounded-md font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 transition-colors"
                             >
-                                {loading ? 'Processando...' : 'Confirmar Upgrade'}
+                                {loading ? t('processing') : t('confirmUpgrade')}
                             </button>
                         </div>
                     </div>
@@ -737,10 +740,10 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
                             </div>
-                            <h3 className="text-lg font-bold text-center mb-2 text-gray-900 dark:text-white">Deletar Grupo?</h3>
+                            <h3 className="text-lg font-bold text-center mb-2 text-gray-900 dark:text-white">{t('deleteGroup')}?</h3>
                             <p className="text-sm text-gray-500 dark:text-slate-400 text-center mb-6">
-                                Tem certeza que deseja DELETAR este grupo? <br />
-                                <span className="font-bold text-red-600 dark:text-red-400 block mt-2">Esta ação apagará todas as apostas e rankings e não pode ser desfeita.</span>
+                                {t('deleteGroupConfirm')} <br />
+                                <span className="font-bold text-red-600 dark:text-red-400 block mt-2">{t('deleteGroupDisclaimer')}</span>
                             </p>
                             <div className="flex gap-3">
                                 <button
@@ -749,7 +752,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                                     disabled={loading}
                                     className="flex-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-300 py-2 rounded-md font-medium hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
                                 >
-                                    Cancelar
+                                    {t('cancel')}
                                 </button>
                                 <button
                                     type="button"
@@ -757,7 +760,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                                     disabled={loading}
                                     className="flex-1 bg-red-600 text-white py-2 rounded-md font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 transition-colors"
                                 >
-                                    {loading ? 'Deletando...' : 'Sim, Deletar'}
+                                    {loading ? t('deleting') || 'Deletando...' : t('yesDelete') || 'Sim, Deletar'}
                                 </button>
                             </div>
                         </div>

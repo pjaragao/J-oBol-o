@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, X, Mail, Loader2, UserPlus, Link as LinkIcon, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from 'next-intl'
 
 interface Member {
     id: string
@@ -48,6 +49,7 @@ interface PendingMember {
 }
 
 export function MemberList({ groupId }: { groupId: string }) {
+    const t = useTranslations('group');
     const [members, setMembers] = useState<Member[]>([])
     const [pendingInvites, setPendingInvites] = useState<Invitation[]>([])
     const [pendingJoinRequests, setPendingJoinRequests] = useState<PendingMember[]>([])
@@ -397,7 +399,7 @@ export function MemberList({ groupId }: { groupId: string }) {
         setTimeout(() => setCopying(false), 2000)
     }
 
-    if (loading) return <div className="text-center py-8">Carregando membros...</div>
+    if (loading) return <div className="text-center py-8">{t('loadingMembers') || 'Carregando membros...'}</div>
 
     return (
         <div className="space-y-4">
@@ -405,7 +407,7 @@ export function MemberList({ groupId }: { groupId: string }) {
             {currentUserRole === 'admin' && pendingJoinRequests.length > 0 && (
                 <div className="mb-8">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                        Solicitações de Entrada
+                        {t('joinRequests') || 'Solicitações de Entrada'}
                         <span className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs px-2 py-0.5 rounded-full">
                             {pendingJoinRequests.length}
                         </span>
@@ -435,13 +437,13 @@ export function MemberList({ groupId }: { groupId: string }) {
                                                 onClick={() => handleProcessJoinRequest(request.id, 'approve')}
                                                 className="inline-flex items-center gap-1 rounded-md bg-green-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-green-700 transition-all"
                                             >
-                                                <Check className="h-3 w-3" /> Aprovar
+                                                <Check className="h-3 w-3" /> {t('approve') || 'Aprovar'}
                                             </button>
                                             <button
                                                 onClick={() => handleProcessJoinRequest(request.id, 'reject')}
                                                 className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 transition-all"
                                             >
-                                                <X className="h-3 w-3" /> Recusar
+                                                <X className="h-3 w-3" /> {t('reject') || 'Recusar'}
                                             </button>
                                         </div>
                                     </div>
@@ -459,7 +461,7 @@ export function MemberList({ groupId }: { groupId: string }) {
                         className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95"
                     >
                         <UserPlus className="h-4 w-4" />
-                        Convidar Membro
+                        {t('inviteMember')}
                     </button>
                 </div>
             )}
@@ -519,7 +521,7 @@ export function MemberList({ groupId }: { groupId: string }) {
                                             ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 border-purple-200 dark:border-purple-800/50'
                                             : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800/50'
                                             }`}>
-                                            {member.role === 'admin' ? 'Administrador' : 'Membro'}
+                                            {member.role === 'admin' ? t('administrator') : t('member_role')}
                                         </span>
 
                                         {isAdmin && (
@@ -545,7 +547,7 @@ export function MemberList({ groupId }: { groupId: string }) {
                                                         onClick={() => handleRemoveMember(member.id)}
                                                         className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium transition-colors"
                                                     >
-                                                        Remover
+                                                        {t('remove')}
                                                     </button>
                                                 )}
                                             </div>
@@ -561,7 +563,7 @@ export function MemberList({ groupId }: { groupId: string }) {
             {pendingInvites.length > 0 && (
                 <div className="mt-8">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                        Convites Pendentes
+                        {t('pendingInvites') || 'Convites Pendentes'}
                         <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs px-2 py-0.5 rounded-full">
                             {pendingInvites.length}
                         </span>
@@ -613,7 +615,7 @@ export function MemberList({ groupId }: { groupId: string }) {
                                                         onClick={() => handleCancelInvite(invite.id)}
                                                         className="text-xs font-semibold text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
                                                     >
-                                                        Cancelar
+                                                        {t('cancel') || 'Cancelar'}
                                                     </button>
                                                 )}
                                             </div>
@@ -631,7 +633,7 @@ export function MemberList({ groupId }: { groupId: string }) {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
                         <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Convidar Membro</h3>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">{t('inviteMember')}</h3>
                             <button
                                 onClick={() => setShowInviteModal(false)}
                                 className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
@@ -651,7 +653,7 @@ export function MemberList({ groupId }: { groupId: string }) {
                                         : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                                 )}
                             >
-                                Por E-mail
+                                {t('byEmail') || 'Por E-mail'}
                             </button>
                             <button
                                 onClick={() => {
@@ -665,7 +667,7 @@ export function MemberList({ groupId }: { groupId: string }) {
                                         : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                                 )}
                             >
-                                Link de Convite
+                                {t('inviteLink') || 'Link de Convite'}
                             </button>
                         </div>
 
@@ -701,7 +703,7 @@ export function MemberList({ groupId }: { groupId: string }) {
                                         className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                                         disabled={inviting}
                                     >
-                                        Cancelar
+                                        {t('cancel') || 'Cancelar'}
                                     </button>
                                     <button
                                         type="submit"
@@ -714,7 +716,7 @@ export function MemberList({ groupId }: { groupId: string }) {
                                                 Buscando...
                                             </>
                                         ) : (
-                                            'Convidar'
+                                            t('invite') || 'Convidar'
                                         )}
                                     </button>
                                 </div>
@@ -748,7 +750,7 @@ export function MemberList({ groupId }: { groupId: string }) {
                                                     : "bg-green-600 text-white hover:bg-green-700"
                                             )}
                                         >
-                                            {copying ? 'Copiado!' : 'Copiar'}
+                                            {copying ? t('copied') || 'Copiado!' : t('copy') || 'Copiar'}
                                         </button>
                                     </div>
                                 </div>
@@ -758,7 +760,7 @@ export function MemberList({ groupId }: { groupId: string }) {
                                         onClick={() => setShowInviteModal(false)}
                                         className="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                                     >
-                                        Fechar
+                                        {t('close') || 'Fechar'}
                                     </button>
                                 </div>
                             </div>

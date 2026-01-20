@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 
 import { ArrowUp, ArrowDown } from 'lucide-react'
 import { calculateLivePoints } from '@/lib/utils/points'
+import { useTranslations } from 'next-intl'
 
 interface RankingItem {
     id: string
@@ -22,6 +23,7 @@ interface RankingItem {
 }
 
 export function RankingList({ groupId, eventId, currentUserId }: { groupId: string, eventId: string, currentUserId?: string }) {
+    const t = useTranslations('group');
     const [ranking, setRanking] = useState<RankingItem[]>([])
     const [loading, setLoading] = useState(true)
     const supabase = createClient()
@@ -143,11 +145,11 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
     }, [groupId])
 
     if (loading) {
-        return <div className="text-center py-8">Carregando ranking...</div>
+        return <div className="text-center py-8">{t('loadingRanking') || 'Carregando ranking...'}</div>
     }
 
     if (ranking.length === 0) {
-        return <div className="text-center py-8 text-gray-500">Nenhum participante ainda.</div>
+        return <div className="text-center py-8 text-gray-500">{t('noParticipants') || 'Nenhum participante ainda.'}</div>
     }
 
     return (
@@ -158,35 +160,35 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
                     <thead className="bg-slate-50 dark:bg-slate-800">
                         <tr>
                             <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                                Pos
+                                {t('position')}
                             </th>
                             <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                                Jogador
+                                {t('player')}
                             </th>
                             <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-green-700 dark:text-green-400 uppercase tracking-wider">
-                                Total
+                                {t('total')}
                             </th>
                             <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                                 <div className="flex flex-col items-center">
-                                    <span>🎯 Cravadas</span>
+                                    <span>{t('exactScores')}</span>
                                     <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(10pts)</span>
                                 </div>
                             </th>
                             <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                                 <div className="flex flex-col items-center">
-                                    <span>📊 Venc+Dif</span>
+                                    <span>{t('winnerPlusDiff')}</span>
                                     <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(7pts)</span>
                                 </div>
                             </th>
                             <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                                 <div className="flex flex-col items-center">
-                                    <span>✓ Vencedor</span>
+                                    <span>{t('winner')}</span>
                                     <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(5pts)</span>
                                 </div>
                             </th>
                             <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                                 <div className="flex flex-col items-center">
-                                    <span>🎯 1 Placar</span>
+                                    <span>{t('oneScore')}</span>
                                     <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(2pts)</span>
                                 </div>
                             </th>
@@ -232,7 +234,7 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
                                             </div>
                                             <div className="ml-4">
                                                 <div className={`text-sm ${isCurrentUser ? 'font-bold text-green-800 dark:text-green-400' : 'font-medium text-slate-900 dark:text-slate-100'}`}>
-                                                    {user.display_name} {isCurrentUser && '(Você)'}
+                                                    {user.display_name} {isCurrentUser && `(${t('you') || 'Você'})`}
                                                 </div>
                                             </div>
                                         </div>
@@ -335,7 +337,7 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
                                             )}
                                         </div>
                                         <span className={`text-sm ${isCurrentUser ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-300'}`}>
-                                            {user.display_name} {isCurrentUser && '(Você)'}
+                                            {user.display_name} {isCurrentUser && `(${t('you') || 'Você'})`}
                                         </span>
                                     </div>
                                 </div>
@@ -362,12 +364,12 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
 
                                         {/* Dropdown/Tooltip content */}
                                         <div className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-100 dark:border-slate-700 p-3 z-50 invisible group-hover:visible transition-all opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto">
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-3 border-b border-gray-50 dark:border-slate-700/50 pb-1 text-center">Distribuição de Pontos</div>
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-3 border-b border-gray-50 dark:border-slate-700/50 pb-1 text-center">{t('pointsDistribution') || 'Distribuição de Pontos'}</div>
                                             <div className="space-y-2.5">
                                                 <div className="flex justify-between items-center">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-base">🎯</span>
-                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Cravadas</span>
+                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{t('exactScores_label') || 'Cravadas'}</span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-[10px] text-slate-400">x{user.stats.exact}</span>
@@ -380,7 +382,7 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
                                                 <div className="flex justify-between items-center">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-base">📊</span>
-                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Venc+Diff</span>
+                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{t('winnerPlusDiff_label') || 'Venc+Diff'}</span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-[10px] text-slate-400">x{user.stats.winnerDiff}</span>
@@ -393,7 +395,7 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
                                                 <div className="flex justify-between items-center">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-base text-green-500">✓</span>
-                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Vencedor</span>
+                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{t('winner_label') || 'Vencedor'}</span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-[10px] text-slate-400">x{user.stats.winner}</span>
@@ -406,7 +408,7 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
                                                 <div className="flex justify-between items-center">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-base text-slate-400">~</span>
-                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">1 Placar</span>
+                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{t('oneScore_label') || '1 Placar'}</span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-[10px] text-slate-400">x{user.stats.consolation}</span>

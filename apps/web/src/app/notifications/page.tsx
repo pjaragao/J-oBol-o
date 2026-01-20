@@ -19,8 +19,9 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { ptBR, enUS, es } from 'date-fns/locale'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations, useLocale } from 'next-intl'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { HeaderSetter } from '@/components/layout/HeaderSetter'
 
@@ -43,6 +44,21 @@ function NotificationsContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const supabase = createClient()
+    const t = useTranslations('notifications')
+    const locale = useLocale()
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    const getLocale = () => {
+        switch (locale) {
+            case 'en': return enUS
+            case 'es': return es
+            default: return ptBR
+        }
+    }
 
     // Sync filter with URL
     const filter = (searchParams.get('tab') || 'all') as 'all' | 'unread' | 'read' | 'invites' | 'settings'
@@ -150,7 +166,7 @@ function NotificationsContent() {
 
             if (joinError) {
                 if (joinError.code === '23505') { // Already a member
-                    alert('Você já é membro deste grupo!')
+                    alert(t('status.alreadyMember'))
                 } else {
                     throw joinError
                 }
@@ -159,20 +175,20 @@ function NotificationsContent() {
             // 2. Mark notification as read
             await markAsRead(notification.id, false)
 
-            alert('Convite aceito com sucesso!')
+            alert(t('status.acceptSuccess'))
 
             // 3. Redirect to group page
             router.push(`/groups/${notification.data.group_id}`)
         } catch (error: any) {
             console.error('Error accepting invitation:', error)
-            alert('Erro ao aceitar convite: ' + error.message)
+            alert(t('status.acceptError') + error.message)
         }
     }
 
     const declineInvitation = async (notificationId: string) => {
         // Just mark as read / archive
         await markAsRead(notificationId, false)
-        alert('Convite recusado.')
+        alert(t('status.declineSuccess'))
     }
 
     const handleJoinRequest = async (notification: Notification, action: 'approve' | 'reject') => {
@@ -181,14 +197,14 @@ function NotificationsContent() {
         try {
             const res = await fetch(`/api/groups/approve-member?id=${notification.data.pending_member_id}&action=${action}`)
             if (res.ok) {
-                alert(action === 'approve' ? 'Solicitação aprovada!' : 'Solicitação recusada.')
+                alert(action === 'approve' ? t('status.approveSuccess') : t('status.rejectSuccess'))
                 await markAsRead(notification.id, false)
                 if (action === 'approve' && notification.data.group_id) {
                     router.push(`/groups/${notification.data.group_id}`)
                 }
             } else {
                 const data = await res.json()
-                throw new Error(data.error || 'Erro ao processar')
+                throw new Error(data.error || t('status.processError'))
             }
         } catch (error: any) {
             alert(error.message)
@@ -220,18 +236,18 @@ function NotificationsContent() {
 
     return (
         <AppLayout user={user} profile={profile} isAdmin={isAdmin}>
-            <HeaderSetter title="Notificações" />
+            <HeaderSetter title={t('title')} />
             <div className="mx-auto max-w-4xl">
                 <div className="mb-4">
                     <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 flex-1">Fique por dentro de tudo que acontece no seu JãoBolão.</p>
+                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 flex-1">{t('stayTuned')}</p>
                         <button
                             onClick={markAllAsRead}
                             className="flex-shrink-0 flex items-center gap-1.5 rounded-lg bg-green-600/10 px-2 py-1.5 text-[10px] sm:text-xs font-semibold text-green-600 transition-all hover:bg-green-600 hover:text-white active:scale-95 disabled:opacity-50 dark:bg-green-500/10 dark:text-green-500 dark:hover:bg-green-500 dark:hover:text-white"
                             disabled={notifications.filter(n => !n.is_read).length === 0}
                         >
                             <CheckCircle2 className="h-3.5 w-3.5" />
-                            Marcar lidas
+                            {t('markAsRead')}
                         </button>
                     </div>
                 </div>
@@ -247,7 +263,7 @@ function NotificationsContent() {
                                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                         )}
                     >
-                        Todas
+                        {t('all')}
                     </button>
                     <button
                         onClick={() => setTab('unread')}
@@ -258,7 +274,7 @@ function NotificationsContent() {
                                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                         )}
                     >
-                        Não Lidas
+                        {t('unread')}
                         {notifications.filter(n => !n.is_read).length > 0 && filter !== 'unread' && (
                             <span className="ml-2 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-600 dark:bg-red-900/30 dark:text-red-400">
                                 {notifications.filter(n => !n.is_read).length}
@@ -274,7 +290,7 @@ function NotificationsContent() {
                                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                         )}
                     >
-                        Lidas
+                        {t('read')}
                     </button>
                     <button
                         onClick={() => setTab('invites')}
@@ -285,7 +301,7 @@ function NotificationsContent() {
                                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                         )}
                     >
-                        Convites
+                        {t('invites')}
                         {notifications.filter(n => n.type === 'group_invite' && !n.is_read).length > 0 && filter !== 'invites' && (
                             <span className="ml-2 rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
                                 {notifications.filter(n => n.type === 'group_invite' && !n.is_read).length}
@@ -300,7 +316,7 @@ function NotificationsContent() {
                                 ? "text-green-600 dark:text-green-500 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-green-600 dark:after:bg-green-500"
                                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                         )}
-                        title="Configurações"
+                        title={t('settings')}
                     >
                         <Settings className="h-4 w-4" />
                     </button>
@@ -310,16 +326,16 @@ function NotificationsContent() {
                 {filter === 'settings' ? (
                     <div className="space-y-6 rounded-xl bg-white p-6 shadow-sm border border-slate-200 dark:bg-slate-900 dark:border-slate-800">
                         <div>
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Preferências de Notificação</h2>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Escolha quais avisos você deseja ver no seu painel.</p>
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{t('settings')}</h2>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">{t('settingsDesc')}</p>
                         </div>
 
                         <div className="space-y-4 pt-4">
                             {[
-                                { id: 'new_member', label: 'Novos Membros no Grupo', desc: 'Avisar quando alguém entrar em um grupo que você administra.' },
-                                { id: 'points_rank', label: 'Pontos e Ranking', desc: 'Notificar quando seus palpites forem computados com sua nova posição.' },
-                                { id: 'rule_change', label: 'Mudanças de Regras', desc: 'Alertar se o administrador alterar a pontuação do grupo.' },
-                                { id: 'bet_reminder', label: 'Lembretes de Palpite', desc: 'Avisar 2 horas antes de jogos que você esqueceu de palpitar.' }
+                                { id: 'new_member', label: t('preferences.newMemberTitle'), desc: t('preferences.newMemberDesc') },
+                                { id: 'points_rank', label: t('preferences.pointsRankTitle'), desc: t('preferences.pointsRankDesc') },
+                                { id: 'rule_change', label: t('preferences.ruleChangeTitle'), desc: t('preferences.ruleChangeDesc') },
+                                { id: 'bet_reminder', label: t('preferences.betReminderTitle'), desc: t('preferences.betReminderDesc') }
                             ].map((setting) => (
                                 <div key={setting.id} className="flex items-center justify-between gap-4 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                     <div className="flex-1">
@@ -403,8 +419,8 @@ function NotificationsContent() {
                                             )}>
                                                 {notification.title}
                                             </h3>
-                                            <span className="text-xs text-slate-400">
-                                                {notification.created_at ? formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: ptBR }) : ''}
+                                            <span className="text-xs text-slate-400" suppressHydrationWarning>
+                                                {mounted && notification.created_at ? formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: getLocale() }) : ''}
                                             </span>
                                         </div>
                                         <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
@@ -421,7 +437,7 @@ function NotificationsContent() {
                                                     className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95"
                                                 >
                                                     <Check className="h-3.5 w-3.5" />
-                                                    Aceitar Convite
+                                                    {t('acceptInvite')}
                                                 </button>
                                                 <button
                                                     onClick={(e) => {
@@ -431,7 +447,7 @@ function NotificationsContent() {
                                                     className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 active:scale-95"
                                                 >
                                                     <CloseIcon className="h-3.5 w-3.5" />
-                                                    Recusar
+                                                    {t('decline')}
                                                 </button>
                                             </div>
                                         )}
@@ -446,7 +462,7 @@ function NotificationsContent() {
                                                     className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95"
                                                 >
                                                     <Check className="h-3.5 w-3.5" />
-                                                    Aprovar Solicitação
+                                                    {t('approveRequest')}
                                                 </button>
                                                 <button
                                                     onClick={(e) => {
@@ -456,7 +472,7 @@ function NotificationsContent() {
                                                     className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 active:scale-95"
                                                 >
                                                     <CloseIcon className="h-3.5 w-3.5" />
-                                                    Recusar
+                                                    {t('decline')}
                                                 </button>
                                             </div>
                                         )}
@@ -466,7 +482,7 @@ function NotificationsContent() {
                                                 <button
                                                     className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all hover:bg-slate-200 dark:hover:bg-slate-700"
                                                 >
-                                                    Ver Detalhes
+                                                    {t('viewDetails')}
                                                 </button>
                                             </div>
                                         )}
@@ -484,7 +500,7 @@ function NotificationsContent() {
                                                     ? "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                                                     : "text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40"
                                             )}
-                                            title={notification.is_read ? "Marcar como não lida" : "Marcar como lida"}
+                                            title={notification.is_read ? t('markAsUnread') : t('markAsRead')}
                                         >
                                             {notification.is_read ? <Bell className="h-4 w-4" /> : <Check className="h-4 w-4" />}
                                         </button>
@@ -494,7 +510,7 @@ function NotificationsContent() {
                                                 deleteNotification(notification.id)
                                             }}
                                             className="p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 rounded-lg transition-colors"
-                                            title="Excluir"
+                                            title={t('delete')}
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </button>
@@ -506,17 +522,17 @@ function NotificationsContent() {
                                 <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-900">
                                     <Bell className="h-10 w-10 text-slate-300 dark:text-slate-700" />
                                 </div>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Nada por aqui!</h3>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('empty')}</h3>
                                 <p className="max-w-xs text-sm text-slate-500 dark:text-slate-400">
                                     {filter === 'unread'
-                                        ? "Você não tem notificações não lidas no momento."
-                                        : "Sua caixa de notificações está vazia."}
+                                        ? t('emptyUnread')
+                                        : t('emptyAll')}
                                 </p>
                                 <button
                                     onClick={() => setTab('all')}
                                     className="mt-6 text-sm font-semibold text-green-600 hover:text-green-700 dark:text-green-500"
                                 >
-                                    Ver todas as notificações
+                                    {t('viewAll')}
                                 </button>
                             </div>
                         )}
@@ -527,16 +543,21 @@ function NotificationsContent() {
     )
 }
 
+function NotificationsLoading() {
+    const t = useTranslations('notifications')
+    return (
+        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-green-600 border-t-transparent"></div>
+                <p className="text-slate-500 dark:text-slate-400 animate-pulse">{t('loading')}</p>
+            </div>
+        </div>
+    )
+}
+
 export default function NotificationsPage() {
     return (
-        <Suspense fallback={
-            <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-green-600 border-t-transparent"></div>
-                    <p className="text-slate-500 dark:text-slate-400 animate-pulse">Carregando notificações...</p>
-                </div>
-            </div>
-        }>
+        <Suspense fallback={<NotificationsLoading />}>
             <NotificationsContent />
         </Suspense>
     )

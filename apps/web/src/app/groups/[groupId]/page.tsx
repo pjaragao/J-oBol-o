@@ -2,13 +2,17 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import { GroupTabs } from '@/components/groups/GroupTabs'
 import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { ptBR, es, enUS } from 'date-fns/locale'
 import { FinancialService } from '@/lib/financial-service'
 import { Info, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { HeaderSetter } from '@/components/layout/HeaderSetter'
+import { getTranslations, getLocale, getFormatter } from 'next-intl/server'
 
 export default async function GroupDetailsPage({ params }: { params: Promise<{ groupId: string }> }) {
+    const t = await getTranslations('group');
+    const locale = await getLocale();
+    const formatIntl = await getFormatter();
     const { groupId } = await params
     const supabase = createClient()
     const { data: { user } } = await (await supabase).auth.getUser()
@@ -90,8 +94,19 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
     const { grossPot } = FinancialService.calculatePrizePot(config, paidCount || 0, potArgs)
     const totalPot = grossPot;
 
-    const startDate = eventData?.start_date ? format(new Date(eventData.start_date), 'dd/MM/yy') : null
-    const endDate = eventData?.end_date ? format(new Date(eventData.end_date), 'dd/MM/yy') : null
+    const startDateRaw = eventData?.start_date ? new Date(eventData.start_date) : null
+    const endDateRaw = eventData?.end_date ? new Date(eventData.end_date) : null
+
+    const startDate = startDateRaw ? formatIntl.dateTime(startDateRaw, {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit'
+    }) : null
+    const endDate = endDateRaw ? formatIntl.dateTime(endDateRaw, {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit'
+    }) : null
 
     return (
         <div className="pb-12 bg-gray-50 dark:bg-slate-900 min-h-screen">
@@ -129,12 +144,12 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
 
                             {/* Prêmio (Sempre à direita) */}
                             <div className="shrink-0 text-right">
-                                <span className="block text-[8px] sm:text-[10px] font-black text-green-400/80 uppercase tracking-widest leading-none mb-0.5 sm:mb-1">Prêmio Total</span>
+                                <span className="block text-[8px] sm:text-[10px] font-black text-green-400/80 uppercase tracking-widest leading-none mb-0.5 sm:mb-1">{t('totalPrize')}</span>
                                 <div className="flex items-baseline justify-end gap-1">
                                     <span className="text-[10px] sm:text-sm font-bold text-green-200/40 leading-none">R$</span>
                                     <span className="text-base sm:text-3xl font-black text-white tabular-nums leading-none tracking-tighter">
-                                        {totalPot.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                                        <span className="text-[10px] sm:text-xl opacity-30">,00</span>
+                                        {formatIntl.number(totalPot, { minimumFractionDigits: 0 })}
+                                        <span className="text-[10px] sm:text-xl opacity-30">{locale === 'en' ? '.00' : ',00'}</span>
                                     </span>
                                 </div>
                             </div>
@@ -144,7 +159,7 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
                         <div className="flex items-center gap-4 text-white/60 text-[9px] sm:text-xs font-bold uppercase tracking-widest">
                             <div className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded border border-white/5">
                                 <span className="text-green-400">👥</span>
-                                <span>{(group.group_members?.[0]?.count || 0)} Participantes</span>
+                                <span>{(group.group_members?.[0]?.count || 0)} {t('participants')}</span>
                             </div>
                             {startDate && endDate && (
                                 <div className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded border border-white/5">

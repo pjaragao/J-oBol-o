@@ -1,6 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
+import { writeFile, readFile } from 'fs/promises';
 import path from 'path';
+
+export async function GET(
+    request: NextRequest,
+    { params }: { params: Promise<{ locale: string }> }
+) {
+    try {
+        const { locale } = await params;
+        const filePath = path.join(process.cwd(), 'messages', `${locale}.json`);
+        const content = await readFile(filePath, 'utf-8');
+        return NextResponse.json(JSON.parse(content));
+    } catch (error) {
+        console.error('Error loading translations:', error);
+        return NextResponse.json(
+            { error: 'Erro ao carregar traduções' },
+            { status: 500 }
+        );
+    }
+}
 
 export async function POST(
     request: NextRequest,

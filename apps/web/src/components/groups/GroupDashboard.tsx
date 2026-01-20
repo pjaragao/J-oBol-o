@@ -3,13 +3,14 @@
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { ptBR, enUS, es } from 'date-fns/locale'
 import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, RefreshCw, DollarSign, AlertTriangle, Wallet, Crown, Calendar, ChevronRight, BarChart2, Plus, Users } from 'lucide-react'
 import { calculateLivePoints } from '@/lib/utils/points'
 import { BetSecurityService } from '@/lib/bet-security'
 import { TeamName } from '@/components/ui/TeamName'
 import { manualUpdateLiveMatches } from '@/app/admin/actions'
 import Link from 'next/link'
+import { useTranslations, useLocale } from 'next-intl'
 
 interface GroupDashboardProps {
     groupId: string
@@ -88,6 +89,11 @@ interface BetWithUser {
 }
 
 export default function GroupDashboard({ groupId, eventId, userId }: GroupDashboardProps) {
+    const t = useTranslations('group');
+    const locale = useLocale();
+    const dateLocale = locale === 'pt' ? ptBR : locale === 'es' ? es : enUS;
+    const isEnglish = locale === 'en';
+
     const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([])
     const [liveMatches, setLiveMatches] = useState<Match[]>([])
     const [recentMatches, setRecentMatches] = useState<Match[]>([])
@@ -456,7 +462,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
         } catch (error: any) {
             console.error('Error fetching dashboard data:', error)
-            setErrorState('Não foi possível carregar os dados do grupo.')
+            setErrorState(t('errorLoadingDashboard'))
         } finally {
             if (!silent) setLoading(false)
             else {
@@ -485,7 +491,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 .eq('group_id', groupId)
                 .eq('user_id', userId)
 
-            alert("✅ Pagamento confirmado (MOCK)! Você está oficialmente no jogo.")
+            alert(t('paymentConfirmed'))
             fetchDashboardData()
         } catch (error) {
             console.error('Error in mock payment:', error)
@@ -512,7 +518,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
         const { BetSecurityService } = await import('@/lib/bet-security') // Dynamic import to avoid top-level issues with existing imports
 
         if (!BetSecurityService.isBetVisible(matchDate, false)) {
-            alert("⏳ Os palpites só são visíveis após o início do jogo!")
+            alert(t('betsVisibleAfterStart'))
             return
         }
 
@@ -643,15 +649,15 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
             <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-full mb-6 text-green-600 dark:text-green-400">
                 <Lock className="w-12 h-12" />
             </div>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3">Você ainda não está no grupo!</h3>
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3">{t('notInGroupTitle')}</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 max-w-sm mx-auto">
-                Para participar deste bolão e começar a palpitar, você precisa de um convite ou entrar com o código do grupo.
+                {t('notInGroupDesc')}
             </p>
             <Link
                 href={`/groups/join?code=${groupData?.invite_code || ''}`}
                 className="bg-green-600 hover:bg-green-700 text-white font-black py-4 px-10 rounded-2xl shadow-lg shadow-green-200 dark:shadow-none transition-all hover:scale-105 active:scale-95"
             >
-                Participar Agora
+                {t('joinNow')}
             </Link>
         </div>
     )
@@ -663,14 +669,14 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
             </div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{errorState}</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-xs mx-auto">
-                Ocorreu um problema ao carregar as informações deste grupo. Tente atualizar a página.
+                {t('loadErrorDesc')}
             </p>
             <button
                 onClick={() => fetchDashboardData()}
                 className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-6 py-2 rounded-xl font-bold transition-all"
             >
                 <RefreshCw className="w-4 h-4" />
-                Tentar Novamente
+                {t('tryAgain')}
             </button>
         </div>
     )
@@ -692,12 +698,12 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4 pb-4 border-b border-red-100 dark:border-red-900/20">
                         <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
                             <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
-                            <h3 className="font-bold text-lg uppercase tracking-tight">Jogos ao Vivo</h3>
+                            <h3 className="font-bold text-lg uppercase tracking-tight">{t('liveMatches')}</h3>
                         </div>
 
                         <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50 p-1 rounded-lg border border-red-50/50 dark:border-red-900/10">
                             <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium px-2">
-                                {format(lastUpdated, "HH:mm:ss", { locale: ptBR })}
+                                {format(lastUpdated, "HH:mm:ss", { locale: dateLocale })}
                             </p>
                             <button
                                 onClick={() => setIsRealtimeEnabled(!isRealtimeEnabled)}
@@ -707,14 +713,14 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                     }`}
                             >
                                 <div className={`w-1.5 h-1.5 rounded-full ${isRealtimeEnabled ? 'bg-white animate-pulse' : 'bg-slate-400'}`} />
-                                {isRealtimeEnabled ? 'Tempo Real: ON' : 'Tempo Real: OFF'}
+                                {t('realTime')}: {isRealtimeEnabled ? t('realTimeOn') : t('realTimeOff')}
                             </button>
 
                             <button
                                 onClick={() => fetchDashboardData(true)}
                                 disabled={isRefreshing}
                                 className="flex items-center justify-center p-1.5 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all disabled:opacity-50"
-                                title="Atualizar agora"
+                                title={t('viewFolksBetsTitle')}
                             >
                                 <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin text-green-500' : ''}`} />
                             </button>
@@ -759,14 +765,14 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
                                         <div className="flex items-center justify-center gap-4 bg-white/60 dark:bg-black/20 rounded py-1 border border-slate-100 dark:border-slate-800">
                                             <div className="flex flex-col items-center">
-                                                <span className="text-[8px] text-slate-400 uppercase font-bold">Meu Palpite</span>
+                                                <span className="text-[8px] text-slate-400 uppercase font-bold">{t('myBet')}</span>
                                                 <span className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300">
                                                     {bet ? `${bet.home_score_bet} x ${bet.away_score_bet}` : '- x -'}
                                                 </span>
                                             </div>
                                             <div className="w-px h-6 bg-slate-100 dark:bg-slate-800" />
                                             <div className="flex flex-col items-center">
-                                                <span className="text-[8px] text-slate-400 uppercase font-bold">Pontos</span>
+                                                <span className="text-[8px] text-slate-400 uppercase font-bold">{t('points')}</span>
                                                 <span className={`text-xs font-black ${livePoints > 0 ? 'text-green-600' : 'text-slate-400'}`}>
                                                     +{livePoints}
                                                 </span>
@@ -775,7 +781,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                 <>
                                                     <div className="w-px h-6 bg-slate-100 dark:bg-slate-800" />
                                                     <div className="flex flex-col items-start max-w-[100px]">
-                                                        <span className="text-[8px] text-slate-400 uppercase font-bold">Local</span>
+                                                        <span className="text-[8px] text-slate-400 uppercase font-bold">{t('stadium')}</span>
                                                         <span className="text-[9px] font-medium text-slate-500 truncate w-full">
                                                             {match.venue}
                                                         </span>
@@ -788,7 +794,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                     <button
                                         onClick={() => handleViewBets(match.id, match.match_date)}
                                         className="h-10 w-10 flex items-center justify-center rounded-xl bg-green-500 hover:bg-green-600 text-white shadow-md shadow-green-200 dark:shadow-none transition-all hover:scale-105 shrink-0"
-                                        title="Ver palpites da galera"
+                                        title={t('viewFolksBetsTitle')}
                                     >
                                         <Eye className="h-5 w-5" />
                                     </button>
@@ -807,11 +813,11 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                             <DollarSign className="w-5 h-5 text-yellow-700 dark:text-yellow-400" />
                         </div>
                         <div>
-                            <h4 className="font-bold text-yellow-900 dark:text-yellow-200 text-sm">Pagamento Pendente</h4>
+                            <h4 className="font-bold text-yellow-900 dark:text-yellow-200 text-sm">{t('pendingPayment')}</h4>
                             <p className="text-xs text-yellow-700 dark:text-yellow-400 leading-tight">
                                 {financials.payment_method === 'ONLINE'
-                                    ? `Pague a entrada de R$ ${financials.entry_fee.toFixed(2)} para validar sua participação.`
-                                    : `Combine o pagamento de R$ ${financials.entry_fee.toFixed(2)} diretamente com o administrador do grupo.`}
+                                    ? t('payEntryOnline', { amount: `R$ ${financials.entry_fee.toFixed(2)}` })
+                                    : t('payEntryOffline', { amount: `R$ ${financials.entry_fee.toFixed(2)}` })}
                             </p>
                         </div>
                     </div>
@@ -820,7 +826,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                             onClick={handlePayMock}
                             className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-6 rounded-lg text-sm shadow-md transition-all active:scale-95 whitespace-nowrap"
                         >
-                            Pagar Agora (BETA)
+                            {t('payNow')} (BETA)
                         </button>
                     )}
                 </div>
@@ -835,16 +841,16 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                 <Trophy className="w-8 h-8 text-yellow-300" />
                             </div>
                             <div>
-                                <h3 className="text-sm font-medium text-emerald-50 opacity-90 uppercase tracking-wider">Premiação Total</h3>
+                                <h3 className="text-sm font-medium text-emerald-50 opacity-90 uppercase tracking-wider">{t('totalPrizes')}</h3>
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-3xl font-black">
-                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                        {new Intl.NumberFormat(locale === 'pt' ? 'pt-BR' : locale === 'es' ? 'es-ES' : 'en-US', { style: 'currency', currency: locale === 'en' ? 'USD' : 'BRL' }).format(
                                             financials.payment_method === 'ONLINE' ? financials.net_pot : financials.total_pot
                                         )}
                                     </span>
                                     {financials.payment_method === 'ONLINE' && financials.platform_fee > 0 && (
                                         <span className="text-xs bg-black/20 px-2 py-0.5 rounded text-emerald-100">
-                                            Líquido (-10%)
+                                            {t('netLabel')}
                                         </span>
                                     )}
                                 </div>
@@ -853,13 +859,13 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
                         <div className="flex items-center gap-4 bg-black/10 rounded-lg p-3 backdrop-blur-sm">
                             <div className="text-center border-r border-white/20 pr-4">
-                                <span className="block text-xs text-emerald-100">Participantes Pagos</span>
+                                <span className="block text-xs text-emerald-100">{t('paidParticipants')}</span>
                                 <span className="block text-xl font-bold">{financials.paid_members_count}</span>
                             </div>
                             <div className="text-center border-r border-white/20 pr-4">
-                                <span className="block text-xs text-emerald-100">Entrada</span>
+                                <span className="block text-xs text-emerald-100">{t('entryFee')}</span>
                                 <span className="block text-xl font-bold">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financials.entry_fee)}
+                                    {new Intl.NumberFormat(locale === 'pt' ? 'pt-BR' : locale === 'es' ? 'es-ES' : 'en-US', { style: 'currency', currency: locale === 'en' ? 'USD' : 'BRL' }).format(financials.entry_fee)}
                                 </span>
                             </div>
                             <div className="text-center pl-4">
@@ -867,7 +873,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                     <div className="p-1.5 bg-white/10 rounded-full group-hover:bg-white/20 mb-1 transition-colors">
                                         <Wallet className="w-4 h-4" />
                                     </div>
-                                    <span className="text-[10px] font-bold text-emerald-100 uppercase tracking-tighter">Extrato</span>
+                                    <span className="text-[10px] font-bold text-emerald-100 uppercase tracking-tighter">{t('statement')}</span>
                                 </Link>
                             </div>
                         </div>
@@ -880,9 +886,9 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
             {isFinished && (
                 <div className="mb-6 p-6 rounded-xl border-2 border-green-500 bg-green-50 dark:bg-green-900/10 flex flex-col items-center text-center gap-2 animate-in bounce-in">
                     <Trophy className="w-12 h-12 text-yellow-500 mb-2" />
-                    <h3 className="text-2xl font-black text-green-900 dark:text-green-200">ESTE BOLÃO FOI FINALIZADO! 🎊</h3>
+                    <h3 className="text-2xl font-black text-green-900 dark:text-green-200">{t('groupFinishedTitle')}</h3>
                     <p className="text-sm text-green-700 dark:text-green-400">
-                        Obrigado a todos os participantes. Confira a premiação final no ranking abaixo.
+                        {t('groupFinishedDesc')}
                     </p>
                 </div>
             )}
@@ -893,13 +899,13 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 <div className="bg-[#FDFDF7] dark:bg-slate-800 border border-green-100 dark:border-slate-700 rounded-xl p-3 shadow-sm flex flex-col h-full">
                     <div className="flex items-center gap-2 mb-2 text-[#15803d] dark:text-green-400">
                         <Trophy className="h-5 w-5" />
-                        <h3 className="font-bold text-lg">Ranking Resumido</h3>
+                        <h3 className="font-bold text-lg">{t('rankingSummary')}</h3>
                     </div>
 
                     <div className="bg-white/50 dark:bg-black/20 rounded-lg p-2 flex-1 flex flex-col">
                         {topRanking.length === 0 ? (
                             <p className="text-center text-slate-500 dark:text-slate-400 text-sm my-auto">
-                                Nenhuma previsão feita ainda.
+                                {t('noBetsMade')}
                             </p>
                         ) : (
                             <div className="space-y-1 w-full">
@@ -934,7 +940,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                         )}
                                                     </div>
                                                     <span className={`text-sm truncate max-w-[120px] ${isCurrentUser ? 'font-bold text-green-700 dark:text-green-400' : 'font-medium dark:text-slate-200'}`}>
-                                                        {user.display_name} {isCurrentUser && '(Você)'}
+                                                        {user.display_name} {isCurrentUser && `(${t('you')})`}
                                                     </span>
                                                 </div>
                                                 <div className="flex flex-col items-end">
@@ -957,12 +963,12 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
                                                         {/* Tooltip for stats breakdown */}
                                                         <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-100 dark:border-slate-700 p-3 z-50 invisible group-hover:visible transition-all opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto">
-                                                            <div className="text-[9px] font-bold text-slate-400 uppercase mb-2 border-b border-gray-50 dark:border-slate-700/50 pb-1 text-center">Distribuição de Pontos</div>
+                                                            <div className="text-[9px] font-bold text-slate-400 uppercase mb-2 border-b border-gray-50 dark:border-slate-700/50 pb-1 text-center">{t('pointsDistribution')}</div>
                                                             <div className="space-y-2">
                                                                 <div className="flex justify-between items-center">
                                                                     <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-300">
                                                                         <span>🎯</span>
-                                                                        <span>Cravadas</span>
+                                                                        <span>{t('exactScores_label')}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-1.5">
                                                                         <span className="text-[9px] text-slate-400 font-medium">x{user.stats.exact}</span>
@@ -974,7 +980,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                 <div className="flex justify-between items-center">
                                                                     <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-300">
                                                                         <span>📊</span>
-                                                                        <span>Venc+Dif</span>
+                                                                        <span>{t('winnerPlusDiff_label')}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-1.5">
                                                                         <span className="text-[9px] text-slate-400 font-medium">x{user.stats.winnerDiff}</span>
@@ -986,7 +992,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                 <div className="flex justify-between items-center">
                                                                     <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-300">
                                                                         <span className="text-green-500 font-bold">✓</span>
-                                                                        <span>Só Vencedor</span>
+                                                                        <span>{t('winner_label')}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-1.5">
                                                                         <span className="text-[9px] text-slate-400 font-medium">x{user.stats.winner}</span>
@@ -998,7 +1004,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                 <div className="flex justify-between items-center">
                                                                     <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-300">
                                                                         <span className="text-slate-400 font-bold">~</span>
-                                                                        <span>1 Placar</span>
+                                                                        <span>{t('oneScore_label')}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-1.5">
                                                                         <span className="text-[9px] text-slate-400 font-medium">x{user.stats.consolation}</span>
@@ -1026,12 +1032,12 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                     <div className="bg-[#FDFDF7] dark:bg-slate-800 border border-green-100 dark:border-slate-700 rounded-xl p-5 shadow-sm">
                         <div className="flex items-center gap-2 mb-4 text-[#15803d] dark:text-green-400">
                             <Gamepad2 className="h-5 w-5" />
-                            <h3 className="font-bold text-lg">Próximos Jogos</h3>
+                            <h3 className="font-bold text-lg">{t('upcomingMatches')}</h3>
                         </div>
 
                         {upcomingMatches.length === 0 ? (
                             <p className="text-center text-slate-500 dark:text-slate-400 text-sm py-8">
-                                Nenhum jogo próximo.
+                                {t('noUpcomingMatches')}
                             </p>
                         ) : (
                             <div className="flex flex-col gap-3">
@@ -1049,8 +1055,8 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                             {/* Parte Superior: Aposta */}
                                             <div className="p-2 flex items-center gap-3">
                                                 <div className="flex flex-col items-center justify-center min-w-[45px] border-r border-slate-100 dark:border-slate-600 pr-3">
-                                                    <span className="text-[10px] text-slate-400 font-bold leading-tight">{format(matchDate, "dd/MM", { locale: ptBR })}</span>
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-300 font-black leading-tight">{format(matchDate, "HH:mm", { locale: ptBR })}</span>
+                                                    <span className="text-[10px] text-slate-400 font-bold leading-tight">{format(matchDate, isEnglish ? "MM/dd" : "dd/MM", { locale: dateLocale })}</span>
+                                                    <span className="text-[10px] text-slate-500 dark:text-slate-300 font-black leading-tight">{format(matchDate, isEnglish ? "hh:mm a" : "HH:mm", { locale: dateLocale })}</span>
                                                 </div>
 
                                                 <div className="flex items-center justify-between gap-1 flex-1 min-w-0">
@@ -1135,13 +1141,13 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                 <div className="flex items-center gap-1.5 min-w-0">
                                                     {match.venue && (
                                                         <>
-                                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight shrink-0">🏟️ Estádio:</span>
+                                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight shrink-0">🏟️ {t('stadium')}:</span>
                                                             <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate">{match.venue}</span>
                                                         </>
                                                     )}
                                                 </div>
                                                 <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                                                    {betCount} {betCount === 1 ? 'aposta' : 'apostas'}
+                                                    {betCount} {betCount === 1 ? t('bet') : t('bets_plural')}
                                                 </span>
                                             </div>
                                         </div>
@@ -1155,12 +1161,12 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                     <div className="bg-[#FDFDF7] dark:bg-slate-800 border border-green-100 dark:border-slate-700 rounded-xl p-5 shadow-sm">
                         <div className="flex items-center gap-2 mb-4 text-[#15803d] dark:text-green-400">
                             <CheckCircle2 className="h-5 w-5" />
-                            <h3 className="font-bold text-lg">Últimos Jogos</h3>
+                            <h3 className="font-bold text-lg">{t('recentMatches')}</h3>
                         </div>
 
                         {recentMatches.length === 0 ? (
                             <p className="text-center text-slate-500 dark:text-slate-400 text-sm py-8">
-                                Nenhum jogo finalizado recentemente.
+                                {t('noRecentFinish')}
                             </p>
                         ) : (
                             <div className="flex flex-col gap-3">
@@ -1175,8 +1181,8 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                             {/* Parte Superior: Minha Aposta */}
                                             <div className="p-2 flex items-center gap-3">
                                                 <div className="flex flex-col items-center justify-center min-w-[45px] border-r border-slate-100 dark:border-slate-600 pr-3">
-                                                    <span className="text-[10px] text-slate-400 font-bold leading-tight">{format(matchDate, "dd/MM", { locale: ptBR })}</span>
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-300 font-black leading-tight">{format(matchDate, "HH:mm", { locale: ptBR })}</span>
+                                                    <span className="text-[10px] text-slate-400 font-bold leading-tight">{format(matchDate, isEnglish ? "MM/dd" : "dd/MM", { locale: dateLocale })}</span>
+                                                    <span className="text-[10px] text-slate-500 dark:text-slate-300 font-black leading-tight">{format(matchDate, isEnglish ? "hh:mm a" : "HH:mm", { locale: dateLocale })}</span>
                                                 </div>
 
                                                 <div className="flex items-center justify-between gap-1 flex-1 min-w-0">
@@ -1210,12 +1216,12 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                             <div className="px-3 py-1 bg-slate-50/80 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-600/50 flex items-center justify-between">
                                                 <div className="flex flex-col gap-0.5">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-[9px] font-bold text-slate-400 font-mono uppercase tracking-tighter">PLACAR REAL:</span>
+                                                        <span className="text-[9px] font-bold text-slate-400 font-mono uppercase tracking-tighter">{t('realScore')}:</span>
                                                         <span className="text-xs font-black text-slate-700 dark:text-slate-300">{match.home_score} x {match.away_score}</span>
                                                     </div>
                                                     {match.venue && (
                                                         <div className="flex items-center gap-1 opacity-60">
-                                                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Estádio:</span>
+                                                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">{t('stadium')}:</span>
                                                             <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 truncate max-w-[120px]">{match.venue}</span>
                                                         </div>
                                                     )}
@@ -1223,17 +1229,17 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
                                                 {bet?.points !== undefined && (
                                                     <div className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${bet.points > 0 ? 'bg-green-500 text-white shadow-sm shadow-green-200 dark:shadow-none' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>
-                                                        +{bet.points} PTS
+                                                        +{bet.points} {t('points_short') || 'PTS'}
                                                     </div>
                                                 )}
 
                                                 <button
                                                     onClick={() => handleViewBets(match.id, match.match_date)}
                                                     className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
-                                                    title="Ver palpites da galera"
+                                                    title={t('viewFolksBetsTitle')}
                                                 >
                                                     <Users className="w-3.5 h-3.5" />
-                                                    <span>GALERA</span>
+                                                    <span>{t('folks')}</span>
                                                 </button>
                                             </div>
                                         </div>
@@ -1251,14 +1257,14 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setBetsModal(null)}>
                         <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">Palpites da Galera</h3>
+                                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">{t('folksBetsTitle')}</h3>
                                 <button onClick={() => setBetsModal(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                                     <X className="h-5 w-5" />
                                 </button>
                             </div>
 
                             {betsModal.bets.length === 0 ? (
-                                <p className="text-center text-slate-500 py-8">Nenhum palpite ainda</p>
+                                <p className="text-center text-slate-500 py-8">{t('noFolksBets')}</p>
                             ) : (
                                 <div className="space-y-3">
                                     {betsModal.bets.map((bet, idx) => (

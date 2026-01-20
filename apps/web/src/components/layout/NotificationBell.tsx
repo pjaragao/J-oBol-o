@@ -7,7 +7,8 @@ import { Bell, Check, Info, AlertTriangle, Trophy, Star, Settings, X, Users } fr
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { ptBR, enUS, es } from 'date-fns/locale'
+import { useTranslations, useLocale } from 'next-intl'
 
 interface Notification {
     id: string
@@ -33,6 +34,22 @@ export function NotificationBell({ userId }: { userId: string }) {
     const dropdownRef = useRef<HTMLDivElement>(null)
     const supabase = createClient()
     const router = useRouter()
+    const t = useTranslations('notifications')
+    const tc = useTranslations('common')
+    const [mounted, setMounted] = useState(false)
+    const locale = useLocale()
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    const getLocale = () => {
+        switch (locale) {
+            case 'en': return enUS
+            case 'es': return es
+            default: return ptBR
+        }
+    }
 
     useEffect(() => {
         if (!userId) return
@@ -125,7 +142,7 @@ export function NotificationBell({ userId }: { userId: string }) {
 
             if (joinError) {
                 if (joinError.code === '23505') {
-                    alert('Você já é membro deste grupo!')
+                    alert(t('status.alreadyMember'))
                 } else {
                     throw joinError
                 }
@@ -134,20 +151,20 @@ export function NotificationBell({ userId }: { userId: string }) {
             // 2. Mark notification as read
             await markAsRead(notification.id)
 
-            alert('Convite aceito com sucesso!')
+            alert(t('status.acceptSuccess'))
             setIsOpen(false)
 
             // 3. Redirect to group page
             router.push(`/groups/${notification.data.group_id}`)
         } catch (error: any) {
             console.error('Error accepting invitation:', error)
-            alert('Erro ao aceitar convite: ' + error.message)
+            alert(t('status.acceptError') + error.message)
         }
     }
 
     const declineInvitation = async (notificationId: string) => {
         await markAsRead(notificationId)
-        alert('Convite recusado.')
+        alert(t('status.declineSuccess'))
     }
 
     const handleJoinRequest = async (notification: Notification, action: 'approve' | 'reject') => {
@@ -156,14 +173,14 @@ export function NotificationBell({ userId }: { userId: string }) {
         try {
             const res = await fetch(`/api/groups/approve-member?id=${notification.data.pending_member_id}&action=${action}`)
             if (res.ok) {
-                alert(action === 'approve' ? 'Solicitação aprovada!' : 'Solicitação recusada.')
+                alert(action === 'approve' ? t('status.approveSuccess') : t('status.rejectSuccess'))
                 await markAsRead(notification.id)
                 if (action === 'approve' && notification.data.group_id) {
                     router.push(`/groups/${notification.data.group_id}`)
                 }
             } else {
                 const data = await res.json()
-                throw new Error(data.error || 'Erro ao processar')
+                throw new Error(data.error || t('status.processError'))
             }
         } catch (error: any) {
             alert(error.message)
@@ -188,6 +205,7 @@ export function NotificationBell({ userId }: { userId: string }) {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="relative rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-50 transition-colors"
+                suppressHydrationWarning
             >
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
@@ -210,7 +228,7 @@ export function NotificationBell({ userId }: { userId: string }) {
                         "sm:top-full"
                     )}>
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
-                            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Notificações</h3>
+                            <h3 className="text-sm font-bold text-slate-900 dark:text-white">{t('title')}</h3>
                             <div className="flex items-center gap-3">
                                 {unreadCount > 0 && (
                                     <button
@@ -234,7 +252,7 @@ export function NotificationBell({ userId }: { userId: string }) {
                                     onClick={() => setIsOpen(false)}
                                     className="text-xs font-semibold text-green-600 hover:text-green-700 dark:text-green-500 border-l border-slate-100 dark:border-slate-800 pl-3"
                                 >
-                                    Ver Todas
+                                    {t('viewAll')}
                                 </Link>
                             </div>
                         </div>
@@ -268,8 +286,8 @@ export function NotificationBell({ userId }: { userId: string }) {
                                                 )}>
                                                     {notification.title}
                                                 </p>
-                                                <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                                                    {notification.created_at ? formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: ptBR }) : ''}
+                                                <span className="text-[10px] text-slate-400 whitespace-nowrap" suppressHydrationWarning>
+                                                    {mounted && notification.created_at ? formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: getLocale() }) : ''}
                                                 </span>
                                             </div>
                                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
@@ -286,7 +304,7 @@ export function NotificationBell({ userId }: { userId: string }) {
                                                         className="inline-flex items-center gap-1 rounded-md bg-green-600 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95"
                                                     >
                                                         <Check className="h-3 w-3" />
-                                                        Aceitar
+                                                        {t('accept')}
                                                     </button>
                                                     <button
                                                         onClick={(e) => {
@@ -296,7 +314,7 @@ export function NotificationBell({ userId }: { userId: string }) {
                                                         className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 active:scale-95"
                                                     >
                                                         <X className="h-3 w-3" />
-                                                        Recusar
+                                                        {t('decline')}
                                                     </button>
                                                 </div>
                                             )}
@@ -311,7 +329,7 @@ export function NotificationBell({ userId }: { userId: string }) {
                                                         className="inline-flex items-center gap-1 rounded-md bg-green-600 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95"
                                                     >
                                                         <Check className="h-3 w-3" />
-                                                        Aprovar
+                                                        {t('approve')}
                                                     </button>
                                                     <button
                                                         onClick={(e) => {
@@ -321,7 +339,7 @@ export function NotificationBell({ userId }: { userId: string }) {
                                                         className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 active:scale-95"
                                                     >
                                                         <X className="h-3 w-3" />
-                                                        Recusar
+                                                        {t('decline')}
                                                     </button>
                                                 </div>
                                             )}
@@ -331,7 +349,7 @@ export function NotificationBell({ userId }: { userId: string }) {
                                                     <button
                                                         className="inline-flex items-center gap-1 rounded-md bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-[10px] font-bold text-slate-700 dark:text-slate-300 transition-all hover:bg-slate-200 dark:hover:bg-slate-700"
                                                     >
-                                                        Ver Detalhes
+                                                        {t('viewDetails')}
                                                     </button>
                                                 </div>
                                             )}
@@ -344,14 +362,14 @@ export function NotificationBell({ userId }: { userId: string }) {
                             ) : (
                                 <div className="p-8 text-center h-full flex flex-col items-center justify-center">
                                     <Bell className="h-8 w-8 text-slate-300 dark:text-slate-700 mx-auto mb-2 opacity-20" />
-                                    <p className="text-sm text-slate-500 dark:text-slate-500">Nenhuma notificação por aqui.</p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-500">{t('noNotifications')}</p>
                                 </div>
                             )}
                         </div>
 
                         {notifications.length > 0 && (
                             <div className="p-3 bg-slate-50 dark:bg-slate-800/30 text-center border-t border-slate-100 dark:border-slate-800 shrink-0">
-                                <span className="text-[10px] font-medium text-slate-400">Fique por dentro de tudo!</span>
+                                <span className="text-[10px] font-medium text-slate-400">{t('stayTunedShort')}</span>
                             </div>
                         )}
                     </div>

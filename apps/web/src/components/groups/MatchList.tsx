@@ -4,10 +4,11 @@ import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { ptBR, es, enUS } from 'date-fns/locale'
 import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, Info, Search, Filter, ChevronDown, Check, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BetSecurityService } from '@/lib/bet-security'
+import { useTranslations, useLocale } from 'next-intl'
 import { TeamName } from '@/components/ui/TeamName'
 
 interface MatchListProps {
@@ -25,15 +26,20 @@ interface BetState {
     }
 }
 
-function getPointsExplanation(betHome: number, betAway: number, realHome: number, realAway: number, points: number) {
-    if (points === 10) return "Placar Exato (Cravada)"
-    if (points === 7) return "Vencedor + Diferença de Gols"
-    if (points === 5) return "Só Vencedor"
-    if (points === 2) return "Um Placar Correto"
-    return "Nenhum acerto"
+function getPointsExplanation(betHome: number, betAway: number, realHome: number, realAway: number, points: number, t: any) {
+    if (points === 10) return t('exactScores_label')
+    if (points === 7) return t('winnerPlusDiff_label')
+    if (points === 5) return t('winner_label')
+    if (points === 2) return t('oneScore_label')
+    return t('noPoints') || "Nenhum acerto"
 }
 
 export function MatchList({ matches, groupId, userId }: MatchListProps) {
+    const t = useTranslations('group');
+    const locale = useLocale();
+    const dateLocale = locale === 'pt' ? ptBR : locale === 'es' ? es : enUS;
+    const isEnglish = locale === 'en';
+
     const [bets, setBets] = useState<BetState>({})
     const [initialBetsLoaded, setInitialBetsLoaded] = useState(false)
     const [hoveredPoints, setHoveredPoints] = useState<string | null>(null)
@@ -238,7 +244,7 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
     // Unified save handled by individual match focus logic
     const handleSaveAll = async () => { }
 
-    if (!initialBetsLoaded) return <div className="text-center py-8 text-slate-500 dark:text-slate-400">Carregando apostas...</div>
+    if (!initialBetsLoaded) return <div className="text-center py-8 text-slate-500 dark:text-slate-400">{t('loadingBets') || 'Carregando apostas...'}</div>
 
     const dirtyCount = getDirtyBetsCount()
 
@@ -253,7 +259,7 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                             <input
                                 type="text"
-                                placeholder="Buscar time..."
+                                placeholder={t('searchTeam')}
                                 className="w-full pl-8 pr-8 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-1 focus:ring-green-500 dark:text-white"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -278,7 +284,7 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                             : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                                     )}
                                 >
-                                    {f === 'all' ? 'Todas' : f === 'pending' ? 'Pendentes' : f === 'completed' ? 'Feitas' : 'Esquecidas'}
+                                    {f === 'all' ? t('all') : f === 'pending' ? t('pending') : f === 'completed' ? t('completed') : t('missed')}
                                 </button>
                             ))}
                         </div>
@@ -287,17 +293,17 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                         <div className="flex flex-wrap gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl">
                             {rounds.length > 0 && (
                                 <select className="text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md p-2 dark:text-white" value={roundFilter} onChange={(e) => setRoundFilter(e.target.value)}>
-                                    <option value="all">Todas Rodadas</option>
-                                    {rounds.map(r => <option key={r} value={r}>{r}</option>)}
+                                    <option value="all">{t('allRounds') || 'Todas Rodadas'}</option>
+                                    {rounds.map(r => <option key={r} value={r}>{r.replace('Rodada', t('round') || 'Rodada')}</option>)}
                                 </select>
                             )}
                             {matchGroups.length > 0 && (
                                 <select className="text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md p-2 dark:text-white" value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
-                                    <option value="all">Todos Grupos</option>
+                                    <option value="all">{t('allGroups') || 'Todos Grupos'}</option>
                                     {matchGroups.map(g => <option key={g} value={g}>{g}</option>)}
                                 </select>
                             )}
-                            <button onClick={() => { setRoundFilter('all'); setGroupFilter('all'); setStatusFilter('all'); setSearchQuery('') }} className="text-xs text-slate-400 hover:text-red-500 underline">Limpar</button>
+                            <button onClick={() => { setRoundFilter('all'); setGroupFilter('all'); setStatusFilter('all'); setSearchQuery('') }} className="text-xs text-slate-400 hover:text-red-500 underline">{t('clear') || 'Limpar'}</button>
                         </div>
                     )}
                 </div>
@@ -323,10 +329,10 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                 {/* Mobile Top Info Row */}
                                 <div className="flex justify-between items-center mb-2 sm:hidden">
                                     <span className="text-[10px] font-medium text-slate-400">
-                                        {format(new Date(match.match_date), 'dd/MM HH:mm', { locale: ptBR })}
-                                        {match.round && <span className="ml-1 opacity-60">• {match.round.replace('Rodada', 'R')}</span>}
+                                        {format(new Date(match.match_date), isEnglish ? 'MM/dd HH:mm' : 'dd/MM HH:mm', { locale: dateLocale })}
+                                        {match.round && <span className="ml-1 opacity-60">• {match.round.replace('Rodada', t('round_short') || 'R')}</span>}
                                     </span>
-                                    {locked && <span className="text-[10px] font-bold text-red-500 flex items-center gap-1 bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded leading-none">🔒 FECHADO</span>}
+                                    {locked && <span className="text-[10px] font-bold text-red-500 flex items-center gap-1 bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded leading-none">🔒 {t('locked_short') || 'FECHADO'}</span>}
                                 </div>
 
                                 {/* Desktop Info (Absolute) */}
@@ -336,7 +342,7 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tabular-nums">
-                                            {format(new Date(match.match_date), 'dd/MM - HH:mm', { locale: ptBR })}
+                                            {format(new Date(match.match_date), isEnglish ? 'MM/dd - HH:mm' : 'dd/MM - HH:mm', { locale: dateLocale })}
                                         </div>
                                         {locked && <span className="text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-500/10 px-1 py-0.5 rounded border border-red-100 dark:border-red-500/20 leading-none">🔒</span>}
                                     </div>
@@ -428,7 +434,7 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                                     <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(250,204,21,0.6)]" />
                                                 ) : (
                                                     <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest animate-in fade-in zoom-in duration-300">
-                                                        ✓ Salvo!
+                                                        ✓ {t('saved')}
                                                     </span>
                                                 )}
                                             </div>
@@ -436,7 +442,7 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
 
                                         {hasRealScore && (
                                             <div className="flex items-center gap-3">
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Placar Real</span>
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('realScore')}</span>
                                                 <span className="text-base font-black text-slate-700 dark:text-slate-200 tabular-nums">
                                                     {match.home_score} <span className="text-slate-300 mx-1">×</span> {match.away_score}
                                                 </span>
@@ -454,18 +460,22 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                                     onMouseEnter={() => setHoveredPoints(match.id)}
                                                     onMouseLeave={() => setHoveredPoints(null)}
                                                 >
-                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pontos:</span>
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('points')}:</span>
                                                     <span className="text-base font-black">{(bet.points ?? 0) > 0 ? '+' : ''}{bet?.points}</span>
                                                     <Info className="h-3 w-3 opacity-50" />
 
                                                     {hoveredPoints === match.id && (
                                                         <div className="absolute right-0 bottom-full mb-3 z-[9999] w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-xl p-3 text-xs pointer-events-none animate-in fade-in slide-in-from-bottom-2">
                                                             <div className="font-bold text-green-600 dark:text-green-400 mb-1.5 flex items-center gap-1.5">
-                                                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                                                <span>+{bet.points} pontos ganhos</span>
+                                                                <div className="px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-500/20 flex flex-col items-center">
+                                                                    <span className="text-[9px] font-black text-green-700 dark:text-green-400 leading-none">+{bet.points}</span>
+                                                                    <span className="text-[7px] font-bold text-green-600 dark:text-green-500 uppercase tracking-tighter mt-0.5">
+                                                                        {getPointsExplanation(Number(bet.home), Number(bet.away), match.home_score, match.away_score, bet.points!, t)}
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                             <div className="text-slate-500 dark:text-slate-400 leading-snug">
-                                                                {getPointsExplanation(Number(bet.home), Number(bet.away), match.home_score, match.away_score, bet.points!)}
+                                                                {getPointsExplanation(Number(bet.home), Number(bet.away), match.home_score, match.away_score, bet.points!, t)}
                                                             </div>
                                                         </div>
                                                     )}
@@ -477,7 +487,7 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                             </div>
                         )
                     })}
-                    {(!matches || matches.length === 0) && <p className="text-center text-slate-500 py-8">Nenhum jogo encontrado.</p>}
+                    {(!matches || matches.length === 0) && <p className="text-center text-slate-500 py-8">{t('noGames') || 'Nenhum jogo encontrado.'}</p>}
                 </div>
 
                 {/* Floating Save Button */}

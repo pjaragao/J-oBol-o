@@ -8,6 +8,7 @@ import { MemberList } from './MemberList'
 import { GroupSettings } from './GroupSettings'
 import { GroupBottomNav } from './GroupBottomNav'
 import GroupDashboard from './GroupDashboard'
+import { useTranslations } from 'next-intl'
 
 interface GroupTabsProps {
     groupId: string
@@ -18,6 +19,7 @@ interface GroupTabsProps {
 }
 
 export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTabsProps) {
+    const t = useTranslations('group');
     const searchParams = useSearchParams()
     const router = useRouter()
 
@@ -54,7 +56,7 @@ export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTab
                         : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
                         }`}
                 >
-                    Dashboard
+                    {t('dashboard')}
                 </button>
                 <button
                     onClick={() => setActiveTab('bets')}
@@ -63,7 +65,7 @@ export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTab
                         : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
                         }`}
                 >
-                    Apostas
+                    {t('bets')}
                 </button>
                 <button
                     onClick={() => handleTabChange('ranking')}
@@ -72,7 +74,7 @@ export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTab
                         : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
                         }`}
                 >
-                    Ranking
+                    {t('ranking')}
                 </button>
                 <button
                     onClick={() => handleTabChange('members')}
@@ -81,7 +83,7 @@ export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTab
                         : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
                         }`}
                 >
-                    Membros
+                    {t('members')}
                 </button>
 
                 {isAdmin && (
@@ -92,7 +94,7 @@ export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTab
                             : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
                             }`}
                     >
-                        Configurações
+                        {t('configurations')}
                     </button>
                 )}
             </div>
@@ -107,21 +109,21 @@ export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTab
 
             {activeTab === 'bets' && (
                 <>
-                    <h2 className="hidden sm:block text-xl font-bold mb-4 dark:text-white">Jogos Disponíveis</h2>
+                    <h2 className="hidden sm:block text-xl font-bold mb-4 dark:text-white">{t('availableGames')}</h2>
                     <MatchList matches={matches || []} groupId={groupId} userId={userId} />
                 </>
             )}
 
             {activeTab === 'ranking' && (
                 <>
-                    <h2 className="text-xl font-bold mb-4 dark:text-white">Classificação Geral</h2>
+                    <h2 className="text-xl font-bold mb-4 dark:text-white">{t('rankingSummary_full') || 'Classificação Geral'}</h2>
                     <RankingList groupId={groupId} eventId={group.event_id} currentUserId={userId} />
                 </>
             )}
 
             {activeTab === 'members' && (
                 <>
-                    <h2 className="text-xl font-bold mb-4 dark:text-white">Membros do Grupo</h2>
+                    <h2 className="text-xl font-bold mb-4 dark:text-white">{t('membersOfGroup') || 'Membros do Grupo'}</h2>
                     <MemberList groupId={groupId} />
                 </>
             )}

@@ -77,6 +77,7 @@ export function AppSidebar({ className, isOpen, setIsOpen, isAdmin }: SidebarPro
                     <button
                         onClick={() => setIsOpen(false)}
                         className="lg:hidden text-white/80 hover:text-white"
+                        suppressHydrationWarning
                     >
                         <X className="h-6 w-6" />
                     </button>
