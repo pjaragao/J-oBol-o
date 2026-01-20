@@ -16,6 +16,8 @@ export async function POST(request: Request) {
 
         const result = await sendPushToUser(user.id, title, message, '/notifications')
 
+        console.log('[Test Push] Result:', JSON.stringify(result, null, 2))
+
         return NextResponse.json(result)
     } catch (error: any) {
         console.error('Test Push Error:', error)

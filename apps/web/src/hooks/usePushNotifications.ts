@@ -83,6 +83,7 @@ export function usePushNotifications() {
     const testPush = async () => {
         if (!subscription) return
         setLoading(true)
+        setError(null)
         try {
             const res = await fetch('/api/push/send-test', {
                 method: 'POST',
@@ -91,9 +92,11 @@ export function usePushNotifications() {
             })
             const data = await res.json()
             if (data.success) {
-                // Success
+                alert(`Teste enviado com sucesso para ${data.sentCount} dispositivo(s)!`)
             } else {
-                setError('Erro: ' + (data.error || 'Falha ao enviar teste'))
+                const errorMsg = data.error || (data.totalSubscriptions === 0 ? 'Nenhuma assinatura encontrada no servidor.' : 'Falha na entrega para os dispositivos registrados.')
+                setError('Erro: ' + errorMsg)
+                console.error('Test push delivery failed:', data)
             }
         } catch (err: any) {
             console.error('Failed to send test push:', err)

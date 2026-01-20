@@ -26,6 +26,7 @@ export async function sendPushToUser(userId: string, title: string, message: str
     const results = []
 
     // 2. Send to all endpoints
+    let sentCount = 0
     for (const sub of subs) {
         const pushSubscription = {
             endpoint: sub.endpoint,
@@ -36,18 +37,27 @@ export async function sendPushToUser(userId: string, title: string, message: str
         }
 
         try {
+            console.log(`[Push] Sending to ${sub.endpoint.substring(0, 30)}...`)
             await webpush.sendNotification(pushSubscription, payload)
             results.push({ endpoint: sub.endpoint, status: 'sent' })
+            sentCount++
         } catch (error: any) {
-            console.error('Error sending push:', error)
-            results.push({ endpoint: sub.endpoint, status: 'failed', error: error.statusCode })
+            console.error('[Push] Error sending push to endpoint:', sub.endpoint, 'Status:', error.statusCode, 'Body:', error.body)
+            results.push({ endpoint: sub.endpoint, status: 'failed', error: error.statusCode, message: error.body })
 
             if (error.statusCode === 410 || error.statusCode === 404) {
                 // Subscription is gone, delete it to clean up DB
+                console.log(`[Push] Cleaning up expired subscription: ${sub.id}`)
                 await supabase.from('push_subscriptions').delete().eq('id', sub.id)
             }
         }
     }
 
-    return { success: true, results }
+    const success = sentCount > 0
+    return {
+        success,
+        sentCount,
+        totalSubscriptions: subs.length,
+        results
+    }
 }
