@@ -69,6 +69,7 @@ export function AppSidebar({ className, isOpen, setIsOpen, isAdmin }: SidebarPro
                                 src="/logo-new.png"
                                 alt="JãoBolão"
                                 fill
+                                sizes="32px"
                                 className="object-cover rounded-xl" // Rounded corners fix
                             />
                         </div>

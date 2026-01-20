@@ -24,11 +24,13 @@ export function usePushNotifications() {
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
+        console.log('[Push Hook] Initializing...')
         if ('serviceWorker' in navigator && 'PushManager' in window) {
+            console.log('[Push Hook] Push is supported.')
             setIsSupported(true)
             registerServiceWorker()
         } else {
-            console.warn('Push notifications not supported')
+            console.warn('[Push Hook] Push notifications not supported')
             setLoading(false)
         }
     }, [])
@@ -50,29 +52,42 @@ export function usePushNotifications() {
     }
 
     const subscribeToPush = async () => {
+        console.log('[Push Hook] Starting subscription...')
         setLoading(true)
         setError(null)
         try {
+            if (!VAPID_PUBLIC_KEY) throw new Error('VAPID Public Key not found in env')
+            console.log('[Push Hook] Using VAPID Key (start):', VAPID_PUBLIC_KEY.substring(0, 5) + '...')
+
             const registration = await navigator.serviceWorker.ready
+            console.log('[Push Hook] Service Worker ready.')
+
             const sub = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY!)
+                applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY)
             })
 
+            const subJson = sub.toJSON()
+            console.log('[Push Hook] Subscription created:', subJson)
             setSubscription(sub)
 
             // Send subscription to server
+            console.log('[Push Hook] Sending subscription to server...')
             const res = await fetch('/api/push/subscribe', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(sub.toJSON ? sub.toJSON() : sub)
+                body: JSON.stringify(subJson)
             })
 
-            if (!res.ok) throw new Error('Failed to save subscription')
+            if (!res.ok) {
+                const errorData = await res.json()
+                throw new Error(errorData.error || 'Failed to save subscription')
+            }
 
+            console.log('[Push Hook] Subscription saved successfully.')
             return true
         } catch (err: any) {
-            console.error('Failed to subscribe:', err)
+            console.error('[Push Hook] Failed to subscribe:', err)
             setError(err.message)
             return false
         } finally {
@@ -81,25 +96,34 @@ export function usePushNotifications() {
     }
 
     const testPush = async () => {
-        if (!subscription) return
+        console.log('[Push Hook] Clicking test button, sub:', !!subscription)
+        if (!subscription) {
+            console.warn('[Push Hook] No subscription found to test')
+            return
+        }
         setLoading(true)
         setError(null)
         try {
+            console.log('[Push Hook] Calling /api/push/send-test...')
             const res = await fetch('/api/push/send-test', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: 'Isso é um teste do JãoBolão!' })
             })
             const data = await res.json()
+            console.log('[Push Hook] Test result details:')
+            if (data.results) {
+                console.table(data.results)
+            }
+            console.log('[Push Hook] Summary:', data)
             if (data.success) {
                 alert(`Teste enviado com sucesso para ${data.sentCount} dispositivo(s)!`)
             } else {
                 const errorMsg = data.error || (data.totalSubscriptions === 0 ? 'Nenhuma assinatura encontrada no servidor.' : 'Falha na entrega para os dispositivos registrados.')
                 setError('Erro: ' + errorMsg)
-                console.error('Test push delivery failed:', data)
             }
         } catch (err: any) {
-            console.error('Failed to send test push:', err)
+            console.error('[Push Hook] Failed to send test push:', err)
             setError('Erro de rede: ' + err.message)
         } finally {
             setLoading(false)
@@ -107,15 +131,28 @@ export function usePushNotifications() {
     }
 
     const unsubscribeFromPush = async () => {
+        console.log('[Push Hook] Unsubscribing totally (Browser + Server)...')
         setLoading(true)
         try {
+            // 1. Unsubscribe from browser push manager
             if (subscription) {
                 await subscription.unsubscribe()
                 setSubscription(null)
+                console.log('[Push Hook] Browser subscription removed.')
             }
+
+            // 2. Call server to clear all records for this user (force fresh start)
+            console.log('[Push Hook] Requesting server to clear all subscriptions...')
+            const res = await fetch('/api/push/unsubscribe', { method: 'POST' })
+            if (!res.ok) {
+                console.warn('[Push Hook] Server failed to clear subscriptions, but browser is unsubscribed.')
+            } else {
+                console.log('[Push Hook] All subscriptions cleared from server.')
+            }
+
             return true
         } catch (err: any) {
-            console.error('Failed to unsubscribe:', err)
+            console.error('[Push Hook] Failed to unsubscribe:', err)
             setError(err.message)
             return false
         } finally {

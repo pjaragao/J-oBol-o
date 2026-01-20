@@ -1,55 +1,52 @@
 self.addEventListener('install', (event) => {
+    console.log('[Service Worker] Installing...');
     self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
+    console.log('[Service Worker] Activated and ready.');
     event.waitUntil(clients.claim());
 });
 
-self.addEventListener('push', function (event) {
-    console.log('[Service Worker] Push Received.');
+self.addEventListener('push', (event) => {
+    console.log('[Service Worker] Push Event received!', event);
 
-    let notificationData = {
+    let data = {
         title: 'JãoBolão',
-        body: 'Você tem uma nova atualização!',
+        body: 'Nova notificação!',
         url: '/'
     };
 
     try {
         if (event.data) {
-            console.log('[Service Worker] Push data type:', typeof event.data);
+            console.log('[Service Worker] Push data exists. Type:', typeof event.data);
             const rawText = event.data.text();
             console.log('[Service Worker] Raw Push Text:', rawText);
 
             try {
                 const parsed = JSON.parse(rawText);
-                notificationData = {
-                    title: parsed.title || notificationData.title,
-                    body: parsed.body || notificationData.body,
-                    url: parsed.url || notificationData.url
-                };
-            } catch (jsonErr) {
+                data = { ...data, ...parsed };
+                console.log('[Service Worker] Parsed JSON:', data);
+            } catch (e) {
                 console.warn('[Service Worker] Push data is not JSON, using as body');
-                notificationData.body = rawText;
+                data.body = rawText;
             }
+        } else {
+            console.warn('[Service Worker] Push event has no data!');
         }
     } catch (err) {
-        console.error('[Service Worker] Error extracting push data:', err);
+        console.error('[Service Worker] Error processing push data:', err);
     }
 
     const options = {
-        body: notificationData.body,
-        icon: '/logo-circle.png',
-        badge: '/logo-circle.png',
-        vibrate: [100, 50, 100],
+        body: data.body,
         data: {
-            dateOfArrival: Date.now(),
-            url: notificationData.url
+            url: data.url || '/'
         }
     };
 
     event.waitUntil(
-        self.registration.showNotification(notificationData.title, options)
+        self.registration.showNotification(data.title, options)
     );
 });
 

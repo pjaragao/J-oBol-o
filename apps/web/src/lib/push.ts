@@ -22,9 +22,10 @@ export async function sendPushToUser(userId: string, title: string, message: str
 
     if (!subs || subs.length === 0) return { success: false, error: 'No subscriptions found' }
 
-    const payloadObj = { title, body: message, url }
-    const payload = JSON.stringify(payloadObj)
-    console.log('[Push] Payload to send:', payload)
+    // const payloadObj = { title, body: message, url }
+    // const payload = JSON.stringify(payloadObj)
+    const payload = message // Testing plain text payload
+    console.log('[Push] Payload to send (Plain Text):', payload)
 
     const results = []
 
@@ -40,17 +41,29 @@ export async function sendPushToUser(userId: string, title: string, message: str
         }
 
         try {
-            console.log(`[Push] Sending to ${sub.endpoint.substring(0, 30)}...`)
-            await webpush.sendNotification(pushSubscription, payload)
+            console.log(`[Push] Sending to ${sub.endpoint.substring(0, 50)}...`)
+            // TTL 1 hour (3600 seconds) for faster expiration and WNS compliance
+            await webpush.sendNotification(pushSubscription, payload, { TTL: 3600 })
             results.push({ endpoint: sub.endpoint, status: 'sent' })
             sentCount++
         } catch (error: any) {
-            console.error('[Push] Error sending push to endpoint:', sub.endpoint, 'Status:', error.statusCode, 'Body:', error.body)
-            results.push({ endpoint: sub.endpoint, status: 'failed', error: error.statusCode, message: error.body })
+            console.error('[Push] Error details:', {
+                endpoint: sub.endpoint.substring(0, 50),
+                statusCode: error.statusCode,
+                message: error.message,
+                body: error.body
+            })
+
+            results.push({
+                endpoint: sub.endpoint,
+                status: 'failed',
+                error: error.statusCode,
+                message: error.body,
+                internalError: error.message
+            })
 
             if (error.statusCode === 410 || error.statusCode === 404) {
-                // Subscription is gone, delete it to clean up DB
-                console.log(`[Push] Cleaning up expired subscription: ${sub.id}`)
+                console.log(`[Push] Cleanup: Endpoint expired or not found (${error.statusCode}). Deleting...`)
                 await supabase.from('push_subscriptions').delete().eq('id', sub.id)
             }
         }

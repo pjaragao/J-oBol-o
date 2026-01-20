@@ -374,17 +374,24 @@ function NotificationsContent() {
                                 </div>
                                 {subscription && (
                                     <div className="mt-3 flex items-center gap-3">
-                                        <button onClick={testPush} className="text-xs font-semibold text-green-700 underline hover:text-green-800 dark:text-green-500 dark:hover:text-green-400">
+                                        <button
+                                            onClick={(e) => {
+                                                console.log('UI: Test button clicked');
+                                                testPush();
+                                            }}
+                                            className="text-xs font-semibold text-green-700 underline hover:text-green-800 dark:text-green-500 dark:hover:text-green-400"
+                                        >
                                             Testar Notificação
                                         </button>
                                         <span className="text-slate-300 dark:text-slate-700">|</span>
                                         <button
                                             onClick={async () => {
+                                                console.log('UI: Reset button clicked');
                                                 if (confirm('Isso irá remover sua assinatura atual e permitir que você se inscreva novamente. Continuar?')) {
                                                     await unsubscribeFromPush();
                                                 }
                                             }}
-                                            className="text-xs font-semibold text-slate-500 underline hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-300"
+                                            className="text-xs font-semibold text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                                         >
                                             Reiniciar / Limpar
                                         </button>

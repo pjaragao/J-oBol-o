@@ -33,6 +33,7 @@
             "invalidCredentials": "Invalid email or password.",
             "alreadyHaveAccount": "Already have an account?",
             "doLogin": "Sign In",
+            "or": "Or",
             "forgotPassword": "Forgot password?"
         },
         "register": {
