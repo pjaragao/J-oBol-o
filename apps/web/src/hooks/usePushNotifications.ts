@@ -25,13 +25,41 @@ export function usePushNotifications() {
 
     useEffect(() => {
         console.log('[Push Hook] Initializing...')
+
+        const handleMessage = (event: MessageEvent) => {
+            if (event.data?.type === 'PUSH_RECEIVED') {
+                console.log('%c[Push Hook] RECEIVED FROM SW:', 'background: #222; color: #bada55; padding: 2px 5px; border-radius: 3px;', event.data.payload)
+                // Optional: show a local toast if the browser notification failed to show
+            }
+            if (event.data?.type === 'PONG') {
+                console.log('%c[Push Hook] SW RESPONSE: PONG! Communication is OK.', 'background: #222; color: #34d399; padding: 2px 5px; border-radius: 3px;')
+                alert('Service Worker respondeu: PONG! A comunicação interna está funcionando.')
+            }
+        }
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', handleMessage)
+        }
+
         if ('serviceWorker' in navigator && 'PushManager' in window) {
             console.log('[Push Hook] Push is supported.')
+
+            if (!window.isSecureContext) {
+                console.error('[Push Hook] NOT SECURE CONTEXT! Push will likely fail. Use HTTPS or localhost.')
+                alert('Atenção: Notificações Push requerem HTTPS. Se estiver no celular via IP, não vai funcionar.')
+            }
+
             setIsSupported(true)
             registerServiceWorker()
         } else {
             console.warn('[Push Hook] Push notifications not supported')
             setLoading(false)
+        }
+
+        return () => {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.removeEventListener('message', handleMessage)
+            }
         }
     }, [])
 
@@ -51,20 +79,34 @@ export function usePushNotifications() {
         }
     }
 
+    const pingSW = async () => {
+        console.log('[Push Hook] Pinging Service Worker...')
+        const registration = await navigator.serviceWorker.ready
+        if (registration.active) {
+            registration.active.postMessage('PING')
+        } else {
+            console.error('[Push Hook] SW not active yet.')
+            alert('Service Worker ainda não está ativo.')
+        }
+    }
+
     const subscribeToPush = async () => {
         console.log('[Push Hook] Starting subscription...')
         setLoading(true)
         setError(null)
         try {
-            if (!VAPID_PUBLIC_KEY) throw new Error('VAPID Public Key not found in env')
-            console.log('[Push Hook] Using VAPID Key (start):', VAPID_PUBLIC_KEY.substring(0, 5) + '...')
+            const rawKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+            if (!rawKey) throw new Error('VAPID Public Key not found in env')
+
+            const vapidKey = rawKey.trim()
+            console.log('[Push Hook] Using formatted VAPID Key:', vapidKey.substring(0, 10) + '...' + vapidKey.slice(-5))
 
             const registration = await navigator.serviceWorker.ready
             console.log('[Push Hook] Service Worker ready.')
 
             const sub = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY)
+                applicationServerKey: urlB64ToUint8Array(vapidKey)
             })
 
             const subJson = sub.toJSON()
@@ -95,8 +137,8 @@ export function usePushNotifications() {
         }
     }
 
-    const testPush = async () => {
-        console.log('[Push Hook] Clicking test button, sub:', !!subscription)
+    const testPush = async (isDiagnostic: boolean = false) => {
+        console.log('[Push Hook] Clicking test button, isDiagnostic:', isDiagnostic, 'sub:', !!subscription)
         if (!subscription) {
             console.warn('[Push Hook] No subscription found to test')
             return
@@ -104,11 +146,14 @@ export function usePushNotifications() {
         setLoading(true)
         setError(null)
         try {
-            console.log('[Push Hook] Calling /api/push/send-test...')
+            console.log(`[Push Hook] Calling /api/push/send-test (diagnostic=${isDiagnostic})...`)
             const res = await fetch('/api/push/send-test', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: 'Isso é um teste do JãoBolão!' })
+                body: JSON.stringify({
+                    message: 'Isso é um teste do JãoBolão!',
+                    isDiagnostic
+                })
             })
             const data = await res.json()
             console.log('[Push Hook] Test result details:')
@@ -160,12 +205,25 @@ export function usePushNotifications() {
         }
     }
 
+    const showLocalNotification = async () => {
+        console.log('[Push Hook] Simulating local notification...')
+        const registration = await navigator.serviceWorker.ready
+        await registration.showNotification('Simulação JãoBolão', {
+            body: 'Isso é uma simulação interna para testar o visual! 🚀',
+            icon: '/logo-new.png',
+            badge: '/logo-circle.png',
+            data: { url: '/notifications' }
+        })
+    }
+
     return {
         isSupported,
         subscription,
         subscribeToPush,
         unsubscribeFromPush,
         testPush,
+        pingSW,
+        showLocalNotification,
         loading,
         error
     }

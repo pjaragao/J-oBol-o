@@ -12,9 +12,9 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json()
-        const { title = 'Teste de Notificação', message = 'Se você recebeu isso, as notificações estão funcionando! 🚀' } = body
+        const { title = 'Teste de Notificação', message = 'Se você recebeu isso, as notificações estão funcionando! 🚀', isDiagnostic = false } = body
 
-        const result = await sendPushToUser(user.id, title, message, '/notifications')
+        const result = await sendPushToUser(user.id, title, message, '/notifications', isDiagnostic)
 
         console.log('[Test Push] Result:', JSON.stringify(result, null, 2))
 

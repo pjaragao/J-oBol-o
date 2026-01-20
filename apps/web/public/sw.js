@@ -8,6 +8,24 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(clients.claim());
 });
 
+self.addEventListener('message', (event) => {
+    if (event.data === 'PING') {
+        console.log('[Service Worker] Received PING from main thread');
+        event.source.postMessage({ type: 'PONG' });
+    }
+});
+
+const broadcastMessage = (payload) => {
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        clientList.forEach((client) => {
+            client.postMessage({
+                type: 'PUSH_RECEIVED',
+                payload: payload
+            });
+        });
+    });
+};
+
 self.addEventListener('push', (event) => {
     console.log('[Service Worker] Push Event received!', event);
 
@@ -32,19 +50,26 @@ self.addEventListener('push', (event) => {
                 data.body = rawText;
             }
         } else {
-            console.warn('[Service Worker] Push event has no data!');
+            console.log('%c[Service Worker] TICKLE RECEIVED (Empty Payload)!', 'background: #444; color: #ffeb3b; padding: 2px 5px;');
+            data.body = 'Sinal de despertar (Vazio) recebido do servidor.';
         }
     } catch (err) {
         console.error('[Service Worker] Error processing push data:', err);
     }
 
+    // Broadcast to open tabs so it shows in the main console
+    broadcastMessage(data);
+
     const options = {
         body: data.body,
+        icon: '/logo-new.png',
+        badge: '/logo-circle.png',
         data: {
             url: data.url || '/'
         }
     };
 
+    console.log('[Service Worker] Showing notification:', data.title);
     event.waitUntil(
         self.registration.showNotification(data.title, options)
     );

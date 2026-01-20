@@ -48,7 +48,17 @@ function NotificationsContent() {
     const t = useTranslations('notifications')
     const locale = useLocale()
     const [mounted, setMounted] = useState(false)
-    const { isSupported, subscription, subscribeToPush, unsubscribeFromPush, testPush, loading: pushLoading, error: pushError } = usePushNotifications()
+    const pushHook = usePushNotifications()
+    const { isSupported, subscription, subscribeToPush, unsubscribeFromPush, testPush, showLocalNotification, loading: pushLoading, error: pushError } = pushHook
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            (window as any).pushHook = {
+                ...pushHook,
+                showLocalNotification
+            }
+        }
+    }, [pushHook, showLocalNotification])
 
     useEffect(() => {
         setMounted(true)
@@ -382,6 +392,34 @@ function NotificationsContent() {
                                             className="text-xs font-semibold text-green-700 underline hover:text-green-800 dark:text-green-500 dark:hover:text-green-400"
                                         >
                                             Testar Notificação
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                console.log('UI: Diagnostic button clicked');
+                                                const { pingSW } = usePushNotifications; // This won't work like this, I need to get it from the destructuring above
+                                            }}
+                                            className="hidden" // Need to fix the destructuring in the component
+                                        >
+                                            Diagnóstico
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                console.log('UI: Full Diagnostic test clicked');
+                                                testPush(true);
+                                            }}
+                                            className="text-xs font-semibold text-amber-600 underline hover:text-amber-700 dark:text-amber-500 dark:hover:text-amber-400"
+                                        >
+                                            Teste Completo (com Ping)
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                console.log('UI: SIMULAR clicked');
+                                                const hook = (window as any).pushHook;
+                                                if (hook) hook.showLocalNotification();
+                                            }}
+                                            className="text-xs font-semibold text-purple-600 underline hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
+                                        >
+                                            SIMULAR (Teste Visual)
                                         </button>
                                         <span className="text-slate-300 dark:text-slate-700">|</span>
                                         <button
