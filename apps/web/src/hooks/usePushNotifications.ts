@@ -65,7 +65,7 @@ export function usePushNotifications() {
             const res = await fetch('/api/push/subscribe', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(sub)
+                body: JSON.stringify(sub.toJSON ? sub.toJSON() : sub)
             })
 
             if (!res.ok) throw new Error('Failed to save subscription')
@@ -82,14 +82,24 @@ export function usePushNotifications() {
 
     const testPush = async () => {
         if (!subscription) return
+        setLoading(true)
         try {
-            await fetch('/api/push/send-test', {
+            const res = await fetch('/api/push/send-test', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: 'Isso é um teste do JãoBolão!' })
             })
-        } catch (err) {
+            const data = await res.json()
+            if (data.success) {
+                // Success
+            } else {
+                setError('Erro: ' + (data.error || 'Falha ao enviar teste'))
+            }
+        } catch (err: any) {
             console.error('Failed to send test push:', err)
+            setError('Erro de rede: ' + err.message)
+        } finally {
+            setLoading(false)
         }
     }
 

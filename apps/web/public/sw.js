@@ -1,6 +1,8 @@
 self.addEventListener('push', function (event) {
+    console.log('[Service Worker] Push Received.');
     if (event.data) {
         const data = event.data.json()
+        console.log('[Service Worker] Push Data:', data);
         const options = {
             body: data.body,
             icon: '/logo-circle.png',
