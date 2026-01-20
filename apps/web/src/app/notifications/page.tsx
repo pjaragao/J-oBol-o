@@ -23,12 +23,8 @@ import { ptBR, enUS, es } from 'date-fns/locale'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { HeaderSetter } from '@/components/layout/HeaderSetter'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
-// ... (skip lines 54-340 handled by context matching or separate edits if logic is split? No, I need to insert specific blocks)
-// I will split this into multiple chunks for safety.
-
-// Chunk 1: Import
-
 
 interface Notification {
     id: string
