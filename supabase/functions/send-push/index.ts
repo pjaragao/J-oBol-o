@@ -1,5 +1,5 @@
 // Edge Function: Send Push Notification
-// Uses web-push to send notifications, bypasses RLS with service_role
+// Simplified version using web-push npm package via Deno
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -11,11 +11,8 @@ const corsHeaders = {
 
 // VAPID configuration
 const VAPID_MAILTO = Deno.env.get('VAPID_MAILTO') || 'mailto:suporte@jaobolao.com.br'
-const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || Deno.env.get('NEXT_PUBLIC_VAPID_PUBLIC_KEY')
+const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY')
 const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY')
-
-// Web Push implementation for Deno
-// Using raw crypto APIs since web-push npm package isn't Deno-compatible directly
 
 interface PushToken {
     id: string
@@ -34,111 +31,9 @@ interface PushPayload {
     data?: Record<string, any>
 }
 
-// Base64 URL encoding helpers
-function base64UrlEncode(buffer: ArrayBuffer): string {
-    const bytes = new Uint8Array(buffer)
-    let binary = ''
-    for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i])
-    }
-    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-}
-
-function base64UrlDecode(str: string): Uint8Array {
-    const padding = '='.repeat((4 - str.length % 4) % 4)
-    const base64 = (str + padding).replace(/-/g, '+').replace(/_/g, '/')
-    const rawData = atob(base64)
-    const outputArray = new Uint8Array(rawData.length)
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i)
-    }
-    return outputArray
-}
-
-// Create JWT for VAPID authentication
-async function createVapidJwt(audience: string): Promise<string> {
-    if (!VAPID_PRIVATE_KEY || !VAPID_PUBLIC_KEY) {
-        throw new Error('VAPID keys not configured')
-    }
-
-    const header = { typ: 'JWT', alg: 'ES256' }
-    const now = Math.floor(Date.now() / 1000)
-    const payload = {
-        aud: audience,
-        exp: now + 86400, // 24 hours
-        sub: VAPID_MAILTO
-    }
-
-    const encodedHeader = base64UrlEncode(new TextEncoder().encode(JSON.stringify(header)))
-    const encodedPayload = base64UrlEncode(new TextEncoder().encode(JSON.stringify(payload)))
-    const unsignedToken = `${encodedHeader}.${encodedPayload}`
-
-    // Import private key
-    const privateKeyBytes = base64UrlDecode(VAPID_PRIVATE_KEY)
-    const privateKey = await crypto.subtle.importKey(
-        'pkcs8',
-        privateKeyBytes,
-        { name: 'ECDSA', namedCurve: 'P-256' },
-        false,
-        ['sign']
-    )
-
-    // Sign the token
-    const signature = await crypto.subtle.sign(
-        { name: 'ECDSA', hash: 'SHA-256' },
-        privateKey,
-        new TextEncoder().encode(unsignedToken)
-    )
-
-    const encodedSignature = base64UrlEncode(signature)
-    return `${unsignedToken}.${encodedSignature}`
-}
-
-// Send a single push notification
-async function sendPush(token: PushToken, payload: string): Promise<{ success: boolean; error?: string; statusCode?: number }> {
-    try {
-        const endpoint = new URL(token.endpoint)
-        const audience = `${endpoint.protocol}//${endpoint.host}`
-
-        // Create VAPID JWT
-        const jwt = await createVapidJwt(audience)
-
-        // Prepare headers
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/octet-stream',
-            'Content-Encoding': 'aes128gcm',
-            'TTL': '86400',
-            'Authorization': `vapid t=${jwt}, k=${VAPID_PUBLIC_KEY}`,
-        }
-
-        // For now, send unencrypted payload (basic implementation)
-        // Full implementation would use ECDH + AES-GCM encryption
-        const response = await fetch(token.endpoint, {
-            method: 'POST',
-            headers: {
-                ...headers,
-                'Content-Type': 'application/json',
-            },
-            body: payload,
-        })
-
-        if (response.ok || response.status === 201) {
-            return { success: true }
-        }
-
-        const errorBody = await response.text()
-        return {
-            success: false,
-            error: errorBody,
-            statusCode: response.status
-        }
-    } catch (error) {
-        return {
-            success: false,
-            error: error.message
-        }
-    }
-}
+// Import web-push from npm via esm.sh (Deno-compatible)
+// @ts-ignore
+import webPush from 'https://esm.sh/web-push@3.6.7'
 
 serve(async (req) => {
     // Handle CORS preflight
@@ -155,6 +50,13 @@ serve(async (req) => {
                 { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             )
         }
+
+        // Set VAPID details
+        webPush.setVapidDetails(
+            VAPID_MAILTO,
+            VAPID_PUBLIC_KEY,
+            VAPID_PRIVATE_KEY
+        )
 
         const body: PushPayload = await req.json()
         const { user_id, user_ids, title, body: messageBody, url = '/', data } = body
@@ -223,23 +125,42 @@ serve(async (req) => {
         const expiredTokenIds: string[] = []
 
         for (const token of tokens) {
-            const result = await sendPush(token, payload)
+            try {
+                // Create push subscription object
+                const pushSubscription = {
+                    endpoint: token.endpoint,
+                    keys: {
+                        p256dh: token.p256dh,
+                        auth: token.auth
+                    }
+                }
 
-            results.push({
-                endpoint: token.endpoint.substring(0, 50) + '...',
-                success: result.success,
-                error: result.error
-            })
+                // Send notification using web-push
+                await webPush.sendNotification(pushSubscription, payload)
 
-            // Mark expired tokens for deletion
-            if (result.statusCode === 410 || result.statusCode === 404) {
-                expiredTokenIds.push(token.id)
-                console.log(`[send-push] Token expired: ${token.endpoint.substring(0, 50)}...`)
-            }
+                console.log(`[send-push] ✅ Sent to ${token.endpoint.substring(0, 50)}...`)
+                results.push({
+                    endpoint: token.endpoint.substring(0, 50) + '...',
+                    success: true
+                })
 
-            // Update last_used_at on success
-            if (result.success) {
+                // Update last_used_at
                 await supabase.rpc('touch_push_token', { p_endpoint: token.endpoint })
+
+            } catch (error: any) {
+                console.error(`[send-push] ❌ Failed to send to ${token.endpoint.substring(0, 50)}...`, error.message)
+
+                results.push({
+                    endpoint: token.endpoint.substring(0, 50) + '...',
+                    success: false,
+                    error: error.message
+                })
+
+                // Mark expired tokens for deletion (410 = Gone, 404 = Not Found)
+                if (error.statusCode === 410 || error.statusCode === 404) {
+                    expiredTokenIds.push(token.id)
+                    console.log(`[send-push] Token expired: ${token.id}`)
+                }
             }
         }
 
@@ -268,7 +189,7 @@ serve(async (req) => {
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('[send-push] Error:', error)
         return new Response(
             JSON.stringify({ error: 'Send failed', details: error.message }),
