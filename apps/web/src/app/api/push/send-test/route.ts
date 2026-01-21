@@ -57,6 +57,13 @@ export async function POST(request: Request) {
         }
 
         console.log(`[Send Test API] Found ${tokens.length} token(s)`)
+        // Log token data for comparison with browser subscription
+        for (const token of tokens) {
+            console.log('[Send Test API] DB Token:')
+            console.log('  - Endpoint:', token.endpoint?.substring(0, 60) + '...')
+            console.log('  - p256dh:', token.p256dh?.substring(0, 30) + '...')
+            console.log('  - auth:', token.auth)
+        }
 
         // Prepare payload
         const payload = JSON.stringify({
@@ -80,12 +87,26 @@ export async function POST(request: Request) {
                     }
                 }
 
-                await webpush.sendNotification(pushSubscription, payload)
-                console.log(`[Send Test API] ✅ Sent to ${token.endpoint.substring(0, 50)}...`)
+                console.log(`[Send Test API] Sending to:`)
+                console.log(`  - Endpoint: ${token.endpoint.substring(0, 80)}...`)
+                console.log(`  - p256dh length: ${token.p256dh?.length || 0}`)
+                console.log(`  - auth length: ${token.auth?.length || 0}`)
+
+                const result = await webpush.sendNotification(pushSubscription, payload)
+                console.log(`[Send Test API] ✅ web-push result:`, {
+                    statusCode: result.statusCode,
+                    headers: result.headers,
+                    body: result.body
+                })
                 successCount++
                 results.push({ endpoint: token.endpoint.substring(0, 30) + '...', success: true })
             } catch (error: any) {
                 console.error(`[Send Test API] ❌ Failed:`, error.message)
+                console.error(`[Send Test API] Error details:`, {
+                    statusCode: error.statusCode,
+                    body: error.body,
+                    headers: error.headers
+                })
                 failCount++
                 results.push({ endpoint: token.endpoint.substring(0, 30) + '...', success: false, error: error.message })
             }

@@ -258,12 +258,26 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         setError(null)
 
         try {
+            // First, verify current subscription matches what's in DB
+            const registration = await navigator.serviceWorker.ready
+            const currentSub = await registration.pushManager.getSubscription()
+
+            if (!currentSub) {
+                throw new Error('No active subscription found. Please subscribe first.')
+            }
+
+            const subJson = currentSub.toJSON()
+            console.log('[Push Test] Current browser subscription:')
+            console.log('  - Endpoint:', subJson.endpoint?.substring(0, 60) + '...')
+            console.log('  - p256dh:', subJson.keys?.p256dh?.substring(0, 30) + '...')
+            console.log('  - auth:', subJson.keys?.auth)
+
             const res = await fetch('/api/push/send-test', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     title: 'Teste JãoBolão 🎉',
-                    body: 'Se você recebeu isso, as notificações estão funcionando!'
+                    message: 'Se você recebeu isso, as notificações estão funcionando!'
                 })
             })
 
