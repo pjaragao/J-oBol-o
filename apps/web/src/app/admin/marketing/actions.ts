@@ -407,6 +407,52 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
             if (insertError) throw insertError
         }
 
+        // Trigger actual push notification delivery via Edge Function
+        const uniqueUserIds = [...new Set(notificationsToInsert.map(n => n.user_id))]
+        const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+        if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+            // Determine push message content
+            const pushTitle = data.title
+            const pushBody = data.message
+            const pushUrl = data.actionLinkType === 'fixed' ? data.fixedLink : '/notifications'
+
+            // Send push in batches of 50 users
+            const pushBatchSize = 50
+            let pushSuccessCount = 0
+            let pushFailCount = 0
+
+            for (let i = 0; i < uniqueUserIds.length; i += pushBatchSize) {
+                const batch = uniqueUserIds.slice(i, i + pushBatchSize)
+                try {
+                    const response = await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+                        },
+                        body: JSON.stringify({
+                            user_ids: batch,
+                            title: pushTitle,
+                            body: pushBody,
+                            url: pushUrl
+                        })
+                    })
+                    const result = await response.json()
+                    pushSuccessCount += result.sent_count || 0
+                    pushFailCount += result.failed_count || 0
+                    console.log(`[Campaign Push] Batch ${i / pushBatchSize + 1}: ${result.sent_count || 0} sent, ${result.failed_count || 0} failed`)
+                } catch (err: any) {
+                    console.error('[Campaign Push] Batch failed:', err.message)
+                    // Continue with next batch, don't fail the campaign
+                }
+            }
+            console.log(`[Campaign Push] Total: ${pushSuccessCount} sent, ${pushFailCount} failed`)
+        } else {
+            console.warn('[Campaign Push] Missing Supabase config, skipping push delivery')
+        }
+
         revalidatePath('/')
         revalidatePath('/notifications')
 
