@@ -2,8 +2,36 @@
 import { createClient } from '@/lib/supabase/server'
 import { footballData } from '@/lib/api-football/client'
 import { syncLogger } from '@/lib/sync-logger'
-import { sendPushToUser } from '@/lib/push'
 import { localizeExternalImage } from '@/lib/supabase/storage-utils'
+
+// Send push notification via Edge Function
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+async function sendPushNotification(userId: string, title: string, body: string, url: string = '/') {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+        console.warn('[Push] Missing Supabase config for Edge Function')
+        return { success: false, error: 'Missing config' }
+    }
+
+    try {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+            },
+            body: JSON.stringify({ user_id: userId, title, body, url })
+        })
+
+        const result = await response.json()
+        console.log(`[Push] Sent to ${userId}:`, result.success ? 'OK' : result.error)
+        return result
+    } catch (error: any) {
+        console.error('[Push] Error calling Edge Function:', error.message)
+        return { success: false, error: error.message }
+    }
+}
 
 // Helper function from update-matches
 function mapStatus(apiStatus: string): string {
@@ -323,8 +351,8 @@ export async function sendReminders() {
                             }
                         })
 
-                    // Send Push Notification
-                    await sendPushToUser(
+                    // Send Push Notification via Edge Function
+                    await sendPushNotification(
                         member.user_id,
                         'Lembrete de Palpite! ⏳',
                         `O jogo ${homeName} x ${awayName} começa em breve!`,

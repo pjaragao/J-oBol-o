@@ -48,17 +48,15 @@ function NotificationsContent() {
     const t = useTranslations('notifications')
     const locale = useLocale()
     const [mounted, setMounted] = useState(false)
-    const pushHook = usePushNotifications()
-    const { isSupported, subscription, subscribeToPush, unsubscribeFromPush, testPush, showLocalNotification, loading: pushLoading, error: pushError } = pushHook
-
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            (window as any).pushHook = {
-                ...pushHook,
-                showLocalNotification
-            }
-        }
-    }, [pushHook, showLocalNotification])
+    const {
+        isSupported,
+        subscription,
+        subscribe: subscribeToPush,
+        unsubscribe: unsubscribeFromPush,
+        testPush,
+        loading: pushLoading,
+        error: pushError
+    } = usePushNotifications()
 
     useEffect(() => {
         setMounted(true)
@@ -383,55 +381,24 @@ function NotificationsContent() {
                                     )}
                                 </div>
                                 {subscription && (
-                                    <div className="mt-3 flex items-center gap-3">
+                                    <div className="mt-3 flex items-center gap-3 flex-wrap">
                                         <button
-                                            onClick={(e) => {
-                                                console.log('UI: Test button clicked');
-                                                testPush();
-                                            }}
-                                            className="text-xs font-semibold text-green-700 underline hover:text-green-800 dark:text-green-500 dark:hover:text-green-400"
+                                            onClick={() => testPush()}
+                                            disabled={pushLoading}
+                                            className="text-xs font-semibold text-green-700 underline hover:text-green-800 dark:text-green-500 dark:hover:text-green-400 disabled:opacity-50"
                                         >
-                                            Testar Notificação
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                console.log('UI: Diagnostic button clicked');
-                                                const { pingSW } = usePushNotifications; // This won't work like this, I need to get it from the destructuring above
-                                            }}
-                                            className="hidden" // Need to fix the destructuring in the component
-                                        >
-                                            Diagnóstico
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                console.log('UI: Full Diagnostic test clicked');
-                                                testPush(true);
-                                            }}
-                                            className="text-xs font-semibold text-amber-600 underline hover:text-amber-700 dark:text-amber-500 dark:hover:text-amber-400"
-                                        >
-                                            Teste Completo (com Ping)
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                console.log('UI: SIMULAR clicked');
-                                                const hook = (window as any).pushHook;
-                                                if (hook) hook.showLocalNotification();
-                                            }}
-                                            className="text-xs font-semibold text-purple-600 underline hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
-                                        >
-                                            SIMULAR (Teste Visual)
+                                            {pushLoading ? 'Enviando...' : 'Testar Notificação'}
                                         </button>
                                         <span className="text-slate-300 dark:text-slate-700">|</span>
                                         <button
                                             onClick={async () => {
-                                                console.log('UI: Reset button clicked');
-                                                if (confirm('Isso irá remover sua assinatura atual e permitir que você se inscreva novamente. Continuar?')) {
-                                                    await unsubscribeFromPush();
+                                                if (confirm('Isso irá remover sua assinatura de push. Continuar?')) {
+                                                    await unsubscribeFromPush()
                                                 }
                                             }}
-                                            className="text-xs font-semibold text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                            className="text-xs font-semibold text-red-600 underline hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                         >
-                                            Reiniciar / Limpar
+                                            Desativar Push
                                         </button>
                                     </div>
                                 )}

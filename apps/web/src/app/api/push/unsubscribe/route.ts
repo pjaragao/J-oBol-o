@@ -10,17 +10,21 @@ export async function POST() {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // Delete all subscriptions for this user to start fresh
+        // Delete all push tokens for this user
         const { error } = await supabase
-            .from('push_subscriptions')
+            .from('push_tokens')
             .delete()
             .eq('user_id', user.id)
 
-        if (error) throw error
+        if (error) {
+            console.error('[Unsubscribe API] Error:', error)
+            throw error
+        }
 
-        return NextResponse.json({ success: true, message: 'All subscriptions cleared' })
+        return NextResponse.json({ success: true, message: 'All tokens cleared' })
+
     } catch (error: any) {
-        console.error('[Push Unsubscribe API] Error:', error)
+        console.error('[Unsubscribe API] Error:', error)
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }
