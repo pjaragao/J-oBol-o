@@ -1,26 +1,50 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-// TEMPORÁRIO: Chave hardcoded para teste
-// TODO: Remover após confirmar que funciona e usar env var
-const VAPID_PUBLIC_KEY = 'BEKsFpVHs18GyigqFB3JBoq193G2r92-ygNLhxSmYwqzwIbweL5FPDQuTiMmm18eR33DaidWPsIpXbaS4yIfThyI'
+// Chave VAPID hardcoded para teste
+const VAPID_PUBLIC_KEY = 'BEKsFpVHs18GyigqFB3JBoq193G2r92-ygNLhxSmYwqzwIbweL5FPDQuTiMm18eR33DaidWPsIpXbaS4yIfThyI'
 
 /**
  * Convert VAPID public key from base64url to Uint8Array
+ * WITH DEBUG LOGGING
  */
 function urlB64ToUint8Array(base64String: string): Uint8Array {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4)
+    console.log('[DEBUG VAPID] ==== START CONVERSION ====')
+    console.log('[DEBUG VAPID] Input:', base64String)
+    console.log('[DEBUG VAPID] Length:', base64String.length)
+
+    // Calculate padding
+    const paddingNeeded = (4 - (base64String.length % 4)) % 4
+    const padding = '='.repeat(paddingNeeded)
+    console.log('[DEBUG VAPID] Padding:', paddingNeeded, 'chars')
+
+    // Convert base64url to base64
     const base64 = (base64String + padding)
-        .replace(/-/g, '+')
+        .replace(/\-/g, '+')
         .replace(/_/g, '/')
 
-    const rawData = window.atob(base64)
-    const outputArray = new Uint8Array(rawData.length)
+    console.log('[DEBUG VAPID] Base64 (first 50):', base64.substring(0, 50))
+    console.log('[DEBUG VAPID] Base64 (last 50):', base64.substring(base64.length - 50))
 
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i)
+    try {
+        const rawData = atob(base64)
+        console.log('[DEBUG VAPID] Decoded raw data length:', rawData.length)
+
+        const outputArray = new Uint8Array(rawData.length)
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i)
+        }
+
+        console.log('[DEBUG VAPID] ✅ Array created, length:', outputArray.length)
+        console.log('[DEBUG VAPID] First 10 bytes:', Array.from(outputArray.slice(0, 10)))
+        console.log('[DEBUG VAPID] Last 10 bytes:', Array.from(outputArray.slice(-10)))
+        console.log('[DEBUG VAPID] ==== END CONVERSION ====')
+
+        return outputArray
+    } catch (error: any) {
+        console.error('[DEBUG VAPID] ❌ CONVERSION FAILED:', error.message)
+        throw error
     }
-    return outputArray
 }
 
 /**
@@ -68,6 +92,8 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     // Check support and get existing subscription on mount
     useEffect(() => {
         const init = async () => {
+            console.log('[Push] Initializing...')
+
             // Check if push is supported
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
                 console.warn('[Push] Not supported in this browser')
@@ -96,6 +122,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
                 // Check for existing subscription
                 const existingSub = await registration.pushManager.getSubscription()
                 setSubscription(existingSub)
+                console.log('[Push] Existing subscription:', existingSub ? 'YES' : 'NO')
             } catch (err: any) {
                 console.error('[Push] Init error:', err)
                 setError(err.message)
@@ -111,8 +138,17 @@ export function usePushNotifications(): UsePushNotificationsReturn {
      * Subscribe to push notifications
      */
     const subscribe = useCallback(async (): Promise<boolean> => {
-        if (!isSupported || !VAPID_PUBLIC_KEY) {
-            setError('Push not supported or VAPID key missing')
+        console.log('[Push] ===== SUBSCRIBE ATTEMPT =====')
+
+        if (!isSupported) {
+            console.error('[Push] Not supported')
+            setError('Push not supported')
+            return false
+        }
+
+        if (!VAPID_PUBLIC_KEY) {
+            console.error('[Push] VAPID key missing')
+            setError('VAPID key missing')
             return false
         }
 
@@ -125,17 +161,24 @@ export function usePushNotifications(): UsePushNotificationsReturn {
             if (!user) {
                 throw new Error('User not authenticated')
             }
+            console.log('[Push] User authenticated:', user.id)
 
             // Get SW registration
             const registration = await navigator.serviceWorker.ready
             console.log('[Push] Service Worker ready')
 
+            // Convert VAPID key
+            console.log('[Push] Converting VAPID key...')
+            const applicationServerKey = urlB64ToUint8Array(VAPID_PUBLIC_KEY)
+            console.log('[Push] VAPID key converted successfully')
+
             // Subscribe to push
+            console.log('[Push] Calling pushManager.subscribe()...')
             const sub = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY)
+                applicationServerKey
             })
-            console.log('[Push] Subscribed:', sub.endpoint.substring(0, 50))
+            console.log('[Push] ✅ SUBSCRIBED!', sub.endpoint.substring(0, 50))
 
             // Save to database
             const subJson = sub.toJSON()
@@ -159,7 +202,10 @@ export function usePushNotifications(): UsePushNotificationsReturn {
             return true
 
         } catch (err: any) {
-            console.error('[Push] Subscribe error:', err)
+            console.error('[Push] ❌ Subscribe error:', err)
+            console.error('[Push] Error name:', err.name)
+            console.error('[Push] Error message:', err.message)
+            console.error('[Push] Error stack:', err.stack)
             setError(err.message)
             return false
         } finally {
