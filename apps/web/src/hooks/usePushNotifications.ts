@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+// TEMPORÁRIO: Chave hardcoded para teste
+// TODO: Remover após confirmar que funciona e usar env var
+const VAPID_PUBLIC_KEY = 'BC3-DbQMB_JBg1w9Ea-7E0orSo4AfdCfKo8Qezpr4RyAKP6xxxK2iQsU8nUUvELVlK9ASfrDZ0agpQP47EwUK6LE'
 
 /**
  * Convert VAPID public key from base64url to Uint8Array
