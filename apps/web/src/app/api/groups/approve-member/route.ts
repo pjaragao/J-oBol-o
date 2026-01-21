@@ -1,6 +1,26 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { sendPushToUser } from '@/lib/push'
+
+// Helper to send push via Edge Function
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+async function sendPushNotification(userId: string, title: string, body: string, url: string = '/') {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return { success: false }
+    try {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+            },
+            body: JSON.stringify({ user_id: userId, title, body, url })
+        })
+        return await response.json()
+    } catch (error) {
+        return { success: false }
+    }
+}
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
@@ -71,7 +91,7 @@ export async function GET(request: Request) {
             }
 
             // Notify User
-            await sendPushToUser(
+            await sendPushNotification(
                 pendingMember.user_id,
                 'Solicitação Aprovada! 🥳',
                 'Você foi aceito no grupo! Clique para ver.',
@@ -94,7 +114,7 @@ export async function GET(request: Request) {
             if (updateError) throw updateError
 
             // Notify User
-            await sendPushToUser(
+            await sendPushNotification(
                 pendingMember.user_id,
                 'Solicitação Recusada',
                 'Sua solicitação de entrada no grupo foi recusada pelo administrador.',

@@ -1,7 +1,32 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { sendPushToUser } from '@/lib/push'
+
+// Helper to send push via Edge Function
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+async function sendPushNotification(userId: string, title: string, body: string, url: string = '/') {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+        console.warn('[Push] Missing Supabase config')
+        return { success: false }
+    }
+
+    try {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+            },
+            body: JSON.stringify({ user_id: userId, title, body, url })
+        })
+        return await response.json()
+    } catch (error) {
+        console.error('[Push] Error:', error)
+        return { success: false }
+    }
+}
 
 export async function notifyAdminsOfJoinRequest(groupId: string) {
     const supabase = await createClient()
@@ -34,7 +59,7 @@ export async function notifyAdminsOfJoinRequest(groupId: string) {
     // 3. Send Push
     if (admins) {
         for (const admin of admins) {
-            await sendPushToUser(
+            await sendPushNotification(
                 admin.user_id,
                 'Solicitação de Entrada 👥',
                 `${requesterName} quer entrar no grupo ${groupName}`,
@@ -69,7 +94,7 @@ export async function notifyUserOfInvite(invitedUserId: string, groupId: string)
     const senderName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Alguém'
 
     // 3. Send Push
-    await sendPushToUser(
+    await sendPushNotification(
         invitedUserId,
         'Você foi convidado! 📩',
         `${senderName} te convidou para o grupo ${group?.name || 'de bolão'}`,

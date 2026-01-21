@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
-import { sendPushToUser } from '@/lib/push'
 import { NextResponse } from 'next/server'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 export async function POST(request: Request) {
     try {
@@ -12,15 +14,32 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json()
-        const { title = 'Teste de Notificação', message = 'Se você recebeu isso, as notificações estão funcionando! 🚀', isDiagnostic = false } = body
+        const { title = 'Teste de Notificação', message = 'Se você recebeu isso, as notificações estão funcionando! 🚀' } = body
 
-        const result = await sendPushToUser(user.id, title, message, '/notifications', isDiagnostic)
+        // Call Edge Function to send push
+        const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/send-push`
 
-        console.log('[Test Push] Result:', JSON.stringify(result, null, 2))
+        const response = await fetch(edgeFunctionUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+            },
+            body: JSON.stringify({
+                user_id: user.id,
+                title,
+                body: message,
+                url: '/notifications'
+            })
+        })
+
+        const result = await response.json()
+        console.log('[Send Test API] Result:', result)
 
         return NextResponse.json(result)
+
     } catch (error: any) {
-        console.error('Test Push Error:', error)
+        console.error('[Send Test API] Error:', error)
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }
