@@ -408,7 +408,7 @@ export async function sendCampaign(filters: CampaignFilters, data: CampaignData)
         }
 
         // Trigger actual push notification delivery via Edge Function
-        const uniqueUserIds = [...new Set(notificationsToInsert.map(n => n.user_id))]
+        const uniqueUserIds = Array.from(new Set(notificationsToInsert.map(n => n.user_id)))
         const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
         const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
