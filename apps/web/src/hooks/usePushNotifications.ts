@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/client'
 
 // TEMPORÁRIO: Chave hardcoded para teste
 // TODO: Remover após confirmar que funciona e usar env var
-const VAPID_PUBLIC_KEY = 'BC3-DbQMB_JBg1w9Ea-7E0orSo4AfdCfKo8Qezpr4RyAKP6xxxK2iQsU8nUUvELVlK9ASfrDZ0agpQP47EwUK6LE'
+const VAPID_PUBLIC_KEY = 'BEKsFpVHs18GyigqFB3JBoq193G2r92-ygNLhxSmYwqzwIbweL5FPDQuTiMmm18eR33DaidWPsIpXbaS4yIfThyI'
 
 /**
  * Convert VAPID public key from base64url to Uint8Array

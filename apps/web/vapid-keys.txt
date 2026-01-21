@@ -1,0 +1,12 @@
+VAPID Keys Generated
+====================
+
+Public Key:
+BEKsFpVHs18GyigqFB3JBoq193G2r92-ygNLhxSmYwqzwIbweL5FPDQuTiMm18eR33DaidWPsIpXbaS4yIfThyI
+
+Private Key:
+yeaHuZnIjjlsMaS9RTgDCfGDdREiYBXA2Xbi3ZXpW9Q
+
+Length Check:
+Public: 87 characters
+Private: 43 characters
