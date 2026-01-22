@@ -266,7 +266,12 @@
         "errorDeleting": "Erro ao deletar grupo: ",
         "errorSaving": "Erro ao salvar: ",
         "errorUpgrading": "Erro ao aumentar limite: ",
-        "realScoreTitle": "Prêmio total:"
+        "realScoreTitle": "Prêmio total:",
+        "prize": "Prêmio",
+        "paid": "Pagos",
+        "unpaid": "Pendentes",
+        "financialInfo": "Informações Financeiras",
+        "saved": "Salvo!"
     },
     "groups": {
         "myGroups": "MEUS GRUPOS",

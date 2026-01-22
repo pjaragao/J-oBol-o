@@ -744,22 +744,22 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                     </div>
 
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between gap-2 mb-2">
-                                            <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
+                                        <div className="flex items-center justify-between gap-1 mb-2">
+                                            <div className="flex items-center gap-1 flex-1 justify-end min-w-0">
                                                 <TeamName
                                                     team={home}
                                                     variant="auto"
-                                                    className="text-xs font-bold text-slate-700 dark:text-slate-300 justify-end"
+                                                    className="text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 justify-end"
                                                 />
-                                                <img src={home.logo_url} className="w-6 h-6 object-contain shrink-0" />
+                                                <img src={home.logo_url} className="w-4 h-4 sm:w-6 sm:h-6 object-contain shrink-0" />
                                             </div>
-                                            <span className="text-[10px] font-bold text-slate-300 uppercase shrink-0">vs</span>
-                                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                                <img src={away.logo_url} className="w-6 h-6 object-contain shrink-0" />
+                                            <span className="text-[8px] sm:text-[10px] font-bold text-slate-300 uppercase shrink-0">vs</span>
+                                            <div className="flex items-center gap-1 flex-1 min-w-0">
+                                                <img src={away.logo_url} className="w-4 h-4 sm:w-6 sm:h-6 object-contain shrink-0" />
                                                 <TeamName
                                                     team={away}
                                                     variant="auto"
-                                                    className="text-xs font-bold text-slate-700 dark:text-slate-300 justify-start"
+                                                    className="text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 justify-start"
                                                 />
                                             </div>
                                         </div>
@@ -833,54 +833,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 </div>
             )}
 
-            {/* Financial Info Card */}
-            {financials && financials.is_paid && (
-                <div className="mb-6 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl p-4 shadow-lg text-white">
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm">
-                                <Trophy className="w-8 h-8 text-yellow-300" />
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-medium text-emerald-50 opacity-90 uppercase tracking-wider">{t('totalPrizes')}</h3>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-3xl font-black">
-                                        {new Intl.NumberFormat(locale === 'pt' ? 'pt-BR' : locale === 'es' ? 'es-ES' : 'en-US', { style: 'currency', currency: locale === 'en' ? 'USD' : 'BRL' }).format(
-                                            financials.payment_method === 'ONLINE' ? financials.net_pot : financials.total_pot
-                                        )}
-                                    </span>
-                                    {financials.payment_method === 'ONLINE' && financials.platform_fee > 0 && (
-                                        <span className="text-xs bg-black/20 px-2 py-0.5 rounded text-emerald-100">
-                                            {t('netLabel')}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
 
-                        <div className="flex items-center gap-4 bg-black/10 rounded-lg p-3 backdrop-blur-sm">
-                            <div className="text-center border-r border-white/20 pr-4">
-                                <span className="block text-xs text-emerald-100">{t('paidParticipants')}</span>
-                                <span className="block text-xl font-bold">{financials.paid_members_count}</span>
-                            </div>
-                            <div className="text-center border-r border-white/20 pr-4">
-                                <span className="block text-xs text-emerald-100">{t('entryFee')}</span>
-                                <span className="block text-xl font-bold">
-                                    {new Intl.NumberFormat(locale === 'pt' ? 'pt-BR' : locale === 'es' ? 'es-ES' : 'en-US', { style: 'currency', currency: locale === 'en' ? 'USD' : 'BRL' }).format(financials.entry_fee)}
-                                </span>
-                            </div>
-                            <div className="text-center pl-4">
-                                <Link href="/profile/transactions" className="flex flex-col items-center group">
-                                    <div className="p-1.5 bg-white/10 rounded-full group-hover:bg-white/20 mb-1 transition-colors">
-                                        <Wallet className="w-4 h-4" />
-                                    </div>
-                                    <span className="text-[10px] font-bold text-emerald-100 uppercase tracking-tighter">{t('statement')}</span>
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
 
 
@@ -1060,28 +1013,28 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                     <span className="text-[10px] text-slate-500 dark:text-slate-300 font-black leading-tight">{format(matchDate, isEnglish ? "hh:mm a" : "HH:mm", { locale: dateLocale })}</span>
                                                 </div>
 
-                                                <div className="flex items-center justify-between gap-1 flex-1 min-w-0">
+                                                <div className="flex items-center justify-between gap-0.5 sm:gap-1 flex-1 min-w-0">
                                                     {/* Home Team */}
-                                                    <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
+                                                    <div className="flex items-center gap-1 flex-1 justify-end min-w-0">
                                                         <TeamName
                                                             team={home}
                                                             variant="auto"
-                                                            className="text-xs font-bold text-slate-700 dark:text-slate-300 justify-end flex-1 min-w-0"
+                                                            className="text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 justify-end flex-1 min-w-0"
                                                         />
-                                                        <img src={home.logo_url} alt={home.short_name} className="w-6 h-6 object-contain shrink-0" />
+                                                        <img src={home.logo_url} alt={home.short_name} className="w-4 h-4 sm:w-6 sm:h-6 object-contain shrink-0" />
                                                     </div>
 
                                                     {/* Score Inputs / Box */}
                                                     <div
                                                         onClick={() => !isEditing && setInlineBets(prev => ({ ...prev, [match.id]: { home: String(match.user_bet?.home_score_bet ?? ''), away: String(match.user_bet?.away_score_bet ?? '') } }))}
-                                                        className={`px-2 py-1 bg-slate-50 dark:bg-slate-800 rounded-lg flex items-center gap-1.5 shrink-0 min-w-[70px] justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors border-2 ${isEditing ? 'border-green-500' : 'border-transparent'}`}
+                                                        className={`px-1.5 sm:px-2 py-0.5 sm:py-1 bg-slate-50 dark:bg-slate-800 rounded-lg flex items-center gap-0.5 sm:gap-1.5 shrink-0 min-w-[55px] sm:min-w-[70px] justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors border-2 ${isEditing ? 'border-green-500' : 'border-transparent'}`}
                                                     >
                                                         {isEditing ? (
                                                             <>
                                                                 <input
                                                                     type="tel"
                                                                     inputMode="numeric"
-                                                                    className="w-6 h-7 text-center text-sm font-black border-0 bg-white dark:bg-slate-700 dark:text-white p-0 rounded-sm focus:ring-0"
+                                                                    className="w-5 h-6 sm:w-6 sm:h-7 text-center text-xs sm:text-sm font-black border-0 bg-white dark:bg-slate-700 dark:text-white p-0 rounded-sm focus:ring-0"
                                                                     value={inlineBet.home}
                                                                     onChange={(e) => handleInlineBetChange(match.id, 'home', e.target.value)}
                                                                     onFocus={(e) => {
@@ -1094,11 +1047,11 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                                     autoFocus
                                                                     placeholder="-"
                                                                 />
-                                                                <span className="text-xs text-slate-400">x</span>
+                                                                <span className="text-[10px] sm:text-xs text-slate-400">×</span>
                                                                 <input
                                                                     type="tel"
                                                                     inputMode="numeric"
-                                                                    className="w-6 h-7 text-center text-sm font-black border-0 bg-white dark:bg-slate-700 dark:text-white p-0 rounded-sm focus:ring-0"
+                                                                    className="w-5 h-6 sm:w-6 sm:h-7 text-center text-xs sm:text-sm font-black border-0 bg-white dark:bg-slate-700 dark:text-white p-0 rounded-sm focus:ring-0"
                                                                     value={inlineBet.away}
                                                                     onChange={(e) => handleInlineBetChange(match.id, 'away', e.target.value)}
                                                                     onFocus={(e) => {
@@ -1113,11 +1066,11 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <span className={`text-sm font-black ${hasBet ? 'text-green-700 dark:text-green-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                                                                <span className={`text-xs sm:text-sm font-black ${hasBet ? 'text-green-700 dark:text-green-400' : 'text-slate-400 dark:text-slate-500'}`}>
                                                                     {hasBet ? match.user_bet?.home_score_bet : '-'}
                                                                 </span>
-                                                                <span className="text-[10px] text-slate-300">x</span>
-                                                                <span className={`text-sm font-black ${hasBet ? 'text-green-700 dark:text-green-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                                                                <span className="text-[8px] sm:text-[10px] text-slate-300">×</span>
+                                                                <span className={`text-xs sm:text-sm font-black ${hasBet ? 'text-green-700 dark:text-green-400' : 'text-slate-400 dark:text-slate-500'}`}>
                                                                     {hasBet ? match.user_bet?.away_score_bet : '-'}
                                                                 </span>
                                                             </>
@@ -1125,12 +1078,12 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                     </div>
 
                                                     {/* Away Team */}
-                                                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                                        <img src={away.logo_url} alt={away.short_name} className="w-6 h-6 object-contain shrink-0" />
+                                                    <div className="flex items-center gap-1 flex-1 min-w-0">
+                                                        <img src={away.logo_url} alt={away.short_name} className="w-4 h-4 sm:w-6 sm:h-6 object-contain shrink-0" />
                                                         <TeamName
                                                             team={away}
                                                             variant="auto"
-                                                            className="text-xs font-bold text-slate-700 dark:text-slate-300 justify-start flex-1 min-w-0"
+                                                            className="text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 justify-start flex-1 min-w-0"
                                                         />
                                                     </div>
 

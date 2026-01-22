@@ -93,6 +93,7 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
 
     const { grossPot } = FinancialService.calculatePrizePot(config, paidCount || 0, potArgs)
     const totalPot = grossPot;
+    const totalMembers = group.group_members?.[0]?.count || 0
 
     const startDateRaw = eventData?.start_date ? new Date(eventData.start_date) : null
     const endDateRaw = eventData?.end_date ? new Date(eventData.end_date) : null
@@ -143,7 +144,7 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
                             </div>
 
                             {/* Prêmio (Sempre à direita) */}
-                            <div className="shrink-0 text-right">
+                            <div className="shrink-0 text-right group relative">
                                 <span className="block text-[8px] sm:text-[10px] font-black text-green-400/80 uppercase tracking-widest leading-none mb-0.5 sm:mb-1">{t('totalPrize')}</span>
                                 <div className="flex items-baseline justify-end gap-1">
                                     <span className="text-[10px] sm:text-sm font-bold text-green-200/40 leading-none">R$</span>
@@ -151,7 +152,32 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
                                         {formatIntl.number(totalPot, { minimumFractionDigits: 0 })}
                                         <span className="text-[10px] sm:text-xl opacity-30">{locale === 'en' ? '.00' : ',00'}</span>
                                     </span>
+                                    {group.is_paid && (
+                                        <Info className="w-3 h-3 sm:w-4 sm:h-4 text-green-300/60 cursor-help" />
+                                    )}
                                 </div>
+
+                                {/* Tooltip */}
+                                {group.is_paid && (
+                                    <div className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-100 dark:border-slate-700 p-3 z-50 invisible group-hover:visible transition-all opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto text-left">
+                                        <div className="space-y-2 text-[11px]">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-slate-500 dark:text-slate-400">💰 {t('prize')}:</span>
+                                                <span className="font-black text-green-600 dark:text-green-400">R$ {formatIntl.number(totalPot)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-slate-500 dark:text-slate-400">✅ {t('paid')}:</span>
+                                                <span className="font-bold text-slate-700 dark:text-slate-200">{paidCount || 0}</span>
+                                            </div>
+                                            {(totalMembers - (paidCount || 0)) > 0 && (
+                                                <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-700 pt-2">
+                                                    <span className="text-orange-500">⚠️ {t('unpaid')}:</span>
+                                                    <span className="font-bold text-orange-600 dark:text-orange-400">{totalMembers - (paidCount || 0)}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

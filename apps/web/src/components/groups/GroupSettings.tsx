@@ -550,6 +550,45 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                             </div>
                         </div>
                     </div>
+
+                    {/* Financial Info Section (Below Scoring Rules) */}
+                    {financials && financials.is_paid && (
+                        <div className="col-span-6 pt-6 border-t dark:border-slate-800">
+                            <h4 className="text-md font-medium text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                💰 {t('financialInfo') || 'Informações Financeiras'}
+                            </h4>
+                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10 border border-green-200 dark:border-green-900/30 rounded-lg p-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-1">
+                                            🏆 {t('totalPrize') || 'Prêmio Total'}
+                                        </span>
+                                        <span className="text-lg font-black text-gray-900 dark:text-white">
+                                            {format.number(financials.payment_method === 'ONLINE' ? financials.net_pot : financials.total_pot, { style: 'currency', currency: 'BRL' })}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-1">
+                                            ✅ {t('paidParticipants') || 'Pagantes'}
+                                        </span>
+                                        <span className="text-lg font-black text-gray-900 dark:text-white">
+                                            {financials.paid_members_count}
+                                        </span>
+                                    </div>
+                                    {topRanking.length > financials.paid_members_count && (
+                                        <div className="flex flex-col items-center col-span-2 sm:col-span-1">
+                                            <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wider mb-1">
+                                                ⚠️ {t('unpaid') || 'Pendentes'}
+                                            </span>
+                                            <span className="text-lg font-black text-orange-600 dark:text-orange-400">
+                                                {topRanking.length - financials.paid_members_count}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="mt-6 flex justify-end">

@@ -267,7 +267,12 @@
         "errorDeleting": "Error deleting group: ",
         "errorSaving": "Error saving: ",
         "errorUpgrading": "Error increasing limit: ",
-        "realScoreTitle": "Total prize:"
+        "realScoreTitle": "Total prize:",
+        "prize": "Prize",
+        "paid": "Paid",
+        "unpaid": "Pending",
+        "financialInfo": "Financial Info",
+        "saved": "Saved!"
     },
     "groups": {
         "myGroups": "MY GROUPS",

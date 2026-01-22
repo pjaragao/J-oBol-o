@@ -355,24 +355,24 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
 
 
                                 {/* Center: Teams + Prediction Inputs */}
-                                <div className="flex items-center justify-between sm:justify-center gap-2 sm:gap-4 sm:flex-1">
+                                <div className="flex items-center justify-between sm:justify-center gap-1 sm:gap-4 sm:flex-1">
                                     {/* Home Team */}
-                                    <div className="flex-1 flex items-center justify-end gap-1.5 sm:gap-2 text-right min-w-0">
+                                    <div className="flex-1 flex items-center justify-end gap-1 sm:gap-2 text-right min-w-0">
                                         <TeamName
                                             team={homeTeam}
                                             variant="auto"
-                                            className="font-bold text-[11px] sm:text-sm text-slate-700 dark:text-slate-200 justify-end"
+                                            className="font-bold text-[10px] sm:text-sm text-slate-700 dark:text-slate-200 justify-end"
                                         />
-                                        {homeTeam.logo_url && <img src={homeTeam.logo_url} className="w-5 h-5 sm:w-8 sm:h-8 object-contain shrink-0" alt="" />}
+                                        {homeTeam.logo_url && <img src={homeTeam.logo_url} className="w-4 h-4 sm:w-8 sm:h-8 object-contain shrink-0" alt="" />}
                                     </div>
 
                                     {/* Prediction Inputs - COMPACT */}
-                                    <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+                                    <div className="flex items-center gap-0.5 sm:gap-3 shrink-0">
                                         <input
                                             type="tel"
                                             inputMode="numeric"
                                             className={cn(
-                                                "w-8 h-8 sm:w-11 sm:h-11 text-center text-sm sm:text-base font-bold border rounded-md sm:rounded-lg transition-all focus:ring-1 sm:focus:ring-2 focus:ring-green-500 p-0",
+                                                "w-7 h-7 sm:w-11 sm:h-11 text-center text-xs sm:text-base font-bold border rounded-md sm:rounded-lg transition-all focus:ring-1 sm:focus:ring-2 focus:ring-green-500 p-0",
                                                 bet?.isDirty ? "bg-yellow-50 border-yellow-300 text-yellow-900 shadow-sm" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                                             )}
                                             value={bet?.home ?? ''}
@@ -389,12 +389,12 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                             disabled={locked}
                                             placeholder="-"
                                         />
-                                        <span className="text-slate-300 dark:text-slate-600 font-black text-[10px] sm:text-xs">✕</span>
+                                        <span className="text-slate-300 dark:text-slate-600 font-black text-[8px] sm:text-xs">×</span>
                                         <input
                                             type="tel"
                                             inputMode="numeric"
                                             className={cn(
-                                                "w-8 h-8 sm:w-11 sm:h-11 text-center text-sm sm:text-base font-bold border rounded-md sm:rounded-lg transition-all focus:ring-1 sm:focus:ring-2 focus:ring-green-500 p-0",
+                                                "w-7 h-7 sm:w-11 sm:h-11 text-center text-xs sm:text-base font-bold border rounded-md sm:rounded-lg transition-all focus:ring-1 sm:focus:ring-2 focus:ring-green-500 p-0",
                                                 bet?.isDirty ? "bg-yellow-50 border-yellow-300 text-yellow-900 shadow-sm" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                                             )}
                                             value={bet?.away ?? ''}
@@ -414,12 +414,12 @@ export function MatchList({ matches, groupId, userId }: MatchListProps) {
                                     </div>
 
                                     {/* Away Team */}
-                                    <div className="flex-1 flex items-center justify-start gap-1.5 sm:gap-2 text-left min-w-0">
-                                        {awayTeam.logo_url && <img src={awayTeam.logo_url} className="w-5 h-5 sm:w-8 sm:h-8 object-contain shrink-0" alt="" />}
+                                    <div className="flex-1 flex items-center justify-start gap-1 sm:gap-2 text-left min-w-0">
+                                        {awayTeam.logo_url && <img src={awayTeam.logo_url} className="w-4 h-4 sm:w-8 sm:h-8 object-contain shrink-0" alt="" />}
                                         <TeamName
                                             team={awayTeam}
                                             variant="auto"
-                                            className="font-bold text-[11px] sm:text-sm text-slate-700 dark:text-slate-200 justify-start"
+                                            className="font-bold text-[10px] sm:text-sm text-slate-700 dark:text-slate-200 justify-start"
                                         />
                                     </div>
                                 </div>
