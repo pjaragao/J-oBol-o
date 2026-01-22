@@ -348,63 +348,42 @@ function NotificationsContent() {
                 {/* Content */}
                 {filter === 'settings' ? (
                     <div className="space-y-6 rounded-xl bg-white p-6 shadow-sm border border-slate-200 dark:bg-slate-900 dark:border-slate-800">
-                        <div>
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{t('settings')}</h2>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">{t('settingsDesc')}</p>
+                        <div className="flex items-center justify-between gap-4">
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{t('settings')}</h2>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">{t('settingsDesc')}</p>
+                            </div>
+
+                            {/* Global Push Toggle */}
+                            <div className="flex items-center gap-3">
+                                <div className="text-right">
+                                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Push Notifications</p>
+                                    <p className="text-[10px] text-slate-500">
+                                        {!isSupported ? 'Não suportado' : subscription ? 'Ativado' : 'Desativado'}
+                                    </p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={!!subscription}
+                                        disabled={!isSupported || pushLoading}
+                                        onChange={async (e) => {
+                                            if (e.target.checked) {
+                                                await subscribeToPush()
+                                            } else {
+                                                if (confirm('Desativar notificações push?')) {
+                                                    await unsubscribeFromPush()
+                                                }
+                                            }
+                                        }}
+                                    />
+                                    <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none dark:bg-slate-700 rounded-full peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
+                                </label>
+                            </div>
                         </div>
 
                         <div className="space-y-4 pt-4">
-                            {/* Push Notifications Section */}
-                            <div className="rounded-lg bg-green-50 p-4 border border-green-100 dark:bg-green-950/10 dark:border-green-900/30">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <h3 className="font-bold text-green-900 dark:text-green-400">Notificações Push (App)</h3>
-                                        <p className="text-sm text-green-800/80 dark:text-green-500/80">
-                                            Receba alertas no seu dispositivo mesmo com o app fechado via PWA.
-                                        </p>
-                                    </div>
-                                    {!isSupported ? (
-                                        <span className="text-xs text-red-500 font-medium">Navegador não suportado</span>
-                                    ) : (
-                                        <button
-                                            onClick={subscription ? () => { } : subscribeToPush}
-                                            disabled={pushLoading || !!subscription}
-                                            className={cn(
-                                                "px-4 py-2 rounded-lg text-sm font-bold transition-all",
-                                                subscription
-                                                    ? "bg-green-200 text-green-800 cursor-default"
-                                                    : "bg-green-600 text-white hover:bg-green-700 active:scale-95 shadow-sm"
-                                            )}
-                                        >
-                                            {pushLoading ? 'Carregando...' : subscription ? 'Ativado ✓' : 'Ativar Agora'}
-                                        </button>
-                                    )}
-                                </div>
-                                {subscription && (
-                                    <div className="mt-3 flex items-center gap-3 flex-wrap">
-                                        <button
-                                            onClick={() => testPush()}
-                                            disabled={pushLoading}
-                                            className="text-xs font-semibold text-green-700 underline hover:text-green-800 dark:text-green-500 dark:hover:text-green-400 disabled:opacity-50"
-                                        >
-                                            {pushLoading ? 'Enviando...' : 'Testar Notificação'}
-                                        </button>
-                                        <span className="text-slate-300 dark:text-slate-700">|</span>
-                                        <button
-                                            onClick={async () => {
-                                                if (confirm('Isso irá remover sua assinatura de push. Continuar?')) {
-                                                    await unsubscribeFromPush()
-                                                }
-                                            }}
-                                            className="text-xs font-semibold text-red-600 underline hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                                        >
-                                            Desativar Push
-                                        </button>
-                                    </div>
-                                )}
-                                {pushError && <p className="mt-2 text-xs text-red-500 font-medium">{pushError}</p>}
-                            </div>
-
                             {[
                                 { id: 'new_member', label: t('preferences.newMemberTitle'), desc: t('preferences.newMemberDesc') },
                                 { id: 'points_rank', label: t('preferences.pointsRankTitle'), desc: t('preferences.pointsRankDesc') },
@@ -423,6 +402,7 @@ function NotificationsContent() {
                                             name={setting.id}
                                             className="sr-only peer"
                                             checked={profile?.notification_settings?.[setting.id] !== false}
+                                            disabled={!subscription}
                                             onChange={async (e) => {
                                                 const newVal = e.target.checked
                                                 const newSettings = {
@@ -445,7 +425,7 @@ function NotificationsContent() {
                                                 }
                                             }}
                                         />
-                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none dark:bg-slate-700 rounded-full peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none dark:bg-slate-700 rounded-full peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-30 peer-disabled:cursor-not-allowed"></div>
                                     </label>
                                 </div>
                             ))}

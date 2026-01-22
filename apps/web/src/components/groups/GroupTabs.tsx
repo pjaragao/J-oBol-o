@@ -122,10 +122,7 @@ export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTab
             )}
 
             {activeTab === 'members' && (
-                <>
-                    <h2 className="text-xl font-bold mb-4 dark:text-white">{t('membersOfGroup') || 'Membros do Grupo'}</h2>
-                    <MemberList groupId={groupId} />
-                </>
+                <MemberList groupId={groupId} />
             )}
 
             {activeTab === 'settings' && isAdmin && (

@@ -289,7 +289,12 @@
         "enter": "Enter",
         "wait": "Wait",
         "noDescription": "No description",
-        "loadError": "Error loading your groups."
+        "loadError": "Error loading your groups.",
+        "search": "Search",
+        "noPublicGroupsFound": "No public groups found.",
+        "joinGroup": "Join",
+        "searchToExplore": "Search to explore",
+        "searchToExploreDesc": "Type the name of a public group to find new challenges."
     },
     "matches": {
         "upcomingBets": "Upcoming Bets",
@@ -451,6 +456,8 @@
         "expand": "Expand",
         "collapse": "Collapse",
         "version": "JãoBolão v2.0",
-        "madeWith": "Made with 💚"
+        "madeWith": "Made with 💚",
+        "viewAllGroups": "View All",
+        "noGroups": "No groups"
     }
 }

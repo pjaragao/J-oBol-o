@@ -23,6 +23,7 @@ export function AppLayout({ children, user, profile, isAdmin }: AppLayoutProps) 
                     isOpen={sidebarOpen}
                     setIsOpen={setSidebarOpen}
                     isAdmin={isAdmin}
+                    userId={user?.id}
                 />
 
                 <div className="flex flex-1 flex-col overflow-hidden">

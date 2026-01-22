@@ -103,3 +103,110 @@ export async function notifyUserOfInvite(invitedUserId: string, groupId: string)
 
     return { success: true }
 }
+
+export async function searchPublicGroups(query: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) throw new Error('Unauthorized')
+
+    // Search public groups by name
+    const { data: groups } = await supabase
+        .from('groups')
+        .select(`
+            id,
+            name,
+            description,
+            is_public,
+            is_paid,
+            entry_fee,
+            payment_method,
+            events ( 
+                name,
+                logo_url,
+                online_fee_percent,
+                offline_fee_per_slot,
+                offline_base_fee
+            )
+        `)
+        .eq('is_public', true)
+        .ilike('name', `%${query}%`)
+        .limit(20)
+
+    if (!groups) return []
+
+    // Get groups where user is already a member or has pending request
+    const { data: userGroups } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', user.id)
+
+    const { data: pendingGroups } = await supabase
+        .from('pending_members')
+        .select('group_id')
+        .eq('user_id', user.id)
+        .eq('status', 'pending')
+
+    const userGroupIds = new Set([
+        ...(userGroups?.map(g => g.group_id) || []),
+        ...(pendingGroups?.map(g => g.group_id) || [])
+    ])
+
+    // Filter out groups user is already part of
+    const availableGroups = groups.filter(g => !userGroupIds.has(g.id))
+
+    // Fetch member counts
+    const groupIds = availableGroups.map(g => g.id)
+    if (groupIds.length === 0) return []
+
+    const { data: memberCounts } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .in('group_id', groupIds)
+
+    const memberCountMap = new Map<string, number>()
+    memberCounts?.forEach(mc => {
+        memberCountMap.set(mc.group_id, (memberCountMap.get(mc.group_id) || 0) + 1)
+    })
+
+    // Fetch paid counts for paid groups
+    const paidGroupIds = availableGroups.filter(g => g.is_paid).map(g => g.id)
+    const paidCountMap = new Map<string, number>()
+
+    if (paidGroupIds.length > 0) {
+        const { data: paidMembers } = await supabase
+            .from('group_members')
+            .select('group_id')
+            .in('group_id', paidGroupIds)
+            .eq('payment_status', 'PAID')
+
+        paidMembers?.forEach(pm => {
+            paidCountMap.set(pm.group_id, (paidCountMap.get(pm.group_id) || 0) + 1)
+        })
+    }
+
+    // Enrich groups with counts
+    return availableGroups.map(group => {
+        const event = Array.isArray(group.events) ? group.events[0] : group.events
+        const memberCount = memberCountMap.get(group.id) || 0
+        const paidCount = paidCountMap.get(group.id) || 0
+
+        let prizePool = 0
+        if (group.is_paid && paidCount > 0) {
+            const grossPot = group.entry_fee * paidCount
+            if (group.payment_method === 'ONLINE') {
+                const feePercent = event?.online_fee_percent || 10
+                prizePool = grossPot * (1 - feePercent / 100)
+            } else {
+                prizePool = grossPot
+            }
+        }
+
+        return {
+            ...group,
+            event,
+            memberCount,
+            prizePool
+        }
+    })
+}

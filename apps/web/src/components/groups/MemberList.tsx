@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, X, Mail, Loader2, UserPlus, Link as LinkIcon, Check } from 'lucide-react'
+import { Plus, X, Mail, Loader2, UserPlus, Link as LinkIcon, Check, UserMinus, DollarSign, Ban, XCircle, Clock, ShieldCheck, CircleDollarSign } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
 import { notifyUserOfInvite } from '@/actions/groups'
@@ -460,17 +460,22 @@ export function MemberList({ groupId }: { groupId: string }) {
                 </div>
             )}
 
-            {(currentUserRole === 'admin' || allowMemberInvites) && (
-                <div className="flex justify-end">
+            {/* Header with title and invite button aligned to reduce vertical space */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                <h2 className="text-xl font-bold dark:text-white">
+                    {t('membersOfGroup') || 'Membros do Grupo'}
+                </h2>
+
+                {(currentUserRole === 'admin' || allowMemberInvites) && (
                     <button
                         onClick={() => setShowInviteModal(true)}
-                        className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95 w-full sm:w-auto"
                     >
                         <UserPlus className="h-4 w-4" />
                         {t('inviteMember')}
                     </button>
-                </div>
-            )}
+                )}
+            </div>
 
             <div className="overflow-hidden bg-white dark:bg-slate-900 shadow sm:rounded-md border border-gray-100 dark:border-slate-800">
                 <ul role="list" className="divide-y divide-gray-200 dark:divide-slate-800">
@@ -502,58 +507,80 @@ export function MemberList({ groupId }: { groupId: string }) {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        {/* Status de Pagamento (se for grupo pago) */}
+                                    <div className="flex items-center gap-2 sm:gap-4">
+                                        {/* Role Badge - Now Before Payment */}
+                                        <span className={cn(
+                                            "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border uppercase tracking-wider whitespace-nowrap",
+                                            member.role === 'admin'
+                                                ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800'
+                                                : 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                                        )}>
+                                            {member.role === 'admin' ? t('administrator') : t('member_role')}
+                                        </span>
+
+                                        {/* Status de Pagamento (se for grupo pago) - Somente Informativo */}
                                         {groupIsPaid && (
-                                            <div className="hidden sm:flex flex-col items-end mr-2">
+                                            <div className="flex flex-col items-end min-w-[85px]">
                                                 <span className={cn(
-                                                    "inline-flex items-center rounded px-2 py-0.5 text-xs font-bold uppercase",
+                                                    "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase",
                                                     member.payment_status === 'PAID' ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
                                                         member.payment_status === 'EXEMPT' ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" :
-                                                            "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500"
+                                                            "bg-amber-100/50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-500 border border-amber-200 dark:border-amber-900/30"
                                                 )}>
-                                                    {member.payment_status === 'PAID' ? 'Pago' :
-                                                        member.payment_status === 'EXEMPT' ? 'Isento' : 'Pendente'}
+                                                    {member.payment_status === 'PAID' ? (
+                                                        <><Check className="h-3 w-3" /> Pago</>
+                                                    ) : member.payment_status === 'EXEMPT' ? (
+                                                        <><ShieldCheck className="h-3 w-3" /> Isento</>
+                                                    ) : (
+                                                        <><CircleDollarSign className="h-3 w-3" /> Aguardando Pgto</>
+                                                    )}
                                                 </span>
                                                 {member.paid_at && (
-                                                    <span className="text-[10px] text-slate-400 mt-0.5">
+                                                    <span className="text-[10px] text-slate-400 mt-0.5 whitespace-nowrap">
                                                         {new Date(member.paid_at).toLocaleDateString('pt-BR')}
                                                     </span>
                                                 )}
                                             </div>
                                         )}
 
-                                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${member.role === 'admin'
-                                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 border-purple-200 dark:border-purple-800/50'
-                                            : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800/50'
-                                            }`}>
-                                            {member.role === 'admin' ? t('administrator') : t('member_role')}
-                                        </span>
-
+                                        {/* Admin Actions - separated by border */}
                                         {isAdmin && (
-                                            <div className="flex items-center gap-2">
-                                                {/* Botão de Toggle Pagamento */}
+                                            <div className="flex items-center gap-1.5 pl-3 border-l border-slate-200 dark:border-slate-800">
+                                                {/* Toggle Pagamento Button */}
                                                 {groupIsPaid && (
                                                     <button
                                                         onClick={() => handleTogglePaymentStatus(member.id, member.payment_status)}
                                                         className={cn(
-                                                            "p-1.5 rounded-md transition-colors",
+                                                            "inline-flex items-center justify-center p-1.5 sm:px-2.5 sm:py-1.5 rounded-md text-xs font-semibold transition-colors gap-1.5 border",
                                                             member.payment_status === 'PAID'
-                                                                ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                                                : "text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                                                ? "text-red-600 border-red-100 hover:bg-red-50 dark:text-red-400 dark:border-red-900/30 dark:hover:bg-red-900/20"
+                                                                : "bg-green-600 text-white border-green-700 hover:bg-green-700 shadow-sm"
                                                         )}
-                                                        title={member.payment_status === 'PAID' ? "Marcar como Pendente" : "Marcar como Pago"}
+                                                        title={member.payment_status === 'PAID' ? "Marcar como Pendente" : "Confirmar Pagamento"}
                                                     >
-                                                        {member.payment_status === 'PAID' ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                                                        {member.payment_status === 'PAID' ? (
+                                                            <>
+                                                                <Ban className="h-4 w-4" />
+                                                                <span className="hidden lg:inline text-[11px]">Cancelar Pgto</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <DollarSign className="h-4 w-4" />
+                                                                <span className="hidden lg:inline text-[11px]">Confirmar Pgto</span>
+                                                            </>
+                                                        )}
                                                     </button>
                                                 )}
 
+                                                {/* Remove Member Button */}
                                                 {member.role !== 'admin' && (
                                                     <button
                                                         onClick={() => handleRemoveMember(member.id)}
-                                                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium transition-colors"
+                                                        className="inline-flex items-center justify-center p-1.5 sm:px-2.5 sm:py-1.5 rounded-md text-xs font-semibold text-slate-500 border border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 dark:text-slate-400 dark:border-slate-800 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-all gap-1.5"
+                                                        title={t('remove')}
                                                     >
-                                                        {t('remove')}
+                                                        <UserMinus className="h-4 w-4" />
+                                                        <span className="hidden lg:inline text-[11px]">{t('remove')}</span>
                                                     </button>
                                                 )}
                                             </div>

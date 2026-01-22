@@ -288,7 +288,12 @@
         "enter": "Entrar",
         "wait": "Aguarde",
         "noDescription": "Sem descrição",
-        "loadError": "Erro ao carregar seus grupos."
+        "loadError": "Erro ao carregar seus grupos.",
+        "search": "Buscar",
+        "noPublicGroupsFound": "Nenhum grupo público encontrado.",
+        "joinGroup": "Entrar",
+        "searchToExplore": "Busque para explorar",
+        "searchToExploreDesc": "Digite o nome de um grupo público para encontrar novos desafios."
     },
     "matches": {
         "upcomingBets": "Próximas Apostas",
@@ -450,6 +455,8 @@
         "expand": "Expandir",
         "collapse": "Recolher",
         "version": "JãoBolão v2.0",
-        "madeWith": "Desenvolvido com 💚"
+        "madeWith": "Desenvolvido com 💚",
+        "viewAllGroups": "Ver Todos",
+        "noGroups": "Nenhum grupo"
     }
 }
