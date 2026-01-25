@@ -27,14 +27,14 @@ export default function HomeClient({ }: HomeClientProps) {
                             {t("appName")}
                         </span>
                     </Link>
-                    <div className="flex items-center gap-2 md:gap-4">
-                        <div className="mr-2">
+                    <div className="flex items-center gap-1 md:gap-4">
+                        <div className="scale-75 md:scale-100">
                             <LanguageSelector />
                         </div>
-                        <Button variant="ghost" asChild className="hidden sm:flex rounded-full">
+                        <Button variant="ghost" asChild className="hidden md:flex rounded-full">
                             <Link href="/login">{t("loginCard.title")}</Link>
                         </Button>
-                        <Button size="sm" className="rounded-full px-6 font-bold" asChild>
+                        <Button size="sm" className="hidden sm:flex rounded-full px-6 font-bold" asChild>
                             <Link href="/register">{t("hero.cta")}</Link>
                         </Button>
                     </div>
@@ -98,8 +98,8 @@ export default function HomeClient({ }: HomeClientProps) {
                             </p>
                             <div className="mt-8 relative h-48 rounded-xl overflow-hidden border">
                                 <Image
-                                    src="/groups-feature.png" // We'll move the generated image here
-                                    alt="Groups Feature"
+                                    src="/render-dashboard.png"
+                                    alt="Dashboard Render"
                                     fill
                                     className="object-cover group-hover:scale-110 transition-transform duration-500"
                                 />
@@ -116,8 +116,8 @@ export default function HomeClient({ }: HomeClientProps) {
                             </p>
                             <div className="mt-8 relative h-48 rounded-xl overflow-hidden border">
                                 <Image
-                                    src="/trophy-ranking.png" // We'll move the generated image here
-                                    alt="Ranking Feature"
+                                    src="/render-ranking.png"
+                                    alt="Ranking Render"
                                     fill
                                     className="object-cover group-hover:scale-110 transition-transform duration-500"
                                 />
@@ -132,8 +132,16 @@ export default function HomeClient({ }: HomeClientProps) {
                             <p className="text-muted-foreground text-lg leading-relaxed">
                                 {t("features.live.description")}
                             </p>
-                            <div className="mt-8 bg-muted rounded-xl h-48 flex items-center justify-center border group-hover:bg-primary/5 transition-colors">
-                                <span className="text-4xl font-black text-primary animate-pulse">LIVE</span>
+                            <div className="mt-8 relative h-48 rounded-xl overflow-hidden border group">
+                                <Image
+                                    src="/render-matches.png"
+                                    alt="Live Results Render"
+                                    fill
+                                    className="object-cover group-hover:scale-110 transition-transform duration-500"
+                                />
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span className="text-2xl font-black text-primary animate-pulse tracking-widest">LIVE</span>
+                                </div>
                             </div>
                         </div>
                     </div>
