@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { locales, localeNames, localeFlags, type Locale, defaultLocale } from '@/i18n/config';
 import { Globe, Check } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useLocale } from 'next-intl';
 
 interface LanguageSelectorProps {
     value?: Locale;
@@ -18,20 +19,23 @@ export function LanguageSelector({
     variant = 'dropdown',
     showLabel = true
 }: LanguageSelectorProps) {
-    const [currentLocale, setCurrentLocale] = useState<Locale>(value || defaultLocale);
+    const locale = useLocale() as Locale;
+    const [currentLocale, setCurrentLocale] = useState<Locale>(value || locale || defaultLocale);
     const [isOpen, setIsOpen] = useState(false);
 
-    // Detectar idioma do navegador na primeira vez
+    // Detectar idioma do navegador na primeira vez se nenhum valor ou locale for provido
     useEffect(() => {
-        if (!value) {
+        if (!value && !locale) {
             const browserLang = navigator.language.split('-')[0] as Locale;
             const detectedLocale = locales.includes(browserLang) ? browserLang : defaultLocale;
             setCurrentLocale(detectedLocale);
             if (onChange) {
                 onChange(detectedLocale);
             }
+        } else if (!value && locale) {
+            setCurrentLocale(locale);
         }
-    }, [value, onChange]);
+    }, [value, locale, onChange]);
 
     const handleChange = async (newLocale: Locale) => {
         setCurrentLocale(newLocale);
@@ -76,8 +80,8 @@ export function LanguageSelector({
                             type="button"
                             onClick={() => handleChange(locale)}
                             className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 transition-all ${currentLocale === locale
-                                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 font-bold'
-                                    : 'border-slate-200 dark:border-slate-700 hover:border-green-300 dark:hover:border-green-700'
+                                ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 font-bold'
+                                : 'border-slate-200 dark:border-slate-700 hover:border-green-300 dark:hover:border-green-700'
                                 }`}
                         >
                             <span className="text-2xl">{localeFlags[locale]}</span>

@@ -61,6 +61,25 @@
         "welcome": "Bem-vindo ao",
         "appName": "JãoBolão!",
         "tagline": "A plataforma definitiva para seus bolões de futebol.",
+        "hero": {
+            "title": "Sinta a Emoção de Cada Gol",
+            "subtitle": "Crie grupos, convide amigos e mostre quem entende mais de futebol. O JãoBolão leva a diversão do estádio para o seu celular.",
+            "cta": "Começar Agora"
+        },
+        "features": {
+            "groups": {
+                "title": "Grupos Personalizados",
+                "description": "Crie seus próprios bolões com regras flexíveis e convide sua galera."
+            },
+            "ranking": {
+                "title": "Ranking em Tempo Real",
+                "description": "Acompanhe sua posição e veja quem está na liderança a cada gol marcado."
+            },
+            "live": {
+                "title": "Resultados ao Vivo",
+                "description": "Não perca nenhum lance. Resultados atualizados instantaneamente."
+            }
+        },
         "loginCard": {
             "title": "Login",
             "description": "Entre na sua conta para ver seus jogos e apostas.",

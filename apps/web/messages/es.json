@@ -61,6 +61,25 @@
         "welcome": "Bienvenido a",
         "appName": "JãoBolão!",
         "tagline": "La plataforma definitiva para tus quinielas de fútbol.",
+        "hero": {
+            "title": "Siente la Emoción de Cada Gol",
+            "subtitle": "Crea grupos, invita amigos y demuestra quién sabe más de fútbol. JãoBolão lleva la diversión del estadio a tu móvil.",
+            "cta": "Empezar Ahora"
+        },
+        "features": {
+            "groups": {
+                "title": "Grupos Personalizados",
+                "description": "Crea tus propias quinielas con reglas flexibles e invita a tu gente."
+            },
+            "ranking": {
+                "title": "Ranking en Tiempo Real",
+                "description": "Sigue tu posición y mira quién lidera con cada gol marcado."
+            },
+            "live": {
+                "title": "Resultados en Vivo",
+                "description": "No te pierdas ni un movimiento. Resultados actualizados al instante."
+            }
+        },
         "loginCard": {
             "title": "Iniciar Sesión",
             "description": "Accede a tu cuenta para ver tus partidos y apuestas.",

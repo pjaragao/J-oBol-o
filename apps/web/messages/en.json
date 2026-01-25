@@ -62,6 +62,25 @@
         "welcome": "Welcome to",
         "appName": "JãoBolão!",
         "tagline": "The ultimate platform for your football betting pools.",
+        "hero": {
+            "title": "Feel the Emotion of Every Goal",
+            "subtitle": "Create groups, invite friends and show who knows more about football. JãoBolão brings the stadium fun to your phone.",
+            "cta": "Start Now"
+        },
+        "features": {
+            "groups": {
+                "title": "Custom Groups",
+                "description": "Create your own betting pools with flexible rules and invite your crowd."
+            },
+            "ranking": {
+                "title": "Real-Time Ranking",
+                "description": "Follow your position and see who's leading with every goal scored."
+            },
+            "live": {
+                "title": "Live Results",
+                "description": "Don't miss a single move. Results updated instantly."
+            }
+        },
         "loginCard": {
             "title": "Login",
             "description": "Sign in to view your matches and bets.",
