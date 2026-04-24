@@ -1,67 +1,126 @@
-import { View, Text, StyleSheet, Button } from 'react-native';
-import { Redirect } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { View, Text, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Session } from '@supabase/supabase-js';
+import { GroupCard } from '@/components/GroupCard';
+import { useRouter, Stack } from 'expo-router';
+import { Button } from '@/components/ui/Button';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 
 export default function HomeScreen() {
-    const [session, setSession] = useState<Session | null>(null);
+    const [groups, setGroups] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const router = useRouter();
 
-    useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session)
-            setLoading(false)
-        })
+    async function fetchGroups() {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const { data, error } = await supabase
+                .from('group_members')
+                .select(`
+                    role,
+                    groups (
+                        id,
+                        name,
+                        description,
+                        is_public,
+                        is_paid,
+                        entry_fee,
+                        events (
+                            name,
+                            logo_url
+                        )
+                    )
+                `)
+                .eq('user_id', session.user.id);
+
+            if (error) {
+                console.error('Error fetching groups:', error);
+                return;
+            }
+
+            // Flatten data structure
+            const formattedGroups = data.map((item: any) => ({
+                ...item.groups,
+                role: item.role,
+                status: 'approved'
+            }));
+
+            setGroups(formattedGroups);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    }
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchGroups();
+        }, [])
+    );
+
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        fetchGroups();
     }, []);
 
-    if (loading) return <View style={styles.container}><Text>Carregando...</Text></View>
+    // Helper to calculate mock ranking for now (since we don't have full ranking logic ported yet)
+    const getMockRanking = (groupId: string) => ({ rank: 1, total: 10 }); // TODO: Implement real ranking
 
-    if (!session) {
-        // In a real app, you would redirect to /login
-        // For now rendering login prompt
+    if (loading && !refreshing) {
         return (
-            <View style={styles.container}>
-                <Text style={styles.title}>JãoBolão Mobile</Text>
-                <Text>Você precisa fazer login.</Text>
+            <View className="flex-1 justify-center items-center bg-slate-50 dark:bg-slate-950">
+                <ActivityIndicator size="large" color="#16a34a" />
             </View>
-        )
+        );
     }
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Bem-vindo ao JãoBolão!</Text>
-            <Text style={styles.subtitle}>Dashboard Mobile</Text>
+        <View className="flex-1 bg-slate-50 dark:bg-slate-950 px-4 pt-4">
+            <Stack.Screen options={{ title: 'Meus Grupos' }} />
 
-            <View style={styles.card}>
-                <Text>Seus Grupos: 0</Text>
-            </View>
+            <FlatList
+                data={groups}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                    <GroupCard
+                        group={item}
+                        role={item.role}
+                        status={item.status}
+                        ranking={getMockRanking(item.id)}
+                        memberCount={1} // TODO: Fetch real count
+                        onPress={() => router.push(`/groups/${item.id}`)}
+                    />
+                )}
+                ListEmptyComponent={
+                    <View className="items-center justify-center py-10 mt-10 p-6 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
+                        <MaterialIcons name="emoji-events" size={48} color="#cbd5e1" />
+                        <Text className="text-slate-500 dark:text-slate-400 mt-4 text-center font-medium">
+                            Você ainda não participa de nenhum grupo.
+                        </Text>
+                        <Button
+                            title="Criar Primeiro Grupo"
+                            onPress={() => router.push('/groups/create')}
+                            className="mt-6"
+                        />
+                        <Button
+                            title="Buscar Grupos Públicos"
+                            variant="outline"
+                            onPress={() => router.push('/(tabs)/search')}
+                            className="mt-3"
+                        />
+                    </View>
+                }
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#16a34a" />
+                }
+                contentContainerStyle={{ paddingBottom: 100 }}
+            />
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 10,
-    },
-    subtitle: {
-        fontSize: 18,
-        color: 'gray',
-        marginBottom: 20,
-    },
-    card: {
-        padding: 20,
-        backgroundColor: '#f0f0f0',
-        borderRadius: 10,
-        width: '100%',
-        alignItems: 'center',
-    }
-});

@@ -1,66 +1,56 @@
-import { View, Text, Button, StyleSheet } from 'react-native';
+import { View, Text, Image } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
+import { Button } from '@/components/ui/Button';
 import { useEffect, useState } from 'react';
+import { Session } from '@supabase/supabase-js';
 
 export default function ProfileScreen() {
-    const [user, setUser] = useState<any>(null);
     const router = useRouter();
+    const [session, setSession] = useState<Session | null>(null);
 
     useEffect(() => {
-        supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setSession(session);
+        });
     }, []);
 
-    async function handleSignOut() {
+    const handleLogout = async () => {
         await supabase.auth.signOut();
         router.replace('/(auth)/login');
-    }
+    };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.header}>Perfil</Text>
-
-            <View style={styles.infoContainer}>
-                <Text style={styles.label}>Email</Text>
-                <Text style={styles.value}>{user?.email}</Text>
+        <View className="flex-1 bg-slate-50 dark:bg-slate-950 p-6 pt-20">
+            <View className="items-center mb-10">
+                <View className="w-24 h-24 bg-slate-200 dark:bg-slate-800 rounded-full items-center justify-center mb-4 border-2 border-slate-300 dark:border-slate-700">
+                    <Text className="text-4xl">👤</Text>
+                </View>
+                <Text className="text-xl font-bold text-slate-900 dark:text-white">
+                    {session?.user?.email || 'Usuário'}
+                </Text>
+                <Text className="text-sm text-slate-500 dark:text-slate-400">
+                    Membro desde 2024
+                </Text>
             </View>
 
-            <View style={styles.buttonContainer}>
-                <Button title="Sair" onPress={handleSignOut} color="#ef4444" />
+            <View className="space-y-4">
+                <Button
+                    title="Editar Perfil"
+                    variant="outline"
+                    onPress={() => alert('Em breve')}
+                />
+
+                <Button
+                    title="Sair da Conta"
+                    variant="destructive"
+                    onPress={handleLogout}
+                />
+            </View>
+
+            <View className="mt-auto items-center">
+                <Text className="text-xs text-slate-400">JãoBolão Mobile v1.0.0</Text>
             </View>
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 20,
-        backgroundColor: '#f9fafb',
-    },
-    header: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginTop: 40,
-        marginBottom: 20,
-    },
-    infoContainer: {
-        backgroundColor: 'white',
-        padding: 20,
-        borderRadius: 8,
-        marginBottom: 20,
-    },
-    label: {
-        fontSize: 14,
-        color: '#6b7280',
-        marginBottom: 4,
-    },
-    value: {
-        fontSize: 16,
-        fontWeight: '500',
-    },
-    buttonContainer: {
-        marginTop: 'auto',
-        marginBottom: 20,
-    }
-});

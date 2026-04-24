@@ -1,7 +1,4 @@
-import { Stack } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Session } from '@supabase/supabase-js';
+import { registerForPushNotificationsAsync, syncPushToken } from '@/lib/notifications';
 
 export default function RootLayout() {
     const [session, setSession] = useState<Session | null>(null);
@@ -11,10 +8,20 @@ export default function RootLayout() {
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
             setLoading(false);
+            if (session) {
+                registerForPushNotificationsAsync().then(token => {
+                    if (token) syncPushToken(token);
+                });
+            }
         });
 
         supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
+            if (session) {
+                registerForPushNotificationsAsync().then(token => {
+                    if (token) syncPushToken(token);
+                });
+            }
         });
     }, []);
 

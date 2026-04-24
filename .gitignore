@@ -2,7 +2,9 @@ node_modules/
 **/node_modules/
 .next/
 **/.next/
-.env*
+**/.env*
+**/keys_temp.json
+**/vapid-keys.txt
 dist/
 build/
 .vercel/

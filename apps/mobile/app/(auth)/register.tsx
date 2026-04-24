@@ -1,27 +1,31 @@
-import { View, Text, Alert, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter, Link } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
-    async function signInWithEmail() {
+    async function signUpWithEmail() {
         setLoading(true);
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signUp({
             email: email,
             password: password,
         });
 
         if (error) {
-            Alert.alert('Erro no Login', error.message);
+            Alert.alert('Erro no Cadastro', error.message);
         } else {
-            router.replace('/(tabs)');
+            Alert.alert(
+                'Sucesso!',
+                'Verifique seu email para confirmar o cadastro.',
+                [{ text: 'OK', onPress: () => router.back() }]
+            );
         }
         setLoading(false);
     }
@@ -31,17 +35,15 @@ export default function LoginScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             className="flex-1 bg-white dark:bg-slate-950"
         >
+            <Stack.Screen options={{ title: 'Criar Conta', headerBackTitle: 'Voltar' }} />
+
             <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}>
-                <View className="items-center mb-8">
-                    {/* Placeholder for Logo */}
-                    <View className="h-20 w-20 bg-green-100 rounded-2xl items-center justifyContent-center mb-4">
-                        <Text className="text-4xl">⚽</Text>
-                    </View>
+                <View className="mb-8">
                     <Text className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                        JãoBolão
+                        Criar Conta
                     </Text>
-                    <Text className="text-slate-500 dark:text-slate-400 mt-2 text-center">
-                        Entre para gerenciar seus bolões e palpites.
+                    <Text className="text-slate-500 dark:text-slate-400 mt-2">
+                        Junte-se ao JãoBolão e comece a palpitar.
                     </Text>
                 </View>
 
@@ -57,7 +59,7 @@ export default function LoginScreen() {
 
                     <Input
                         label="Senha"
-                        placeholder="••••••••"
+                        placeholder="Crie uma senha segura"
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry
@@ -65,25 +67,10 @@ export default function LoginScreen() {
                     />
 
                     <Button
-                        title="Entrar na minha conta"
-                        onPress={signInWithEmail}
+                        title="Criar minha conta"
+                        onPress={signUpWithEmail}
                         isLoading={loading}
                         className="mt-4"
-                    />
-
-                    <Link href="/(auth)/register" asChild>
-                        <Button
-                            title="Criar nova conta"
-                            variant="outline"
-                            className="mt-2"
-                        />
-                    </Link>
-
-                    <Button
-                        title="Esqueci minha senha"
-                        variant="ghost"
-                        className="mt-2"
-                        onPress={() => Alert.alert('Em breve', 'Funcionalidade de recuperação de senha será implementada em breve.')}
                     />
                 </View>
             </ScrollView>
