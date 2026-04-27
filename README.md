@@ -74,4 +74,4 @@ See [base.md](./base.md) for technical details on data modeling, security (RLS),
 Consulte o [base.md](./base.md) para detalhes técnicos sobre modelagem, segurança e fluxos.
 
 ---
-<p align="center">Made with ❤️ by <a href="https://github.com/pjaragao">Paulo Aragão</a></p>
+<p align="center">Made by <a href="https://github.com/pjaragao">Paulo Aragão</a></p>
