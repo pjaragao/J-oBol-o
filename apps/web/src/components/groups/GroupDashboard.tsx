@@ -519,9 +519,9 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
             const data = await response.json()
 
-            // Redirect to Mercado Pago Checkout Pro in a new tab
+            // Redirect to Mercado Pago Checkout Pro in the same window (prevents popup blockers)
             if (data.init_point) {
-                window.open(data.init_point, '_blank')
+                window.location.href = data.init_point
             } else {
                 throw new Error('URL de pagamento não disponível')
             }
