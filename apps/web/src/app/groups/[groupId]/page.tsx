@@ -95,6 +95,12 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
     const totalPot = grossPot;
     const totalMembers = group.group_members?.[0]?.count || 0
 
+    const strategy = group.prize_distribution_strategy as any
+    const prizeTiers = strategy?.mode === 'PERCENTAGE' && Array.isArray(strategy?.tiers)
+        ? (strategy.tiers as { rank: number; value: number }[])
+        : [{ rank: 1, value: 100 }]
+    const prizeDistribution = FinancialService.calculateDistribution(totalPot, strategy)
+
     const startDateRaw = eventData?.start_date ? new Date(eventData.start_date) : null
     const endDateRaw = eventData?.end_date ? new Date(eventData.end_date) : null
 
@@ -159,7 +165,7 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
 
                                 {/* Tooltip */}
                                 {group.is_paid && (
-                                    <div className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-100 dark:border-slate-700 p-3 z-50 invisible group-hover:visible transition-all opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto text-left">
+                                    <div className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-100 dark:border-slate-700 p-3 z-50 invisible group-hover:visible transition-all opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto text-left">
                                         <div className="space-y-2 text-[11px]">
                                             <div className="flex justify-between items-center">
                                                 <span className="text-slate-500 dark:text-slate-400">💰 {t('prize')}:</span>
@@ -170,11 +176,31 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
                                                 <span className="font-bold text-slate-700 dark:text-slate-200">{paidCount || 0}</span>
                                             </div>
                                             {(totalMembers - (paidCount || 0)) > 0 && (
-                                                <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-700 pt-2">
+                                                <div className="flex justify-between items-center">
                                                     <span className="text-orange-500">⚠️ {t('unpaid')}:</span>
                                                     <span className="font-bold text-orange-600 dark:text-orange-400">{totalMembers - (paidCount || 0)}</span>
                                                 </div>
                                             )}
+
+                                            {/* Prize Distribution Strategy */}
+                                            <div className="border-t border-slate-100 dark:border-slate-700 pt-2 space-y-1">
+                                                <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+                                                    Distribuição
+                                                </p>
+                                                {prizeTiers.map((tier) => {
+                                                    const amount = prizeDistribution[tier.rank] || 0;
+                                                    return (
+                                                        <div key={tier.rank} className="flex justify-between items-center">
+                                                            <span className="text-slate-600 dark:text-slate-300">
+                                                                {tier.rank}º Lugar ({tier.value}%)
+                                                            </span>
+                                                            <span className="font-bold text-slate-700 dark:text-slate-200">
+                                                                R$ {formatIntl.number(amount)}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
                                     </div>
                                 )}
