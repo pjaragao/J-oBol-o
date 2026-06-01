@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { preferenceClient } from '@/lib/mercadopago/client'
 
-const APP_URL = process.env.NEXT_PUBLIC_SITE_URL
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-    || 'https://jaobolao-black.vercel.app'
+
 
 export async function POST(request: NextRequest) {
     try {
@@ -85,6 +83,9 @@ export async function POST(request: NextRequest) {
         const eventInfo = Array.isArray(group.events) ? group.events[0] : group.events
         const eventName = eventInfo?.display_name || eventInfo?.name || ''
         const itemTitle = `Taxa de Participação — ${group.name}${eventName ? ` (${eventName})` : ''}`
+
+        const origin = request.headers.get('origin')
+        const APP_URL = process.env.NEXT_PUBLIC_SITE_URL || origin || 'https://jaobolao-black.vercel.app'
 
         // 5. Create Mercado Pago Preference
         const externalReference = `entry_fee:${groupId}:${user.id}`

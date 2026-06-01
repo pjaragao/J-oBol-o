@@ -79,7 +79,14 @@ export default function CreateGroupPage() {
     useEffect(() => {
         const fetchEvents = async () => {
             const { data } = await supabase.from('events').select('*').eq('is_active', true)
-            if (data) setEvents(data)
+            if (data && data.length > 0) {
+                setEvents(data)
+                // Auto-select World Cup
+                const worldCup = data.find((e: any) => e.name?.toLowerCase().includes('world cup') || e.display_name?.toLowerCase().includes('world cup') || e.code === 'WC') || data[0]
+                if (worldCup && !selectedEventId) {
+                    setValue('event_id', worldCup.id)
+                }
+            }
         }
         fetchEvents()
     }, [])
@@ -222,9 +229,9 @@ export default function CreateGroupPage() {
                                     </div>
                                     <div>
                                         <Label>Campeonato</Label>
-                                        <Select onValueChange={(v) => setValue('event_id', v)} defaultValue={watch('event_id')}>
-                                            <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-none h-12">
-                                                <SelectValue placeholder="Selecione um campeonato" />
+                                        <Select disabled onValueChange={(v) => setValue('event_id', v)} value={watch('event_id')}>
+                                            <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-none h-12 opacity-80 cursor-not-allowed">
+                                                <SelectValue placeholder="Carregando..." />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {events.map(e => (
