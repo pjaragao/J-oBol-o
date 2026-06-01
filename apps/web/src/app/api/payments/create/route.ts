@@ -139,9 +139,11 @@ export async function POST(request: NextRequest) {
         })
 
         // 7. Return the checkout URL
+        // If using a test token (starts with TEST-), route to sandbox automatically
+        const isTestToken = process.env.MERCADOPAGO_ACCESS_TOKEN?.startsWith('TEST')
+        
         return NextResponse.json({
-            init_point: result.init_point,
-            sandbox_init_point: result.sandbox_init_point,
+            init_point: isTestToken ? result.sandbox_init_point : result.init_point,
             preference_id: result.id,
         })
 
