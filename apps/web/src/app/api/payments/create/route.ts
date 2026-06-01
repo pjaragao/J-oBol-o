@@ -102,10 +102,6 @@ export async function POST(request: NextRequest) {
                         currency_id: 'BRL',
                     },
                 ],
-                payer: {
-                    email: profile?.email || user.email || '',
-                    name: profile?.display_name || undefined,
-                },
                 external_reference: externalReference,
                 back_urls: {
                     success: `${APP_URL}/groups/${groupId}?payment=success`,
@@ -122,6 +118,9 @@ export async function POST(request: NextRequest) {
                 },
                 statement_descriptor: 'JAOBOLAO',
                 expires: false,
+                payment_methods: {
+                    default_payment_method_id: 'pix'
+                }
             },
         })
 
