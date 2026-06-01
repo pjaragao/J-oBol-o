@@ -511,7 +511,10 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
             if (!response.ok) {
                 const errorData = await response.json()
-                throw new Error(errorData.error || 'Erro ao criar pagamento')
+                const errorMsg = errorData.details 
+                    ? `${errorData.error} (${errorData.details})` 
+                    : (errorData.error || 'Erro ao criar pagamento')
+                throw new Error(errorMsg)
             }
 
             const data = await response.json()

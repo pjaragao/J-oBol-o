@@ -122,9 +122,6 @@ export async function POST(request: NextRequest) {
                 },
                 statement_descriptor: 'JAOBOLAO',
                 expires: false,
-                payment_methods: {
-                    default_payment_method_id: 'pix'
-                }
             },
         })
 
