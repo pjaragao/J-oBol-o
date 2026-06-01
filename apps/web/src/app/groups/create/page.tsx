@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, DollarSign, Trophy, Users, AlertCircle, Shield, Settings, Check } from 'lucide-react'
+import { Loader2, DollarSign, Trophy, Users, AlertCircle, Shield, Settings, Check, Trash } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Checkbox } from "../../../components/ui/checkbox"
 import { FinancialService } from '@/lib/financial-service'
@@ -82,7 +82,13 @@ export default function CreateGroupPage() {
             if (data && data.length > 0) {
                 setEvents(data)
                 // Auto-select World Cup
-                const worldCup = data.find((e: any) => e.name?.toLowerCase().includes('world cup') || e.display_name?.toLowerCase().includes('world cup') || e.code === 'WC') || data[0]
+                const worldCup = data.find((e: any) => 
+                    e.name?.toLowerCase().includes('world cup') || 
+                    e.name?.toLowerCase().includes('copa do mundo') ||
+                    e.display_name?.toLowerCase().includes('world cup') || 
+                    e.display_name?.toLowerCase().includes('copa do mundo') ||
+                    e.code === 'WC'
+                ) || data[0]
                 if (worldCup && !selectedEventId) {
                     setValue('event_id', worldCup.id)
                 }
@@ -114,8 +120,8 @@ export default function CreateGroupPage() {
     const [prizeStrategy, setPrizeStrategy] = useState<any>({
         mode: 'PERCENTAGE',
         tiers: [
-            { rank: 1, value: 60 },
-            { rank: 2, value: 20 },
+            { rank: 1, value: 65 },
+            { rank: 2, value: 25 },
             { rank: 3, value: 10 }
         ]
     })
@@ -253,16 +259,20 @@ export default function CreateGroupPage() {
                                     </div>
                                     <div>
                                         <Label>Campeonato</Label>
-                                        <Select disabled onValueChange={(v) => setValue('event_id', v)} value={watch('event_id')}>
-                                            <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-none h-12 opacity-80 cursor-not-allowed">
-                                                <SelectValue placeholder="Carregando..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {events.map(e => (
-                                                    <SelectItem key={e.id} value={e.id}>{e.display_name || e.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        {(() => {
+                                            const selectedEvent = events.find(e => e.id === selectedEventId) || events.find(e => 
+                                                e.name?.toLowerCase().includes('world cup') || 
+                                                e.name?.toLowerCase().includes('copa do mundo') ||
+                                                e.display_name?.toLowerCase().includes('world cup') || 
+                                                e.display_name?.toLowerCase().includes('copa do mundo')
+                                            )
+                                            return (
+                                                <div className="bg-slate-50 dark:bg-slate-900 border-none h-12 rounded-lg flex items-center px-4 font-bold text-slate-700 dark:text-slate-200 opacity-80 cursor-not-allowed">
+                                                    {selectedEvent ? `🏆 ${selectedEvent.display_name || selectedEvent.name}` : 'Carregando...'}
+                                                </div>
+                                            )
+                                        })()}
+                                        <input type="hidden" {...register('event_id')} value={selectedEventId || ''} />
                                         {errors.event_id && <p className="text-sm text-red-500">{errors.event_id.message}</p>}
                                     </div>
                                 </div>
@@ -461,111 +471,114 @@ export default function CreateGroupPage() {
                                         </div>
                                     </div>
 
-                                    {prizeStrategy.mode === 'PERCENTAGE' && (
-                                        <div className="space-y-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-5 border border-slate-100 dark:border-slate-800/80">
-                                            <h4 className="font-bold text-sm text-slate-700 dark:text-slate-300">Posições Premiadas</h4>
-                                            
-                                            <div className="space-y-3">
-                                                {prizeStrategy.tiers.map((tier: any, index: number) => {
-                                                    const simulatedPot = (entryFee || 0) * (watch('min_members') || 10);
-                                                    const projectedPrize = (simulatedPot * tier.value) / 100;
-                                                    
-                                                    return (
-                                                        <div key={tier.rank} className="flex items-center gap-4 bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-900 shadow-sm animate-in fade-in zoom-in-95 duration-200">
-                                                            <div className="flex items-center gap-2 min-w-[80px]">
-                                                                <span className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 flex items-center justify-center text-xs font-black">
-                                                                    {tier.rank}º
-                                                                </span>
-                                                                <span className="text-xs font-bold text-slate-500">Lugar</span>
-                                                            </div>
-                                                            
-                                                            <div className="relative flex-1 max-w-[120px]">
-                                                                <Input
-                                                                    type="number"
-                                                                    value={tier.value}
-                                                                    onChange={(e) => {
-                                                                        const val = Math.max(0, Math.min(100, Number(e.target.value) || 0));
-                                                                        const newTiers = [...prizeStrategy.tiers];
-                                                                        newTiers[index] = { ...newTiers[index], value: val };
-                                                                        setPrizeStrategy({ ...prizeStrategy, tiers: newTiers });
-                                                                    }}
-                                                                    className="pr-8 font-bold text-right"
-                                                                    min={0}
-                                                                    max={100}
-                                                                />
-                                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">%</span>
-                                                            </div>
-
-                                                            {entryFee > 0 && (
-                                                                <div className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
-                                                                    Estimativa (mín. {watch('min_members') || 10} part.): <span className="font-bold text-slate-700 dark:text-slate-200">R$ {projectedPrize.toFixed(2)}</span>
+                                    {prizeStrategy.mode === 'PERCENTAGE' && (() => {
+                                        const hasMaxMembers = typeof maxMembers === 'number' && !isNaN(maxMembers) && maxMembers > 0;
+                                        return (
+                                            <div className="space-y-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-5 border border-slate-100 dark:border-slate-800/80">
+                                                <h4 className="font-bold text-sm text-slate-700 dark:text-slate-300">Posições Premiadas</h4>
+                                                
+                                                <div className="space-y-3">
+                                                    {prizeStrategy.tiers.map((tier: any, index: number) => {
+                                                        const simulatedPot = (entryFee || 0) * (watch('min_members') || 10);
+                                                        const projectedPrize = (simulatedPot * tier.value) / 100;
+                                                        
+                                                        return (
+                                                            <div key={tier.rank} className="flex items-center gap-4 bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-900 shadow-sm animate-in fade-in zoom-in-95 duration-200">
+                                                                <div className="flex items-center gap-2 min-w-[80px]">
+                                                                    <span className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 flex items-center justify-center text-xs font-black">
+                                                                        {tier.rank}º
+                                                                    </span>
+                                                                    <span className="text-xs font-bold text-slate-500">Lugar</span>
                                                                 </div>
-                                                            )}
+                                                                
+                                                                <div className="relative flex-1 max-w-[120px]">
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={tier.value}
+                                                                        onChange={(e) => {
+                                                                            const val = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                                                                            const newTiers = [...prizeStrategy.tiers];
+                                                                            newTiers[index] = { ...newTiers[index], value: val };
+                                                                            setPrizeStrategy({ ...prizeStrategy, tiers: newTiers });
+                                                                        }}
+                                                                        className="pr-8 font-bold text-right"
+                                                                        min={0}
+                                                                        max={100}
+                                                                    />
+                                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">%</span>
+                                                                </div>
 
-                                                            {prizeStrategy.tiers.length > 1 && (
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    onClick={() => {
-                                                                        const newTiers = prizeStrategy.tiers
-                                                                            .filter((_: any, idx: number) => idx !== index)
-                                                                            .map((t: any, idx: number) => ({ ...t, rank: idx + 1 }));
-                                                                        setPrizeStrategy({ ...prizeStrategy, tiers: newTiers });
-                                                                    }}
-                                                                    className="ml-auto text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                                                                >
-                                                                    Remover
-                                                                </Button>
+                                                                {entryFee > 0 && (
+                                                                    <div className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
+                                                                        Estimativa (mín. {watch('min_members') || 10} part.): <span className="font-bold text-slate-700 dark:text-slate-200">R$ {projectedPrize.toFixed(2)}</span>
+                                                                    </div>
+                                                                )}
+
+                                                                {prizeStrategy.tiers.length > 1 && (
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() => {
+                                                                            const newTiers = prizeStrategy.tiers
+                                                                                .filter((_: any, idx: number) => idx !== index)
+                                                                                .map((t: any, idx: number) => ({ ...t, rank: idx + 1 }));
+                                                                            setPrizeStrategy({ ...prizeStrategy, tiers: newTiers });
+                                                                        }}
+                                                                        className="ml-auto text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                                                    >
+                                                                        <Trash className="w-4 h-4" />
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {(!hasMaxMembers || prizeStrategy.tiers.length < maxMembers) && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            const nextRank = prizeStrategy.tiers.length + 1;
+                                                            const currentSum = prizeStrategy.tiers.reduce((acc: number, t: any) => acc + t.value, 0);
+                                                            const remaining = Math.max(0, 100 - currentSum);
+                                                            setPrizeStrategy({
+                                                                ...prizeStrategy,
+                                                                tiers: [...prizeStrategy.tiers, { rank: nextRank, value: remaining }]
+                                                            });
+                                                        }}
+                                                        className="w-full border-dashed border-2 hover:border-amber-500 hover:text-amber-600 dark:hover:text-amber-400 font-semibold"
+                                                    >
+                                                        + Adicionar Posição Premiada
+                                                    </Button>
+                                                )}
+
+                                                {hasMaxMembers && prizeStrategy.tiers.length >= maxMembers && (
+                                                    <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
+                                                        ⚠️ Limite de posições atingido (máximo de participantes definido: {maxMembers}).
+                                                    </p>
+                                                )}
+
+                                                {/* Sum Calculation and Warning */}
+                                                {(() => {
+                                                    const totalPct = prizeStrategy.tiers.reduce((acc: number, t: any) => acc + t.value, 0);
+                                                    return (
+                                                        <div className="pt-3 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                                            <div className="text-xs">
+                                                                Soma das Porcentagens: <span className={`font-black text-sm ${totalPct === 100 ? 'text-green-600 dark:text-green-400' : 'text-amber-500'}`}>{totalPct}%</span>
+                                                            </div>
+                                                            {totalPct !== 100 && (
+                                                                <div className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold max-w-[320px] leading-tight">
+                                                                    ℹ️ A soma deve idealmente ser de 100% para distribuir todo o pote. {totalPct < 100 ? `Restam ${100 - totalPct}% sem premiação.` : `Passou do limite em ${totalPct - 100}%.`}
+                                                                </div>
                                                             )}
                                                         </div>
                                                     );
-                                                })}
+                                                })()}
                                             </div>
-
-                                            {(!maxMembers || prizeStrategy.tiers.length < maxMembers) && (
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    onClick={() => {
-                                                        const nextRank = prizeStrategy.tiers.length + 1;
-                                                        const currentSum = prizeStrategy.tiers.reduce((acc: number, t: any) => acc + t.value, 0);
-                                                        const remaining = Math.max(0, 100 - currentSum);
-                                                        setPrizeStrategy({
-                                                            ...prizeStrategy,
-                                                            tiers: [...prizeStrategy.tiers, { rank: nextRank, value: remaining }]
-                                                        });
-                                                    }}
-                                                    className="w-full border-dashed border-2 hover:border-amber-500 hover:text-amber-600 dark:hover:text-amber-400 font-semibold"
-                                                >
-                                                    + Adicionar Posição Premiada
-                                                </Button>
-                                            )}
-
-                                            {maxMembers && prizeStrategy.tiers.length >= maxMembers && (
-                                                <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
-                                                    ⚠️ Limite de posições atingido (máximo de participantes definido: {maxMembers}).
-                                                </p>
-                                            )}
-
-                                            {/* Sum Calculation and Warning */}
-                                            {(() => {
-                                                const totalPct = prizeStrategy.tiers.reduce((acc: number, t: any) => acc + t.value, 0);
-                                                return (
-                                                    <div className="pt-3 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                                        <div className="text-xs">
-                                                            Soma das Porcentagens: <span className={`font-black text-sm ${totalPct === 100 ? 'text-green-600 dark:text-green-400' : 'text-amber-500'}`}>{totalPct}%</span>
-                                                        </div>
-                                                        {totalPct !== 100 && (
-                                                            <div className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold max-w-[320px] leading-tight">
-                                                                ℹ️ A soma deve idealmente ser de 100% para distribuir todo o pote. {totalPct < 100 ? `Restam ${100 - totalPct}% sem premiação.` : `Passou do limite em ${totalPct - 100}%.`}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })()}
-                                        </div>
-                                    )}
+                                        );
+                                    })()}
                                 </div>
                             )}
 
