@@ -241,7 +241,7 @@
         "tryAgain": "Try Again",
         "viewFolksBetsTitle": "View folks predictions",
         "pendingPayment": "Pending Payment",
-        "payEntryOnline": "Pay the entry fee of {amount} to validate your participation.",
+        "payEntryOnline": "Pay R$ {total} (R$ {amount} entry + R$ {fee} administrative fee of 5%) to validate your participation.",
         "payEntryOffline": "Arrange the payment of {amount} directly with the group administrator.",
         "payNow": "Pay Now",
         "payWithMercadoPago": "Pay with Mercado Pago",

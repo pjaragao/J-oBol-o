@@ -90,6 +90,8 @@ export async function POST(request: NextRequest) {
         // 5. Create Mercado Pago Preference
         const externalReference = `entry_fee:${groupId}:${user.id}`
 
+        const platformFeeAmount = Number((Number(group.entry_fee) * 0.05).toFixed(2))
+
         const result = await preferenceClient.create({
             body: {
                 items: [
@@ -101,6 +103,14 @@ export async function POST(request: NextRequest) {
                         unit_price: Number(group.entry_fee),
                         currency_id: 'BRL',
                     },
+                    {
+                        id: `fee-${groupId}-${user.id}`,
+                        title: `Taxa da Plataforma (5%)`,
+                        description: `Taxa de processamento JãoBolão`,
+                        quantity: 1,
+                        unit_price: platformFeeAmount,
+                        currency_id: 'BRL',
+                    }
                 ],
                 payer: {
                     email: profile?.email || user.email || '',
@@ -122,6 +132,14 @@ export async function POST(request: NextRequest) {
                 },
                 statement_descriptor: 'JAOBOLAO',
                 expires: false,
+                payment_methods: {
+                    excluded_payment_types: [
+                        { id: 'credit_card' },
+                        { id: 'debit_card' },
+                        { id: 'ticket' },
+                        { id: 'account_money' }
+                    ]
+                }
             },
         })
 
@@ -130,7 +148,7 @@ export async function POST(request: NextRequest) {
             group_id: groupId,
             user_id: user.id,
             type: 'ENTRY_FEE',
-            amount: Number(group.entry_fee),
+            amount: Number(group.entry_fee) + platformFeeAmount,
             status: 'PENDING',
             metadata: {
                 provider: 'mercadopago',

@@ -29,14 +29,16 @@ export class FinancialService {
         const grossPot = paidMembersCount * config.entry_fee;
 
         if (config.payment_method === 'ONLINE') {
-            // Fee is percentage of the gross pot
-            const feeAmount = (grossPot * eventFees.online_fee_percent) / 100;
-            const netPot = grossPot - feeAmount;
+            // Platform fee is 5% charged ON TOP of the entry fee.
+            // Therefore, the net pot available for prizes is 100% of the gross entry fees.
+            // Platform fee is calculated on top.
+            const feeAmount = grossPot * 0.05;
+            const netPot = grossPot;
 
             return {
                 grossPot,
                 platformFee: feeAmount,
-                netPot: Math.max(0, netPot), // Safety check
+                netPot: Math.max(0, netPot),
             };
         } else {
             // OFFLINE: Platform fee is paid separately by creator. Pot is fully distributed.

@@ -240,7 +240,7 @@
         "tryAgain": "Tentar Novamente",
         "viewFolksBetsTitle": "Ver palpites da galera",
         "pendingPayment": "Pagamento Pendente",
-        "payEntryOnline": "Pague a entrada de {amount} para validar sua participação.",
+        "payEntryOnline": "Pague R$ {total} (R$ {amount} da inscrição + R$ {fee} de taxa administrativa de 5%) para validar sua participação.",
         "payEntryOffline": "Combine o pagamento de {amount} diretamente com o administrador do grupo.",
         "payNow": "Pagar Agora",
         "payWithMercadoPago": "Pagar com Mercado Pago",

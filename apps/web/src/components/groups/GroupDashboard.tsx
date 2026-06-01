@@ -887,7 +887,11 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                             <h4 className="font-bold text-yellow-900 dark:text-yellow-200 text-sm">{t('pendingPayment')}</h4>
                             <p className="text-xs text-yellow-700 dark:text-yellow-400 leading-tight">
                                 {financials.payment_method === 'ONLINE'
-                                    ? t('payEntryOnline', { amount: `R$ ${financials.entry_fee.toFixed(2)}` })
+                                    ? t('payEntryOnline', { 
+                                        total: (financials.entry_fee * 1.05).toFixed(2),
+                                        amount: financials.entry_fee.toFixed(2),
+                                        fee: (financials.entry_fee * 0.05).toFixed(2)
+                                      })
                                     : t('payEntryOffline', { amount: `R$ ${financials.entry_fee.toFixed(2)}` })}
                             </p>
                         </div>

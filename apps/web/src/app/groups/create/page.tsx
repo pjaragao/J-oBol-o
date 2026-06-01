@@ -23,7 +23,7 @@ const createGroupSchema = z.object({
     name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
     description: z.string().optional(),
     event_id: z.string().min(1, "Selecione um campeonato"),
-    min_members: z.number().min(5, "Mínimo de 5 participantes"),
+    min_members: z.number().min(10, "Mínimo de 10 participantes"),
     max_members: z.number().nullable().optional(), // Required for offline only, validated manually
     is_paid: z.boolean().default(true),
     payment_method: z.enum(['ONLINE', 'OFFLINE']),
@@ -53,7 +53,7 @@ export default function CreateGroupPage() {
         defaultValues: {
             name: '',
             description: '',
-            min_members: 5,
+            min_members: 10,
             max_members: null,
             is_paid: true,
             payment_method: 'ONLINE',
@@ -111,6 +111,16 @@ export default function CreateGroupPage() {
     }, [paymentMethod, isPaid, maxMembers, selectedEventId, events])
 
 
+    const [prizeStrategy, setPrizeStrategy] = useState<any>({
+        mode: 'PERCENTAGE',
+        tiers: [
+            { rank: 1, value: 60 },
+            { rank: 2, value: 20 },
+            { rank: 3, value: 10 }
+        ]
+    })
+
+
     const onSubmit = async (data: CreateGroupForm) => {
         setLoading(true)
         try {
@@ -118,8 +128,22 @@ export default function CreateGroupPage() {
             if (data.is_paid && data.entry_fee < 20) {
                 throw new Error("O valor mínimo de entrada para grupos pagos é R$ 20,00")
             }
-            if (data.is_paid && data.payment_method === 'OFFLINE' && (!data.max_members || data.max_members < 5)) {
-                throw new Error("Para grupos offline, é obrigatório definir um limite máximo de participantes.")
+            if (data.is_paid && data.payment_method === 'OFFLINE' && (!data.max_members || data.max_members < 10)) {
+                throw new Error("Para grupos offline, é obrigatório definir um limite máximo de pelo menos 10 participantes.")
+            }
+
+            // Validate prize strategy
+            if (prizeStrategy.mode === 'PERCENTAGE') {
+                const totalPct = prizeStrategy.tiers.reduce((acc: number, tier: any) => acc + tier.value, 0)
+                if (totalPct > 100) {
+                    throw new Error("A soma das porcentagens de premiação não pode ultrapassar 100%.")
+                }
+                if (prizeStrategy.tiers.some((t: any) => t.value <= 0)) {
+                    throw new Error("As porcentagens de premiação devem ser maiores que 0%.")
+                }
+                if (data.max_members && prizeStrategy.tiers.length > data.max_members) {
+                    throw new Error(`O número de posições premiadas (${prizeStrategy.tiers.length}) não pode ser maior que o limite de vagas (${data.max_members}).`)
+                }
             }
 
             const { data: { user } } = await supabase.auth.getUser()
@@ -148,7 +172,7 @@ export default function CreateGroupPage() {
                     allow_member_invites: data.allow_member_invites,
                     join_requires_approval: data.join_requires_approval,
                     scoring_rules: scoringRules,
-                    prize_distribution_strategy: { mode: 'WINNER_TAKES_ALL' } // Default for now
+                    prize_distribution_strategy: prizeStrategy
                 })
                 .select()
                 .single()
@@ -188,7 +212,7 @@ export default function CreateGroupPage() {
     const [readyToSubmit, setReadyToSubmit] = useState(false)
 
     useEffect(() => {
-        if (step === 4) {
+        if (step === 5) {
             setReadyToSubmit(false)
             const timer = setTimeout(() => setReadyToSubmit(true), 1000)
             return () => clearTimeout(timer)
@@ -200,8 +224,8 @@ export default function CreateGroupPage() {
             <div className="mb-8">
                 <h1 className="text-3xl font-bold mb-2">Novo Bolão</h1>
                 <div className="flex gap-2">
-                    {[1, 2, 3, 4].map(s => (
-                        <div key={s} className={`h-2 flex-1 rounded-full transition-all duration-500 ${s <= step ? (step === 2 ? 'bg-emerald-500' : step === 4 ? 'bg-green-500' : 'bg-indigo-600') : 'bg-gray-200 dark:bg-slate-800'}`} />
+                    {[1, 2, 3, 4, 5].map(s => (
+                        <div key={s} className={`h-2 flex-1 rounded-full transition-all duration-500 ${s <= step ? (step === 2 ? 'bg-emerald-500' : step === 3 ? 'bg-amber-500' : step === 5 ? 'bg-green-500' : 'bg-indigo-600') : 'bg-gray-200 dark:bg-slate-800'}`} />
                     ))}
                 </div>
             </div>
@@ -317,8 +341,8 @@ export default function CreateGroupPage() {
                                             >
                                                 {paymentMethod === 'ONLINE' && <div className="absolute top-2 right-2 bg-emerald-500 text-white p-1 rounded-full"><Check className="w-3 h-3" /></div>}
                                                 <h3 className="font-bold text-lg mb-1">Pela Plataforma</h3>
-                                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">Nós gerenciamos o dinheiro, cobranças e prêmios automáticos.</p>
-                                                <span className="inline-flex items-center text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300 px-2 py-1 rounded uppercase">Taxa: 10% do pote</span>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">Nós gerenciamos o dinheiro, cobranças e prêmios automáticos. A taxa é cobrada por cima da inscrição.</p>
+                                                <span className="inline-flex items-center text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300 px-2 py-1 rounded uppercase">Taxa: 5% por cima</span>
                                             </div>
 
                                             <div
@@ -358,12 +382,22 @@ export default function CreateGroupPage() {
                                             <p className={`text-[10px] font-bold transition-colors ${entryFee < 20 ? 'text-amber-500' : 'text-emerald-500'}`}>
                                                 Mínimo sugerido: R$ 20,00
                                             </p>
+                                            {paymentMethod === 'ONLINE' && entryFee > 0 && (
+                                                <div className="bg-emerald-500/10 dark:bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-2.5 mt-2">
+                                                    <p className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold leading-relaxed">
+                                                        💵 Total do participante: <span className="font-black text-sm text-emerald-800 dark:text-emerald-300">R$ {(entryFee * 1.05).toFixed(2)}</span>
+                                                    </p>
+                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                                        (R$ {entryFee.toFixed(2)} inscrição + R$ {(entryFee * 0.05).toFixed(2)} taxa administrativa de 5%)
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="space-y-2">
                                             <div className="flex items-center justify-between">
                                                 <Label className="font-bold">Limite de Participantes</Label>
-                                                <span className="text-[10px] font-black text-slate-400 uppercase">Mín. 5 jogadores</span>
+                                                <span className="text-[10px] font-black text-slate-400 uppercase">Mín. 10 jogadores</span>
                                             </div>
                                             <div className="relative group">
                                                 <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 transition-colors group-focus-within:text-emerald-500" />
@@ -391,8 +425,152 @@ export default function CreateGroupPage() {
                                 </div>
                             )}
 
-                            {/* STEP 3: Scoring */}
+                            {/* STEP 3: Premiação */}
                             {step === 3 && (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="text-xl font-semibold flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                                            <Trophy className="w-5 h-5" /> Estratégia de Premiação
+                                        </h2>
+                                        <span className="inline-flex items-center text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                                            Distribuição
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                                        Escolha como o pote acumulado das inscrições será distribuído entre os vencedores.
+                                        Esta regra será usada para cálculo de prêmios {isPaid && paymentMethod === 'ONLINE' && 'e futuramente para transferências automáticas via Mercado Pago'}.
+                                    </p>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div
+                                            className={`relative overflow-hidden transition-all duration-300 border-2 rounded-2xl p-5 cursor-pointer hover:shadow-xl ${prizeStrategy.mode === 'WINNER_TAKES_ALL' ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-900/10' : 'border-slate-200 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-900'}`}
+                                            onClick={() => setPrizeStrategy({ ...prizeStrategy, mode: 'WINNER_TAKES_ALL' })}
+                                        >
+                                            {prizeStrategy.mode === 'WINNER_TAKES_ALL' && <div className="absolute top-2 right-2 bg-amber-500 text-white p-1 rounded-full"><Check className="w-3 h-3" /></div>}
+                                            <h3 className="font-bold text-lg mb-1">Vencedor Leva Tudo</h3>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">O 1º colocado do ranking final fica com 100% do prêmio acumulado.</p>
+                                        </div>
+
+                                        <div
+                                            className={`relative overflow-hidden transition-all duration-300 border-2 rounded-2xl p-5 cursor-pointer hover:shadow-xl ${prizeStrategy.mode === 'PERCENTAGE' ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-900/10' : 'border-slate-200 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-900'}`}
+                                            onClick={() => setPrizeStrategy({ ...prizeStrategy, mode: 'PERCENTAGE' })}
+                                        >
+                                            {prizeStrategy.mode === 'PERCENTAGE' && <div className="absolute top-2 right-2 bg-amber-500 text-white p-1 rounded-full"><Check className="w-3 h-3" /></div>}
+                                            <h3 className="font-bold text-lg mb-1">Divisão Personalizada</h3>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">Distribua o prêmio entre múltiplas posições por porcentagem.</p>
+                                        </div>
+                                    </div>
+
+                                    {prizeStrategy.mode === 'PERCENTAGE' && (
+                                        <div className="space-y-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-5 border border-slate-100 dark:border-slate-800/80">
+                                            <h4 className="font-bold text-sm text-slate-700 dark:text-slate-300">Posições Premiadas</h4>
+                                            
+                                            <div className="space-y-3">
+                                                {prizeStrategy.tiers.map((tier: any, index: number) => {
+                                                    const simulatedPot = (entryFee || 0) * (watch('min_members') || 10);
+                                                    const projectedPrize = (simulatedPot * tier.value) / 100;
+                                                    
+                                                    return (
+                                                        <div key={tier.rank} className="flex items-center gap-4 bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-900 shadow-sm animate-in fade-in zoom-in-95 duration-200">
+                                                            <div className="flex items-center gap-2 min-w-[80px]">
+                                                                <span className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 flex items-center justify-center text-xs font-black">
+                                                                    {tier.rank}º
+                                                                </span>
+                                                                <span className="text-xs font-bold text-slate-500">Lugar</span>
+                                                            </div>
+                                                            
+                                                            <div className="relative flex-1 max-w-[120px]">
+                                                                <Input
+                                                                    type="number"
+                                                                    value={tier.value}
+                                                                    onChange={(e) => {
+                                                                        const val = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                                                                        const newTiers = [...prizeStrategy.tiers];
+                                                                        newTiers[index] = { ...newTiers[index], value: val };
+                                                                        setPrizeStrategy({ ...prizeStrategy, tiers: newTiers });
+                                                                    }}
+                                                                    className="pr-8 font-bold text-right"
+                                                                    min={0}
+                                                                    max={100}
+                                                                />
+                                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">%</span>
+                                                            </div>
+
+                                                            {entryFee > 0 && (
+                                                                <div className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
+                                                                    Estimativa (mín. {watch('min_members') || 10} part.): <span className="font-bold text-slate-700 dark:text-slate-200">R$ {projectedPrize.toFixed(2)}</span>
+                                                                </div>
+                                                            )}
+
+                                                            {prizeStrategy.tiers.length > 1 && (
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() => {
+                                                                        const newTiers = prizeStrategy.tiers
+                                                                            .filter((_: any, idx: number) => idx !== index)
+                                                                            .map((t: any, idx: number) => ({ ...t, rank: idx + 1 }));
+                                                                        setPrizeStrategy({ ...prizeStrategy, tiers: newTiers });
+                                                                    }}
+                                                                    className="ml-auto text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                                                >
+                                                                    Remover
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {(!maxMembers || prizeStrategy.tiers.length < maxMembers) && (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        const nextRank = prizeStrategy.tiers.length + 1;
+                                                        const currentSum = prizeStrategy.tiers.reduce((acc: number, t: any) => acc + t.value, 0);
+                                                        const remaining = Math.max(0, 100 - currentSum);
+                                                        setPrizeStrategy({
+                                                            ...prizeStrategy,
+                                                            tiers: [...prizeStrategy.tiers, { rank: nextRank, value: remaining }]
+                                                        });
+                                                    }}
+                                                    className="w-full border-dashed border-2 hover:border-amber-500 hover:text-amber-600 dark:hover:text-amber-400 font-semibold"
+                                                >
+                                                    + Adicionar Posição Premiada
+                                                </Button>
+                                            )}
+
+                                            {maxMembers && prizeStrategy.tiers.length >= maxMembers && (
+                                                <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
+                                                    ⚠️ Limite de posições atingido (máximo de participantes definido: {maxMembers}).
+                                                </p>
+                                            )}
+
+                                            {/* Sum Calculation and Warning */}
+                                            {(() => {
+                                                const totalPct = prizeStrategy.tiers.reduce((acc: number, t: any) => acc + t.value, 0);
+                                                return (
+                                                    <div className="pt-3 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                                        <div className="text-xs">
+                                                            Soma das Porcentagens: <span className={`font-black text-sm ${totalPct === 100 ? 'text-green-600 dark:text-green-400' : 'text-amber-500'}`}>{totalPct}%</span>
+                                                        </div>
+                                                        {totalPct !== 100 && (
+                                                            <div className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold max-w-[320px] leading-tight">
+                                                                ℹ️ A soma deve idealmente ser de 100% para distribuir todo o pote. {totalPct < 100 ? `Restam ${100 - totalPct}% sem premiação.` : `Passou do limite em ${totalPct - 100}%.`}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* STEP 4: Scoring */}
+                            {step === 4 && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
                                     <h2 className="text-xl font-semibold flex items-center gap-2"><Settings className="w-5 h-5" /> Regras de Pontuação</h2>
                                     <p className="text-sm text-slate-500 dark:text-slate-400 italic">Personalize quanto vale cada tipo de acerto em seu bolão.</p>
@@ -430,8 +608,8 @@ export default function CreateGroupPage() {
                                 </div>
                             )}
 
-                            {/* STEP 4: Confirmation */}
-                            {step === 4 && (
+                            {/* STEP 5: Confirmation */}
+                            {step === 5 && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
                                     <h2 className="text-xl font-semibold flex items-center gap-2 text-green-600 dark:text-green-400">
                                         <Check className="w-5 h-5" /> Confirme seu Bolão
@@ -467,6 +645,21 @@ export default function CreateGroupPage() {
                                         </div>
                                     </div>
 
+                                    <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20">
+                                        <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-2">Premiação</p>
+                                        <div className="text-sm font-bold">
+                                            {prizeStrategy.mode === 'WINNER_TAKES_ALL' ? (
+                                                <span>🏆 1º Lugar: 100% do Pote</span>
+                                            ) : (
+                                                <div className="flex flex-wrap gap-x-6 gap-y-1">
+                                                    {prizeStrategy.tiers.map((t: any) => (
+                                                        <span key={t.rank}>🥇 {t.rank}º Lugar: {t.value}%</span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
                                     <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-900/20">
                                         <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">Pontuação</p>
                                         <div className="flex flex-wrap gap-4 text-sm">
@@ -492,11 +685,11 @@ export default function CreateGroupPage() {
                                     <Button type="button" variant="ghost" onClick={prevStep} className="font-bold">Voltar</Button>
                                 ) : <div />}
 
-                                {step < 4 ? (
+                                {step < 5 ? (
                                     <Button
                                         type="button"
                                         onClick={nextStep}
-                                        className={`px-8 font-black transition-all duration-300 ${step === 2 ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200 dark:shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 dark:shadow-none'}`}
+                                        className={`px-8 font-black transition-all duration-300 ${step === 2 ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200 dark:shadow-none' : step === 3 ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-200 dark:shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 dark:shadow-none'}`}
                                     >
                                         Próximo
                                     </Button>

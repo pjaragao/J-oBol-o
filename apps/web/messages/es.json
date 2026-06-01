@@ -240,7 +240,7 @@
         "tryAgain": "Intentar de Nuevo",
         "viewFolksBetsTitle": "Ver pronósticos de la gente",
         "pendingPayment": "Pago Pendiente",
-        "payEntryOnline": "Paga la entrada de {amount} para validar tu participación.",
+        "payEntryOnline": "Paga R$ {total} (R$ {amount} de inscripción + R$ {fee} de tasa administrativa del 5%) para validar tu participación.",
         "payEntryOffline": "Coordina el pago de {amount} directamente con el administrador del grupo.",
         "payNow": "Pagar Ahora",
         "payWithMercadoPago": "Pagar con Mercado Pago",
