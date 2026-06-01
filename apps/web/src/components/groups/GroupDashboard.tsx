@@ -220,12 +220,12 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 .eq('group_id', groupId)
                 .eq('payment_status', 'PAID')
 
-            if (groupData?.is_paid) {
-                const eventFees = Array.isArray(groupData.events) ? groupData.events[0] : groupData.events
+            if (groupDataFromDB?.is_paid) {
+                const eventFees = Array.isArray(groupDataFromDB.events) ? groupDataFromDB.events[0] : groupDataFromDB.events
                 const config = {
-                    payment_method: groupData.payment_method,
-                    entry_fee: groupData.entry_fee,
-                    max_members: groupData.max_members
+                    payment_method: groupDataFromDB.payment_method,
+                    entry_fee: groupDataFromDB.entry_fee,
+                    max_members: groupDataFromDB.max_members
                 }
                 const potArgs = {
                     online_fee_percent: eventFees?.online_fee_percent || 10,
@@ -239,10 +239,10 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
                 setFinancials({
                     is_paid: true,
-                    payment_method: groupData.payment_method,
-                    entry_fee: groupData.entry_fee,
-                    min_members: groupData.min_members,
-                    max_members: groupData.max_members,
+                    payment_method: groupDataFromDB.payment_method,
+                    entry_fee: groupDataFromDB.entry_fee,
+                    min_members: groupDataFromDB.min_members,
+                    max_members: groupDataFromDB.max_members,
                     paid_members_count: paidCount || 0,
                     total_pot: grossPot,
                     net_pot: netPot,
