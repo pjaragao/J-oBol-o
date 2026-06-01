@@ -132,13 +132,6 @@ export async function POST(request: NextRequest) {
                 },
                 statement_descriptor: 'JAOBOLAO',
                 expires: false,
-                payment_methods: {
-                    excluded_payment_types: [
-                        { id: 'credit_card' },
-                        { id: 'debit_card' },
-                        { id: 'ticket' }
-                    ]
-                }
             },
         })
 
