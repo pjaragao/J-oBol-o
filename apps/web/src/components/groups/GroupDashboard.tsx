@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { ptBR, enUS, es } from 'date-fns/locale'
 import { Trophy, Gamepad2, Eye, Lock, CheckCircle2, MoreHorizontal, X, ArrowUp, ArrowDown, Minus, RefreshCw, DollarSign, AlertTriangle, Wallet, Crown, Calendar, ChevronRight, BarChart2, Plus, Users } from 'lucide-react'
@@ -115,12 +116,37 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
     const [userPaymentStatus, setUserPaymentStatus] = useState<'PENDING' | 'PAID' | 'EXEMPT'>('PENDING')
     const [isMember, setIsMember] = useState<boolean | null>(null)
     const [groupData, setGroupData] = useState<any>(null)
+    const [paymentLoading, setPaymentLoading] = useState(false)
+    const [paymentMessage, setPaymentMessage] = useState<{ type: 'success' | 'pending' | 'failure'; text: string } | null>(null)
 
     const supabase = createClient()
+    const searchParams = useSearchParams()
 
     useEffect(() => {
         fetchDashboardData()
     }, [groupId, eventId, userId, supabase])
+
+    // Handle payment return query params
+    useEffect(() => {
+        const paymentStatus = searchParams.get('payment')
+        if (paymentStatus === 'success') {
+            setPaymentMessage({ type: 'success', text: t('paymentSuccessReturn') })
+            // Clear the query param from URL
+            const url = new URL(window.location.href)
+            url.searchParams.delete('payment')
+            window.history.replaceState({}, '', url.pathname)
+        } else if (paymentStatus === 'pending') {
+            setPaymentMessage({ type: 'pending', text: t('paymentPendingReturn') })
+            const url = new URL(window.location.href)
+            url.searchParams.delete('payment')
+            window.history.replaceState({}, '', url.pathname)
+        } else if (paymentStatus === 'failure') {
+            setPaymentMessage({ type: 'failure', text: t('paymentFailedReturn') })
+            const url = new URL(window.location.href)
+            url.searchParams.delete('payment')
+            window.history.replaceState({}, '', url.pathname)
+        }
+    }, [searchParams, t])
 
     // Real-time polling
     useEffect(() => {
@@ -473,31 +499,34 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
     }
 
 
-    const handlePayMock = async () => {
-        setLoading(true)
+    const handlePayWithMercadoPago = async () => {
+        setPaymentLoading(true)
+        setPaymentMessage(null)
         try {
-            // 1. Create Transaction (Mocking successful payment)
-            await supabase.from('transactions').insert({
-                group_id: groupId,
-                user_id: userId,
-                type: 'ENTRY_FEE',
-                amount: financials?.entry_fee || 0,
-                status: 'COMPLETED'
+            const response = await fetch('/api/payments/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupId }),
             })
 
-            // 2. Update Member Status
-            await supabase
-                .from('group_members')
-                .update({ payment_status: 'PAID', paid_at: new Date().toISOString() })
-                .eq('group_id', groupId)
-                .eq('user_id', userId)
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.error || 'Erro ao criar pagamento')
+            }
 
-            alert(t('paymentConfirmed'))
-            fetchDashboardData()
-        } catch (error) {
-            console.error('Error in mock payment:', error)
+            const data = await response.json()
+
+            // Redirect to Mercado Pago Checkout Pro
+            if (data.init_point) {
+                window.location.href = data.init_point
+            } else {
+                throw new Error('URL de pagamento não disponível')
+            }
+        } catch (error: any) {
+            console.error('Error creating payment:', error)
+            setPaymentMessage({ type: 'failure', text: error.message || t('paymentFailedReturn') })
         } finally {
-            setLoading(false)
+            setPaymentLoading(false)
         }
     }
 
@@ -806,6 +835,44 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 </div>
             )}
 
+            {/* Payment Return Message */}
+            {paymentMessage && (
+                <div className={`mb-6 p-4 rounded-xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-4 ${
+                    paymentMessage.type === 'success'
+                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/50'
+                        : paymentMessage.type === 'pending'
+                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/50'
+                        : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50'
+                }`}>
+                    <div className={`p-2 rounded-full ${
+                        paymentMessage.type === 'success' ? 'bg-green-100 dark:bg-green-800' :
+                        paymentMessage.type === 'pending' ? 'bg-blue-100 dark:bg-blue-800' :
+                        'bg-red-100 dark:bg-red-800'
+                    }`}>
+                        {paymentMessage.type === 'success' ? (
+                            <CheckCircle2 className="w-5 h-5 text-green-700 dark:text-green-400" />
+                        ) : paymentMessage.type === 'pending' ? (
+                            <Wallet className="w-5 h-5 text-blue-700 dark:text-blue-400" />
+                        ) : (
+                            <AlertTriangle className="w-5 h-5 text-red-700 dark:text-red-400" />
+                        )}
+                    </div>
+                    <p className={`text-sm font-medium ${
+                        paymentMessage.type === 'success' ? 'text-green-800 dark:text-green-200' :
+                        paymentMessage.type === 'pending' ? 'text-blue-800 dark:text-blue-200' :
+                        'text-red-800 dark:text-red-200'
+                    }`}>
+                        {paymentMessage.text}
+                    </p>
+                    <button
+                        onClick={() => setPaymentMessage(null)}
+                        className="ml-auto text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
+
             {/* Payment Warning Banner */}
             {financials && financials.is_paid && userPaymentStatus === 'PENDING' && (
                 <div className="mb-6 p-4 rounded-xl border bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800/50 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
@@ -824,10 +891,21 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                     </div>
                     {financials.payment_method === 'ONLINE' && (
                         <button
-                            onClick={handlePayMock}
-                            className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-6 rounded-lg text-sm shadow-md transition-all active:scale-95 whitespace-nowrap"
+                            onClick={handlePayWithMercadoPago}
+                            disabled={paymentLoading}
+                            className="bg-[#009EE3] hover:bg-[#007BB5] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-2.5 px-6 rounded-lg text-sm shadow-md transition-all active:scale-95 whitespace-nowrap flex items-center gap-2"
                         >
-                            {t('payNow')} (BETA)
+                            {paymentLoading ? (
+                                <>
+                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                    {t('paymentRedirecting')}
+                                </>
+                            ) : (
+                                <>
+                                    <Wallet className="w-4 h-4" />
+                                    {t('payWithMercadoPago')}
+                                </>
+                            )}
                         </button>
                     )}
                 </div>
