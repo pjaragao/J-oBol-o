@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
                     },
                     {
                         id: `fee-${groupId}-${user.id}`,
-                        title: `Taxa da Plataforma (5%)`,
+                        title: `Taxa de pagamento`,
                         description: `Taxa de processamento JãoBolão`,
                         quantity: 1,
                         unit_price: platformFeeAmount,

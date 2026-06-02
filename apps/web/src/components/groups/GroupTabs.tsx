@@ -8,6 +8,7 @@ import { MemberList } from './MemberList'
 import { GroupSettings } from './GroupSettings'
 import { GroupBottomNav } from './GroupBottomNav'
 import GroupDashboard from './GroupDashboard'
+import GroupRules from './GroupRules'
 import { useTranslations } from 'next-intl'
 
 interface GroupTabsProps {
@@ -25,17 +26,19 @@ export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTab
 
     // Get tab from URL or fallback to dashboard
     const tabFromUrl = searchParams.get('tab') as any
-    const validTabs = ['dashboard', 'bets', 'ranking', 'members', 'settings']
+    const validTabs = isAdmin 
+        ? ['dashboard', 'bets', 'ranking', 'members', 'settings']
+        : ['dashboard', 'bets', 'ranking', 'members', 'rules']
     const initialTab = validTabs.includes(tabFromUrl) ? tabFromUrl : 'dashboard'
 
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'bets' | 'ranking' | 'members' | 'settings'>(initialTab)
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'bets' | 'ranking' | 'members' | 'settings' | 'rules'>(initialTab as any)
 
     // Sync state with URL when it changes (for notifications/links)
     useEffect(() => {
         if (tabFromUrl && validTabs.includes(tabFromUrl) && tabFromUrl !== activeTab) {
             setActiveTab(tabFromUrl)
         }
-    }, [tabFromUrl])
+    }, [tabFromUrl, validTabs, activeTab])
 
     const handleTabChange = (tab: typeof activeTab) => {
         setActiveTab(tab)
@@ -50,7 +53,7 @@ export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTab
             {/* Desktop Tabs */}
             <div className="hidden sm:flex gap-6 border-b border-gray-100 dark:border-slate-800 mb-6 font-medium text-sm">
                 <button
-                    onClick={() => setActiveTab('dashboard')}
+                    onClick={() => handleTabChange('dashboard')}
                     className={`pb-3 border-b-2 transition-colors ${activeTab === 'dashboard'
                         ? 'border-green-600 text-green-700 dark:text-green-400'
                         : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
@@ -59,7 +62,7 @@ export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTab
                     {t('dashboard')}
                 </button>
                 <button
-                    onClick={() => setActiveTab('bets')}
+                    onClick={() => handleTabChange('bets')}
                     className={`pb-3 border-b-2 transition-colors ${activeTab === 'bets'
                         ? 'border-green-600 text-green-700 dark:text-green-400'
                         : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
@@ -86,15 +89,25 @@ export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTab
                     {t('members')}
                 </button>
 
-                {isAdmin && (
+                {isAdmin ? (
                     <button
-                        onClick={() => setActiveTab('settings')}
+                        onClick={() => handleTabChange('settings')}
                         className={`pb-3 border-b-2 transition-colors ${activeTab === 'settings'
                             ? 'border-green-600 text-green-700 dark:text-green-400'
                             : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
                             }`}
                     >
                         {t('configurations')}
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => handleTabChange('rules')}
+                        className={`pb-3 border-b-2 transition-colors ${activeTab === 'rules'
+                            ? 'border-green-600 text-green-700 dark:text-green-400'
+                            : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
+                            }`}
+                    >
+                        {t('rules') || 'Regras'}
                     </button>
                 )}
             </div>
@@ -127,6 +140,10 @@ export function GroupTabs({ groupId, matches, group, isAdmin, userId }: GroupTab
 
             {activeTab === 'settings' && isAdmin && (
                 <GroupSettings group={group} matches={matches} userId={userId} />
+            )}
+
+            {activeTab === 'rules' && !isAdmin && (
+                <GroupRules group={group} />
             )}
 
             {/* Mobile Bottom Navigation */}

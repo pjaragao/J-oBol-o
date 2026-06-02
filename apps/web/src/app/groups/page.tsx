@@ -93,7 +93,11 @@ async function UserGroupsList({ userId }: { userId: string }) {
     }
 
     // Fetch member counts for all groups
-    const groupIds = allItems.map(item => item.groups.id)
+    const groupIds = allItems.map(item => {
+        const g = Array.isArray(item.groups) ? item.groups[0] : item.groups
+        return g?.id
+    }).filter(Boolean) as string[]
+
     const { data: memberCounts } = await supabase
         .from('group_members')
         .select('group_id')
@@ -105,7 +109,14 @@ async function UserGroupsList({ userId }: { userId: string }) {
     })
 
     // Fetch paid member counts for paid groups
-    const paidGroupIds = allItems.filter(item => item.groups.is_paid).map(item => item.groups.id)
+    const paidGroupIds = allItems.filter(item => {
+        const g = Array.isArray(item.groups) ? item.groups[0] : item.groups
+        return g?.is_paid
+    }).map(item => {
+        const g = Array.isArray(item.groups) ? item.groups[0] : item.groups
+        return g?.id
+    }).filter(Boolean) as string[]
+
     const paidCountMap = new Map<string, number>()
 
     if (paidGroupIds.length > 0) {
@@ -151,7 +162,7 @@ async function UserGroupsList({ userId }: { userId: string }) {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {allItems.map((item: any) => {
                 const isPendingItem = item.status === 'pending'
-                const group = item.groups
+                const group = Array.isArray(item.groups) ? item.groups[0] : item.groups
                 const event = Array.isArray(group.events) ? group.events[0] : group.events
                 const memberCount = memberCountMap.get(group.id) || 0
                 const ranking = rankingMap.get(group.id)

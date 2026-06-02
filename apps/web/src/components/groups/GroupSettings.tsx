@@ -7,6 +7,7 @@ import { Trophy, DollarSign, AlertTriangle, Wallet, ArrowUp, ArrowDown } from 'l
 import { calculateLivePoints } from '@/lib/utils/points'
 import Link from 'next/link'
 import { useTranslations, useFormatter } from 'next-intl'
+import GroupRules from './GroupRules'
 
 interface GroupSettingsProps {
     group: {
@@ -20,6 +21,9 @@ interface GroupSettingsProps {
         event_id: string
         created_by: string
         is_finished: boolean
+        payment_method?: 'ONLINE' | 'OFFLINE'
+        entry_fee?: number | string
+        is_paid?: boolean
     }
     matches: any[]
     userId: string
@@ -38,6 +42,8 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
     const [offlineConfig, setOfflineConfig] = useState<{
         payment_method: string
         max_members: number | null
+        entry_fee: number | string
+        is_paid: boolean
         event_fees: { offline_fee_per_slot: number } | null
     } | null>(null)
     const [showUpgradeModal, setShowUpgradeModal] = useState(false)
@@ -54,7 +60,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
             const { data } = await supabase
                 .from('groups')
                 .select(`
-                    payment_method, max_members,
+                    payment_method, max_members, entry_fee, is_paid,
                     events (offline_fee_per_slot)
                 `)
                 .eq('id', group.id)
@@ -64,6 +70,8 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                 setOfflineConfig({
                     payment_method: data.payment_method,
                     max_members: data.max_members,
+                    entry_fee: data.entry_fee,
+                    is_paid: data.is_paid,
                     event_fees: Array.isArray(data.events) ? data.events[0] : data.events
                 })
                 setNewLimit((data.max_members || 10) + 5) // Suggest +5
@@ -666,6 +674,18 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                     </div>
                 </div>
             )}
+
+            {/* Group Rules Visual Section for Admin */}
+            <div className="mt-10 pt-6 border-t border-gray-200 dark:border-slate-800">
+                <h4 className="text-md font-bold text-slate-900 dark:text-white mb-6">Visualização das Regras do Bolão</h4>
+                <GroupRules group={{
+                    name: group.name,
+                    is_paid: offlineConfig?.is_paid ?? group.is_paid ?? false,
+                    payment_method: (offlineConfig?.payment_method || group.payment_method || 'OFFLINE') as any,
+                    entry_fee: offlineConfig?.entry_fee ?? group.entry_fee ?? 0,
+                    scoring_rules: group.scoring_rules
+                }} />
+            </div>
 
             <div className="mt-10 pt-6 border-t border-red-200 dark:border-red-900/50">
                 <h4 className="text-md font-medium text-red-600 dark:text-red-400 mb-4 font-bold">{t('dangerZone')}</h4>

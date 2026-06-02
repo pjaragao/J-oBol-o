@@ -1,18 +1,18 @@
 'use client'
 
-import { Home, Ticket, Trophy, Users, Settings } from 'lucide-react'
+import { Home, Ticket, Trophy, Users, Settings, BookOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface GroupBottomNavProps {
-    activeTab: 'dashboard' | 'bets' | 'ranking' | 'members' | 'settings'
-    setActiveTab: (tab: 'dashboard' | 'bets' | 'ranking' | 'members' | 'settings') => void
+    activeTab: 'dashboard' | 'bets' | 'ranking' | 'members' | 'settings' | 'rules'
+    setActiveTab: (tab: 'dashboard' | 'bets' | 'ranking' | 'members' | 'settings' | 'rules') => void
     isAdmin: boolean
 }
 
 export function GroupBottomNav({ activeTab, setActiveTab, isAdmin }: GroupBottomNavProps) {
     return (
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 pb-safe sm:hidden">
-            <div className={cn("grid h-16 items-center px-2", isAdmin ? "grid-cols-5" : "grid-cols-4")}>
+            <div className="grid h-16 items-center px-2 grid-cols-5">
                 <button
                     onClick={() => setActiveTab('dashboard')}
                     className={cn(
@@ -57,7 +57,7 @@ export function GroupBottomNav({ activeTab, setActiveTab, isAdmin }: GroupBottom
                     <span className="text-[10px] font-medium">Membros</span>
                 </button>
 
-                {isAdmin && (
+                {isAdmin ? (
                     <button
                         onClick={() => setActiveTab('settings')}
                         className={cn(
@@ -68,8 +68,20 @@ export function GroupBottomNav({ activeTab, setActiveTab, isAdmin }: GroupBottom
                         <Settings className={cn("h-6 w-6", activeTab === 'settings' && "fill-current")} strokeWidth={activeTab === 'settings' ? 2.5 : 2} />
                         <span className="text-[10px] font-medium">Admin</span>
                     </button>
+                ) : (
+                    <button
+                        onClick={() => setActiveTab('rules')}
+                        className={cn(
+                            "flex flex-col items-center justify-center gap-1 h-full w-full transition-colors active:scale-95",
+                            activeTab === 'rules' ? "text-green-600 dark:text-green-500" : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400"
+                        )}
+                    >
+                        <BookOpen className={cn("h-6 w-6", activeTab === 'rules' && "fill-current")} strokeWidth={activeTab === 'rules' ? 2.5 : 2} />
+                        <span className="text-[10px] font-medium">Regras</span>
+                    </button>
                 )}
             </div>
         </div>
     )
 }
+

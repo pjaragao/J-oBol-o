@@ -72,8 +72,10 @@ export function MemberList({ groupId }: { groupId: string }) {
     }, [groupId])
 
     const [groupIsPaid, setGroupIsPaid] = useState(false)
-
-    // ... existing state ...
+    const [groupName, setGroupName] = useState('')
+    const [scoringRules, setScoringRules] = useState<any>(null)
+    const [entryFee, setEntryFee] = useState<number>(0)
+    const [paymentMethod, setPaymentMethod] = useState<'ONLINE' | 'OFFLINE'>('OFFLINE')
 
     const fetchMembers = async () => {
         try {
@@ -83,12 +85,16 @@ export function MemberList({ groupId }: { groupId: string }) {
             // 1. Fetch group settings
             const { data: group } = await supabase
                 .from('groups')
-                .select('allow_member_invites, is_paid')
+                .select('name, allow_member_invites, is_paid, entry_fee, payment_method, scoring_rules')
                 .eq('id', groupId)
                 .single()
 
             setAllowMemberInvites(group?.allow_member_invites || false)
             setGroupIsPaid(group?.is_paid || false)
+            setGroupName(group?.name || '')
+            setScoringRules(group?.scoring_rules || null)
+            setEntryFee(Number(group?.entry_fee) || 0)
+            setPaymentMethod(group?.payment_method || 'OFFLINE')
 
             // 2. Fetch members
             const { data: membersData, error: membersError } = await supabase
@@ -389,7 +395,14 @@ export function MemberList({ groupId }: { groupId: string }) {
             }
 
             const baseUrl = window.location.origin
-            setInviteLink(`${baseUrl}/groups/join?token=${token}`)
+            const cleanSlug = (str: string) => {
+                return str
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '') // remove accents
+                    .replace(/[^a-zA-Z0-9]/g, '')     // remove special chars/spaces
+            }
+            const slug = cleanSlug(groupName || '')
+            setInviteLink(`${baseUrl}/${slug}`)
         } catch (error: any) {
             console.error('Error generating link:', error)
             alert('Erro ao gerar link de convite: ' + error.message)
@@ -400,7 +413,34 @@ export function MemberList({ groupId }: { groupId: string }) {
 
     const copyToClipboard = () => {
         if (!inviteLink) return
-        navigator.clipboard.writeText(inviteLink)
+
+        const rules = scoringRules || {}
+        const exact = rules.exact ?? 10
+        const winnerDiff = rules.winner_diff ?? rules.winner_goals ?? 7
+        const winner = rules.winner ?? 5
+        const oneScore = rules.one_score ?? rules.draw ?? 2
+
+        const rulesText = `🎯 Placar Exato (Cravada): ${exact} pts\n` +
+            `📊 Vencedor + Saldo: ${winnerDiff} pts\n` +
+            `✓ Apenas Vencedor: ${winner} pts\n` +
+            `⚽ Um Placar Correto: ${oneScore} pts`
+
+        let feeText = 'Grátis'
+        if (groupIsPaid) {
+            feeText = `R$ ${entryFee.toFixed(2)}`
+            if (paymentMethod === 'ONLINE') {
+                const totalCost = entryFee + (entryFee * 0.05)
+                feeText += ` (+ taxa de pagamento R$ ${(entryFee * 0.05).toFixed(2)})`
+            }
+        }
+
+        const textToCopy = `🏆 Quer participar do meu bolão *${groupName}* no JãoBolão?\n\n` +
+            `👉 *Participe pelo link:* ${inviteLink}\n\n` +
+            `*💰 Taxa de Inscrição:* ${feeText}\n\n` +
+            `*📋 Regras de Pontuação:*\n${rulesText}\n\n` +
+            `Te vejo lá! ⚽🏆`
+
+        navigator.clipboard.writeText(textToCopy)
         setCopying(true)
         setTimeout(() => setCopying(false), 2000)
     }
@@ -485,8 +525,8 @@ export function MemberList({ groupId }: { groupId: string }) {
 
                         return (
                             <li key={member.id}>
-                                <div className="flex items-center px-4 py-4 sm:px-6 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
-                                    <div className="flex min-w-0 flex-1 items-center">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-4 sm:px-6 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors gap-3">
+                                    <div className="flex min-w-0 w-full sm:flex-1 items-center">
                                         <div className="flex-shrink-0">
                                             {profile?.avatar_url ? (
                                                 <img className="h-10 w-10 rounded-full border border-gray-200 dark:border-slate-700" src={profile.avatar_url} alt="" />
@@ -501,13 +541,13 @@ export function MemberList({ groupId }: { groupId: string }) {
                                         <div className="min-w-0 flex-1 px-4 md:grid md:grid-cols-2 md:gap-4">
                                             <div>
                                                 <p className="truncate text-sm font-medium text-green-700 dark:text-green-400">{profile?.display_name}</p>
-                                                <p className="mt-2 flex items-center text-xs text-gray-500 dark:text-slate-500">
+                                                <p className="mt-1 flex items-center text-xs text-gray-500 dark:text-slate-500">
                                                     <span className="truncate">{profile?.email}</span>
                                                 </p>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2 sm:gap-4">
+                                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto justify-start sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100 dark:border-slate-800/80">
                                         {/* Role Badge - Now Before Payment */}
                                         <span className={cn(
                                             "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border uppercase tracking-wider whitespace-nowrap",
@@ -520,7 +560,7 @@ export function MemberList({ groupId }: { groupId: string }) {
 
                                         {/* Status de Pagamento (se for grupo pago) - Somente Informativo */}
                                         {groupIsPaid && (
-                                            <div className="flex flex-col items-end min-w-[85px]">
+                                            <div className="flex flex-col items-start sm:items-end min-w-[85px]">
                                                 <span className={cn(
                                                     "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase",
                                                     member.payment_status === 'PAID' ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
