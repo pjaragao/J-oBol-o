@@ -26,6 +26,10 @@ export default function RegisterPage() {
     const t = useTranslations('auth.register')
     const tCommon = useTranslations('common')
 
+    const redirectParam = typeof window !== 'undefined' 
+        ? new URLSearchParams(window.location.search).get('redirect') 
+        : null
+
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
@@ -98,7 +102,7 @@ export default function RegisterPage() {
 
                 setSuccess(true)
                 setTimeout(() => {
-                    router.push('/dashboard')
+                    router.push(redirectParam || '/dashboard')
                     router.refresh()
                 }, 1500)
             }
@@ -287,7 +291,10 @@ export default function RegisterPage() {
                             <div className="text-center mt-4">
                                 <p className="text-sm text-slate-500">
                                     {t('alreadyHaveAccount')}{' '}
-                                    <Link href="/login" className="font-bold text-green-600 hover:text-green-500 transition-colors">
+                                    <Link 
+                                        href={`/login${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ''}`} 
+                                        className="font-bold text-green-600 hover:text-green-500 transition-colors"
+                                    >
                                         {t('doLogin')}
                                     </Link>
                                 </p>

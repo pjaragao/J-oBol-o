@@ -59,22 +59,7 @@ export default async function SlugGroupPage(props: {
 
     const groupId = groupSummary.id
 
-    // 2. Fetch full group details (exactly like the legacy route)
-    const { data: group } = await supabase
-        .from('groups')
-        .select(`
-            *, 
-            events(name, logo_url, start_date, end_date, online_fee_percent, offline_fee_per_slot, offline_base_fee), 
-            group_members(count)
-        `)
-        .eq('id', groupId)
-        .single()
-
-    if (!group) {
-        notFound()
-    }
-
-    // 3. Fetch user membership to check if authorized
+    // 2. Fetch user membership to check if authorized
     const { data: membership } = await supabase
         .from('group_members')
         .select('role')
@@ -102,7 +87,22 @@ export default async function SlugGroupPage(props: {
 
     // If not a member, redirect to join flow
     if (!membership) {
-        redirect(`/groups/join?code=${group.invite_code}`)
+        redirect(`/groups/join?code=${groupSummary.invite_code}`)
+    }
+
+    // 3. Fetch full group details (exactly like the legacy route) - safe because user is a member
+    const { data: group } = await supabase
+        .from('groups')
+        .select(`
+            *, 
+            events(name, logo_url, start_date, end_date, online_fee_percent, offline_fee_per_slot, offline_base_fee), 
+            group_members(count)
+        `)
+        .eq('id', groupId)
+        .single()
+
+    if (!group) {
+        notFound()
     }
 
     // Fetch matches

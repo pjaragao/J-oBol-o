@@ -17,6 +17,10 @@ export default function LoginPage() {
     const router = useRouter()
     const supabase = createClient()
 
+    const redirectParam = typeof window !== 'undefined' 
+        ? new URLSearchParams(window.location.search).get('redirect') 
+        : null
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
@@ -151,7 +155,7 @@ export default function LoginPage() {
 
                         <div>
                             <Link
-                                href="/register"
+                                href={`/register${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ''}`}
                                 className="w-full flex justify-center items-center py-4 px-4 border-2 border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-black uppercase tracking-widest text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all"
                             >
                                 {t('createAccount')}
