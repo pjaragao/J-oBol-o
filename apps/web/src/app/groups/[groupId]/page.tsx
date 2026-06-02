@@ -93,6 +93,22 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
 
     const { grossPot } = FinancialService.calculatePrizePot(config, paidCount || 0, potArgs)
     const totalPot = grossPot;
+
+    const potParts = new Intl.NumberFormat(locale, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).formatToParts(totalPot);
+
+    const integerPart = potParts
+        .filter(p => p.type !== 'decimal' && p.type !== 'fraction')
+        .map(p => p.value)
+        .join('');
+
+    const decimalPart = potParts
+        .filter(p => p.type === 'decimal' || p.type === 'fraction')
+        .map(p => p.value)
+        .join('');
+
     const totalMembers = group.group_members?.[0]?.count || 0
 
     const strategy = group.prize_distribution_strategy as any
@@ -155,8 +171,8 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
                                 <div className="flex items-baseline justify-end gap-1">
                                     <span className="text-[10px] sm:text-sm font-bold text-green-200/40 leading-none">R$</span>
                                     <span className="text-base sm:text-3xl font-black text-white tabular-nums leading-none tracking-tighter">
-                                        {formatIntl.number(totalPot, { minimumFractionDigits: 0 })}
-                                        <span className="text-[10px] sm:text-xl opacity-30">{locale === 'en' ? '.00' : ',00'}</span>
+                                        {integerPart}
+                                        <span className="text-[10px] sm:text-xl opacity-30">{decimalPart}</span>
                                     </span>
                                     {group.is_paid && (
                                         <Info className="w-3 h-3 sm:w-4 sm:h-4 text-green-300/60 cursor-help" />
@@ -169,7 +185,7 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
                                         <div className="space-y-2 text-[11px]">
                                             <div className="flex justify-between items-center">
                                                 <span className="text-slate-500 dark:text-slate-400">💰 {t('prize')}:</span>
-                                                <span className="font-black text-green-600 dark:text-green-400">R$ {formatIntl.number(totalPot)}</span>
+                                                <span className="font-black text-green-600 dark:text-green-400">R$ {formatIntl.number(totalPot, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </div>
                                             <div className="flex justify-between items-center">
                                                 <span className="text-slate-500 dark:text-slate-400">✅ {t('paid')}:</span>
@@ -195,7 +211,7 @@ export default async function GroupDetailsPage({ params }: { params: Promise<{ g
                                                                 {tier.rank}º Lugar ({tier.value}%)
                                                             </span>
                                                             <span className="font-bold text-slate-700 dark:text-slate-200">
-                                                                R$ {formatIntl.number(amount)}
+                                                                R$ {formatIntl.number(amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                             </span>
                                                         </div>
                                                     );
