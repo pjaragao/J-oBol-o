@@ -425,6 +425,10 @@ export function MemberList({ groupId }: { groupId: string }) {
             `✓ Apenas Vencedor: ${winner} pts\n` +
             `⚽ Um Placar Correto: ${oneScore} pts`
 
+        const infoText = `🔒 *Palpites Ocultos:* Visíveis apenas após o início do jogo (evita cópias).\n` +
+            `⏰ *Prazo Limite:* Palpite ou altere até 5 minutos antes de cada partida.\n` +
+            `⚡ *Mata-Mata:* Palpite nas fases eliminatórias assim que os jogos forem definidos.`
+
         let feeText = 'Grátis'
         if (groupIsPaid) {
             feeText = `R$ ${entryFee.toFixed(2)}`
@@ -438,6 +442,7 @@ export function MemberList({ groupId }: { groupId: string }) {
             `👉 *Participe pelo link:* ${inviteLink}\n\n` +
             `*💰 Taxa de Inscrição:* ${feeText}\n\n` +
             `*📋 Regras de Pontuação:*\n${rulesText}\n\n` +
+            `*⚙️ Como Funciona:*\n${infoText}\n\n` +
             `Te vejo lá! ⚽🏆`
 
         navigator.clipboard.writeText(textToCopy)

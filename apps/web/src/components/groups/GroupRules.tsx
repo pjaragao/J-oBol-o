@@ -1,6 +1,6 @@
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Trophy, Award, Zap, ShieldAlert, BadgeDollarSign } from 'lucide-react'
+import { Trophy, Award, Zap, ShieldAlert, BadgeDollarSign, ShieldCheck } from 'lucide-react'
 
 interface GroupRulesProps {
     group: {
@@ -212,6 +212,63 @@ export default function GroupRules({ group }: GroupRulesProps) {
                             </div>
                         </div>
                     )}
+                </CardContent>
+            </Card>
+
+            {/* Funcionamento e Prazos Card */}
+            <Card className="overflow-hidden border-slate-200 dark:border-slate-800 shadow-md">
+                <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-b border-slate-100 dark:border-slate-800/80">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-emerald-500 text-white rounded-xl">
+                            <ShieldCheck className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <CardTitle className="text-xl font-black text-slate-900 dark:text-white">Funcionamento e Prazos</CardTitle>
+                            <CardDescription className="text-slate-500 dark:text-slate-400">Regras de transparência e prazos para envio dos palpites</CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Prazo Limite */}
+                        <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 hover:shadow-sm transition-all flex flex-col justify-between">
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-lg">⏰</span>
+                                    <span className="font-bold text-slate-900 dark:text-white">Prazo Limite</span>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                    Os palpites podem ser enviados ou alterados até **5 minutos antes** do início oficial de cada partida. Após esse prazo, o sistema bloqueia automaticamente qualquer alteração.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Visibilidade Oculta */}
+                        <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 hover:shadow-sm transition-all flex flex-col justify-between">
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-lg">🔒</span>
+                                    <span className="font-bold text-slate-900 dark:text-white">Palpites Ocultos</span>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                    Para garantir a integridade do bolão e evitar que participantes copiem palpites alheios (cola), as apostas dos seus adversários ficam ocultas e só serão reveladas a todos **após o início de cada jogo**.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Mata-Mata */}
+                        <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 hover:shadow-sm transition-all flex flex-col justify-between">
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-lg">⚡</span>
+                                    <span className="font-bold text-slate-900 dark:text-white">Jogos de Mata-Mata</span>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                    Nas fases eliminatórias, os confrontos serão liberados para palpites assim que forem oficialmente definidos em campo. Fique atento para palpitar o quanto antes nessas fases!
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
         </div>
