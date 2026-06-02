@@ -135,12 +135,17 @@ export function AppSidebar({ className, isOpen, setIsOpen, isAdmin, userId }: Si
                                                 ) : (
                                                     <>
                                                         {groups.slice(0, 5).map((group) => {
-                                                            const isGroupActive = pathname === `/groups/${group.id}` || pathname.startsWith(`/groups/${group.id}/`)
+                                                            const clean = (s: string) => 
+                                                                s.normalize('NFD')
+                                                                 .replace(/[\u0300-\u036f]/g, '') // remove accents
+                                                                 .replace(/[^a-zA-Z0-9]/g, '')     // remove special chars
+                                                            const groupSlug = clean(group.name)
+                                                            const isGroupActive = pathname === `/${groupSlug}` || pathname.startsWith(`/${groupSlug}/`) || pathname === `/groups/${group.id}` || pathname.startsWith(`/groups/${group.id}/`)
 
                                                             return (
                                                                 <Link
                                                                     key={group.id}
-                                                                    href={`/groups/${group.id}`}
+                                                                    href={`/${groupSlug}`}
                                                                     className={cn(
                                                                         "flex items-center gap-2 py-1.5 px-2 rounded-md text-xs font-medium transition-all group/subitem",
                                                                         isGroupActive

@@ -24,6 +24,7 @@ interface GroupSettingsProps {
         payment_method?: 'ONLINE' | 'OFFLINE'
         entry_fee?: number | string
         is_paid?: boolean
+        prize_distribution_strategy?: any
     }
     matches: any[]
     userId: string
@@ -683,7 +684,8 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                     is_paid: offlineConfig?.is_paid ?? group.is_paid ?? false,
                     payment_method: (offlineConfig?.payment_method || group.payment_method || 'OFFLINE') as any,
                     entry_fee: offlineConfig?.entry_fee ?? group.entry_fee ?? 0,
-                    scoring_rules: group.scoring_rules
+                    scoring_rules: group.scoring_rules,
+                    prize_distribution_strategy: group.prize_distribution_strategy
                 }} />
             </div>
 

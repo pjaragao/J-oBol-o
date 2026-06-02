@@ -1,111 +1,277 @@
-'use client'
+import { createClient } from '@/lib/supabase/server'
+import { notFound, redirect } from 'next/navigation'
+import { GroupTabs } from '@/components/groups/GroupTabs'
+import { FinancialService } from '@/lib/financial-service'
+import { Info } from 'lucide-react'
+import { HeaderSetter } from '@/components/layout/HeaderSetter'
+import { getTranslations, getLocale, getFormatter } from 'next-intl/server'
 
-import React, { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { Loader2, AlertCircle, Home, Users } from 'lucide-react'
+export default async function SlugGroupPage(props: {
+    params: Promise<{ slug: string }>,
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+    const t = await getTranslations('group')
+    const locale = await getLocale()
+    const formatIntl = await getFormatter()
+    const { slug } = await props.params
+    const resolvedSearchParams = await props.searchParams
 
-export default function SlugRedirectPage() {
-    const params = useParams()
-    const router = useRouter()
-    const supabase = createClient()
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+        redirect(`/login?redirect=/${slug}`)
+    }
+
+    // 1. Resolve slug to group
+    const { data: rpcData, error: rpcError } = await supabase
+        .rpc('get_group_by_slug', { p_slug: slug })
     
-    const slug = params?.slug as string
-    const [status, setStatus] = useState<'loading' | 'error'>('loading')
-    const [message, setMessage] = useState('Localizando o bolão...')
+    let groupSummary = rpcData && rpcData.length > 0 ? rpcData[0] : null
 
-    useEffect(() => {
-        if (!slug) {
-            setStatus('error')
-            setMessage('Endereço inválido.')
-            return
-        }
+    // Fallback: If RPC failed or returned no results, search in memory by normalized name
+    if (rpcError || !groupSummary) {
+        const { data: allGroups } = await supabase
+            .from('groups')
+            .select('id, name, invite_code')
 
-        async function resolveSlug() {
-            try {
-                // 1. Try to fetch via RPC function (most secure & fast, handles RLS definition)
-                const { data, error: rpcError } = await supabase
-                    .rpc('get_group_by_slug', { p_slug: slug })
-                
-                let group = data && data.length > 0 ? data[0] : null
+        const clean = (s: string) => 
+            s.normalize('NFD')
+             .replace(/[\u0300-\u036f]/g, '') // remove accents
+             .replace(/[^a-zA-Z0-9]/g, '')     // remove special chars
+             .toLowerCase()
 
-                // 2. Fallback: If RPC is not defined or error occurs, try direct query (in-memory normalize search)
-                if (rpcError || !group) {
-                    console.warn('RPC slug query failed or returned no results, trying in-memory fallback...', rpcError)
-                    const { data: allGroups } = await supabase
-                        .from('groups')
-                        .select('id, name, invite_code')
+        const targetSlug = clean(slug)
+        groupSummary = allGroups?.find(g => clean(g.name) === targetSlug) || null
+    }
 
-                    const clean = (s: string) => 
-                        s.normalize('NFD')
-                         .replace(/[\u0300-\u036f]/g, '') // remove accents
-                         .replace(/[^a-zA-Z0-9]/g, '')     // remove special chars
-                         .toLowerCase()
+    if (!groupSummary) {
+        notFound()
+    }
 
-                    const targetSlug = clean(slug)
-                    group = allGroups?.find(g => clean(g.name) === targetSlug) || null
-                }
+    const groupId = groupSummary.id
 
-                if (!group) {
-                    setStatus('error')
-                    setMessage(`Não encontramos nenhum bolão com o nome "${slug}". Verifique se o endereço está correto.`)
-                    return
-                }
+    // 2. Fetch full group details (exactly like the legacy route)
+    const { data: group } = await supabase
+        .from('groups')
+        .select(`
+            *, 
+            events(name, logo_url, start_date, end_date, online_fee_percent, offline_fee_per_slot, offline_base_fee), 
+            group_members(count)
+        `)
+        .eq('id', groupId)
+        .single()
 
-                // 3. Group found, redirect to official join flow using its invite code
-                setMessage(`Bolão "${group.name}" localizado! Redirecionando...`)
-                router.replace(`/groups/join?code=${group.invite_code}`)
-            } catch (error) {
-                console.error('Slug resolution error:', error)
-                setStatus('error')
-                setMessage('Ocorreu um erro ao processar seu link de convite.')
-            }
-        }
+    if (!group) {
+        notFound()
+    }
 
-        resolveSlug()
-    }, [slug, supabase, router])
+    // 3. Fetch user membership to check if authorized
+    const { data: membership } = await supabase
+        .from('group_members')
+        .select('role')
+        .eq('group_id', groupId)
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+    const isAdmin = membership?.role === 'admin'
+
+    // Check for existing pending request
+    const { data: pendingMember } = await supabase
+        .from('pending_members')
+        .select('status')
+        .eq('group_id', groupId)
+        .eq('user_id', user.id)
+        .eq('status', 'pending')
+        .maybeSingle()
+
+    const isPending = !!pendingMember
+
+    // If pending, redirect to main groups page
+    if (isPending) {
+        redirect('/groups?pending=true')
+    }
+
+    // If not a member, redirect to join flow
+    if (!membership) {
+        redirect(`/groups/join?code=${group.invite_code}`)
+    }
+
+    // Fetch matches
+    const { data: matches } = await supabase
+        .from('matches')
+        .select('*, home_team:teams!home_team_id(name, short_name, logo_url), away_team:teams!away_team_id(name, short_name, logo_url)')
+        .eq('event_id', group.event_id)
+        .order('match_date', { ascending: true })
+
+    // Financial calculations for header
+    const { count: paidCount } = await supabase
+        .from('group_members')
+        .select('id', { count: 'exact', head: true })
+        .eq('group_id', groupId)
+        .eq('payment_status', 'PAID')
+
+    const eventData = group.events
+    const config = {
+        payment_method: group.payment_method,
+        entry_fee: group.entry_fee,
+        max_members: group.max_members
+    }
+    const potArgs = {
+        online_fee_percent: eventData?.online_fee_percent || 10,
+        offline_fee_per_slot: eventData?.offline_fee_per_slot || 0,
+        offline_base_fee: eventData?.offline_base_fee || 0
+    }
+
+    const { grossPot } = FinancialService.calculatePrizePot(config, paidCount || 0, potArgs)
+    const totalPot = grossPot;
+
+    const potParts = new Intl.NumberFormat(locale, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).formatToParts(totalPot);
+
+    const integerPart = potParts
+        .filter(p => p.type !== 'decimal' && p.type !== 'fraction')
+        .map(p => p.value)
+        .join('');
+
+    const decimalPart = potParts
+        .filter(p => p.type === 'decimal' || p.type === 'fraction')
+        .map(p => p.value)
+        .join('');
+
+    const totalMembers = group.group_members?.[0]?.count || 0
+
+    const strategy = group.prize_distribution_strategy as any
+    const prizeTiers = strategy?.mode === 'PERCENTAGE' && Array.isArray(strategy?.tiers)
+        ? (strategy.tiers as { rank: number; value: number }[])
+        : [{ rank: 1, value: 100 }]
+    const prizeDistribution = FinancialService.calculateDistribution(totalPot, strategy)
+
+    const startDateRaw = eventData?.start_date ? new Date(eventData.start_date) : null
+    const endDateRaw = eventData?.end_date ? new Date(eventData.end_date) : null
+
+    const startDate = startDateRaw ? formatIntl.dateTime(startDateRaw, {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit'
+    }) : null
+    const endDate = endDateRaw ? formatIntl.dateTime(endDateRaw, {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit'
+    }) : null
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-4 dark:bg-slate-950">
-            <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <div className="mb-6 flex flex-col items-center text-center">
-                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-950/30">
-                        {status === 'loading' ? (
-                            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
-                        ) : (
-                            <AlertCircle className="h-8 w-8 text-amber-600 dark:text-amber-400" />
-                        )}
-                    </div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                        {status === 'loading' ? 'Conectando ao Bolão' : 'Ops, bolão não encontrado'}
-                    </h1>
-                </div>
+        <div className="pb-12 bg-gray-50 dark:bg-slate-900 min-h-screen">
+            <HeaderSetter title={group.name} />
 
-                <div className="text-center mb-8">
-                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                        {message}
-                    </p>
-                </div>
-
-                {status === 'error' && (
+            <div className="bg-gradient-to-b from-green-800 to-green-900 dark:from-slate-900 dark:to-slate-950 pb-8 sm:pb-20 pt-2 px-4 border-b border-green-700/50 dark:border-slate-800">
+                <div className="max-w-4xl mx-auto">
                     <div className="flex flex-col gap-3">
-                        <button
-                            onClick={() => router.push('/groups')}
-                            className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 text-sm font-bold text-white shadow-lg hover:bg-indigo-700 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                        >
-                            <Users className="w-4 h-4" />
-                            Ver meus bolões
-                        </button>
-                        <button
-                            onClick={() => router.push('/')}
-                            className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-100 dark:bg-slate-800 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-750 transition-all"
-                        >
-                            <Home className="w-4 h-4" />
-                            Ir para o início
-                        </button>
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                                <div className="shrink-0">
+                                    <div className="relative w-10 h-10 sm:w-14 sm:h-14 bg-white rounded-xl p-1.5 flex items-center justify-center shadow-lg border border-white/10">
+                                        {eventData?.logo_url ? (
+                                            <img src={eventData.logo_url} className="w-full h-full object-contain" alt="" />
+                                        ) : (
+                                            <span className="text-xl sm:text-2xl">🏆</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="min-w-0">
+                                    <h2 className="text-sm sm:text-xl font-black text-white italic uppercase leading-none tracking-tight truncate">
+                                        {group.events?.name}
+                                    </h2>
+                                    {group.description && (
+                                        <p className="hidden sm:block text-[10px] text-white/40 mt-1 truncate max-w-xs">{group.description}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="shrink-0 text-right group relative">
+                                <span className="block text-[8px] sm:text-[10px] font-black text-green-400/80 uppercase tracking-widest leading-none mb-0.5 sm:mb-1">{t('totalPrize')}</span>
+                                <div className="flex items-baseline justify-end gap-1">
+                                    <span className="text-[10px] sm:text-sm font-bold text-green-200/40 leading-none">R$</span>
+                                    <span className="text-base sm:text-3xl font-black text-white tabular-nums leading-none tracking-tighter">
+                                        {integerPart}
+                                        <span className="text-[10px] sm:text-xl opacity-30">{decimalPart}</span>
+                                    </span>
+                                    {group.is_paid && (
+                                        <Info className="w-3 h-3 sm:w-4 sm:h-4 text-green-300/60 cursor-help" />
+                                    )}
+                                </div>
+
+                                {group.is_paid && (
+                                    <div className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-100 dark:border-slate-700 p-3 z-50 invisible group-hover:visible transition-all opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto text-left">
+                                        <div className="space-y-2 text-[11px]">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-slate-500 dark:text-slate-400">💰 {t('prize')}:</span>
+                                                <span className="font-black text-green-600 dark:text-green-400">R$ {formatIntl.number(totalPot, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-slate-500 dark:text-slate-400">✅ {t('paid')}:</span>
+                                                <span className="font-bold text-slate-700 dark:text-slate-200">{paidCount || 0}</span>
+                                            </div>
+                                            {(totalMembers - (paidCount || 0)) > 0 && (
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-orange-500">⚠️ {t('unpaid')}:</span>
+                                                    <span className="font-bold text-orange-600 dark:text-orange-400">{totalMembers - (paidCount || 0)}</span>
+                                                </div>
+                                            )}
+
+                                            <div className="border-t border-slate-100 dark:border-slate-700 pt-2 space-y-1">
+                                                <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+                                                    Distribuição
+                                                </p>
+                                                {prizeTiers.map((tier) => {
+                                                    const amount = prizeDistribution[tier.rank] || 0;
+                                                    return (
+                                                        <div key={tier.rank} className="flex justify-between items-center">
+                                                            <span className="text-slate-600 dark:text-slate-300">
+                                                                {tier.rank}º Lugar ({tier.value}%)
+                                                            </span>
+                                                            <span className="font-bold text-slate-700 dark:text-slate-200">
+                                                                R$ {formatIntl.number(amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-4 text-white/60 text-[9px] sm:text-xs font-bold uppercase tracking-widest">
+                            <div className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded border border-white/5">
+                                <span className="text-green-400">👥</span>
+                                <span>{(group.group_members?.[0]?.count || 0)} {t('participants')}</span>
+                            </div>
+                            {startDate && endDate && (
+                                <div className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded border border-white/5">
+                                    <span className="text-green-400">📅</span>
+                                    <span>{startDate} - {endDate}</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                )}
+                </div>
             </div>
+
+            <main className="-mt-10 sm:-mt-16 mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
+                <GroupTabs
+                    groupId={groupId}
+                    matches={matches || []}
+                    group={group}
+                    isAdmin={isAdmin}
+                    userId={user?.id || ''}
+                />
+            </main>
         </div>
     )
 }

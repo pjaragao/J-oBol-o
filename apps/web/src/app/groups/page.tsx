@@ -280,8 +280,14 @@ async function UserGroupsList({ userId }: { userId: string }) {
                     )
                 }
 
+                const clean = (s: string) => 
+                    s.normalize('NFD')
+                     .replace(/[\u0300-\u036f]/g, '') // remove accents
+                     .replace(/[^a-zA-Z0-9]/g, '')     // remove special chars
+                const groupSlug = clean(group.name)
+
                 return (
-                    <Link key={group.id} href={`/groups/${group.id}`} className={cardStyles}>
+                    <Link key={group.id} href={`/${groupSlug}`} className={cardStyles}>
                         {cardContent}
                     </Link>
                 )
