@@ -1,0 +1,16 @@
+services:
+  score-updater:
+    build: .
+    container_name: jaobolao-score-updater
+    restart: unless-stopped
+    env_file: .env
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.25"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
