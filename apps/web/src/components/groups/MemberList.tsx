@@ -446,11 +446,11 @@ export function MemberList({ groupId }: { groupId: string }) {
               `*👤 Nome:* Luiz Fernando Gouvea Teixeira\n` +
               `*💬 Enviar comprovante para o WhatsApp:* https://wa.me/5548999730106\n\n` +
               `*🏆 PREMIAÇÃO:*\n` +
-              `• CAMPEÃO LEVA R$1500,00 MAIS BRINDES\n` +
-              `• VICE CAMPEÃO LEVA 750,00 MAIS BRINDES\n` +
-              `• CAMPEÃO DE CADA RODADA LEVA BRINDE\n` +
-              `• EM CASO DE EMPATE, PREMIAÇÃO SERÁ DIVIDIDA\n` +
-              `• MÍNIMO 45 PARTICIPANTES. (CASO NÃO ATINJA 45 INSCRITOS, FAREMOS A PREMIAÇÃO PROPORCIONAL A QUANTIDADE DE PARTICIPANTES)\n\n` +
+              `* CAMPEÃO LEVA R$1.500,00 MAIS BRINDES\n` +
+              `* VICE CAMPEÃO LEVA R$750,00 MAIS BRINDES\n` +
+              `* TERCEIRO LEVA R$250,00 MAIS BRINDES\n` +
+              `* EM CASO DE EMPATE, PREMIAÇÃO SERÁ DIVIDIDA\n` +
+              `* MÍNIMO 45 PARTICIPANTES. (CASO NÃO ATINJA 45 INSCRITOS, FAREMOS A PREMIAÇÃO PROPORCIONAL A QUANTIDADE DE PARTICIPANTES)\n\n` +
               `*📋 Regras de Pontuação:*\n${rulesText}\n\n` +
               `*⚙️ Como Funciona:*\n${infoText}\n\n` +
               `Te vejo lá! ⚽🏆`

@@ -133,7 +133,7 @@ export default async function SlugGroupPage(props: {
 
     const { grossPot } = FinancialService.calculatePrizePot(config, paidCount || 0, potArgs)
     const totalPot = groupId === 'a2fba08f-a1d7-43e6-867a-653f7e537cf7'
-        ? ((paidCount || 0) < 45 ? ((paidCount || 0) / 45) * 2250 : 2250)
+        ? ((paidCount || 0) < 45 ? ((paidCount || 0) / 45) * 2500 : 2500)
         : grossPot;
 
     const potParts = new Intl.NumberFormat(locale, {
@@ -258,6 +258,17 @@ export default async function SlugGroupPage(props: {
                                                                 <span className="font-bold text-slate-700 dark:text-slate-200">
                                                                     R$ {formatIntl.number(
                                                                         (paidCount || 0) < 45 ? ((paidCount || 0) / 45) * 750 : 750,
+                                                                        { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                                                                    )}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-slate-600 dark:text-slate-350">
+                                                                    3º Lugar (Terceiro)
+                                                                </span>
+                                                                <span className="font-bold text-slate-700 dark:text-slate-200">
+                                                                    R$ {formatIntl.number(
+                                                                        (paidCount || 0) < 45 ? ((paidCount || 0) / 45) * 250 : 250,
                                                                         { minimumFractionDigits: 2, maximumFractionDigits: 2 }
                                                                     )}
                                                                 </span>

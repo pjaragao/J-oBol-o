@@ -160,7 +160,7 @@ export default function GroupRules({ group }: GroupRulesProps) {
                                     <div className="space-y-1.5 mt-2 bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-[11px] leading-relaxed text-slate-600 dark:text-slate-350">
                                         <p>🥇 <strong>CAMPEÃO:</strong> R$ 1.500,00 + Brindes</p>
                                         <p>🥈 <strong>VICE-CAMPEÃO:</strong> R$ 750,00 + Brindes</p>
-                                        <p>🎖️ <strong>RODADA:</strong> Campeão de cada rodada leva brinde</p>
+                                        <p>🥉 <strong>TERCEIRO:</strong> R$ 250,00 + Brindes</p>
                                         <p>⚖️ <strong>EMPATE:</strong> A premiação será dividida</p>
                                         <p>👥 <strong>MÍNIMO:</strong> 45 participantes (caso contrário, prêmio proporcional)</p>
                                     </div>
