@@ -366,7 +366,7 @@ export function MemberList({ groupId }: { groupId: string }) {
 
             let { data: existing, error: fetchError } = await supabase
                 .from('group_invitations')
-                .select('invite_token, expires_at')
+                .select('id, invite_token, expires_at')
                 .eq('group_id', groupId)
                 .eq('invited_email', placeholderEmail)
                 .eq('status', 'pending')
@@ -377,21 +377,38 @@ export function MemberList({ groupId }: { groupId: string }) {
             let token = existing?.invite_token
 
             if (!token || (existing?.expires_at && new Date(existing.expires_at) < new Date())) {
-                // Create new generic invitation
                 const { data: { user } } = await supabase.auth.getUser()
-                const { data: newInvite, error: insertError } = await supabase
-                    .from('group_invitations')
-                    .insert({
-                        group_id: groupId,
-                        invited_email: placeholderEmail,
-                        invited_by: user?.id,
-                        status: 'pending'
-                    })
-                    .select('invite_token')
-                    .single()
 
-                if (insertError) throw insertError
-                token = newInvite.invite_token
+                if (existing) {
+                    // Update existing expired invitation to refresh expires_at to +7 days
+                    const { data: updatedInvite, error: updateError } = await supabase
+                        .from('group_invitations')
+                        .update({
+                            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                            invited_by: user?.id
+                        })
+                        .eq('id', existing.id)
+                        .select('invite_token')
+                        .single()
+
+                    if (updateError) throw updateError
+                    token = updatedInvite.invite_token
+                } else {
+                    // Create new generic invitation
+                    const { data: newInvite, error: insertError } = await supabase
+                        .from('group_invitations')
+                        .insert({
+                            group_id: groupId,
+                            invited_email: placeholderEmail,
+                            invited_by: user?.id,
+                            status: 'pending'
+                        })
+                        .select('invite_token')
+                        .single()
+
+                    if (insertError) throw insertError
+                    token = newInvite.invite_token
+                }
             }
 
             const baseUrl = window.location.origin
