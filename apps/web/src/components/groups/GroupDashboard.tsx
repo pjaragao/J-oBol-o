@@ -878,44 +878,75 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
             {/* Payment Warning Banner */}
             {financials && financials.is_paid && userPaymentStatus === 'PENDING' && (
-                <div className="mb-6 p-4 rounded-xl border bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800/50 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-yellow-100 dark:bg-yellow-800 rounded-full">
-                            <DollarSign className="w-5 h-5 text-yellow-700 dark:text-yellow-400" />
+                groupId === 'a2fba08f-a1d7-43e6-867a-653f7e537cf7' ? (
+                    <div className="mb-6 p-4 rounded-xl border bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800/50 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-yellow-100 dark:bg-yellow-800 rounded-full">
+                                <DollarSign className="w-5 h-5 text-yellow-700 dark:text-yellow-400" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-yellow-900 dark:text-yellow-200 text-sm">Aguardando Pagamento da Taxa de Inscrição</h4>
+                                <div className="text-xs text-yellow-700 dark:text-yellow-400 leading-normal mt-1 space-y-1">
+                                    <p>O pagamento de <strong>R$ 85,00</strong> deve ser feito via PIX:</p>
+                                    <p>🔑 Chave PIX: <span className="font-mono bg-yellow-100/50 dark:bg-yellow-900/50 px-1 py-0.5 rounded select-all font-bold">4b65a4b7-29f7-4f0c-a94a-e8300f019d09</span></p>
+                                    <p>👤 Nome: <strong>Luiz Fernando Gouvea Teixeira</strong></p>
+                                    <p>💬 Após realizar o pagamento, envie o comprovante para o whatsapp.</p>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <h4 className="font-bold text-yellow-900 dark:text-yellow-200 text-sm">{t('pendingPayment')}</h4>
-                            <p className="text-xs text-yellow-700 dark:text-yellow-400 leading-tight">
-                                {financials.payment_method === 'ONLINE'
-                                    ? t('payEntryOnline', { 
-                                        total: (financials.entry_fee * 1.05).toFixed(2),
-                                        amount: financials.entry_fee.toFixed(2),
-                                        fee: (financials.entry_fee * 0.05).toFixed(2)
-                                      })
-                                    : t('payEntryOffline', { amount: `R$ ${financials.entry_fee.toFixed(2)}` })}
-                            </p>
-                        </div>
-                    </div>
-                    {financials.payment_method === 'ONLINE' && (
-                        <button
-                            onClick={handlePayWithMercadoPago}
-                            disabled={paymentLoading}
-                            className="bg-[#009EE3] hover:bg-[#007BB5] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-2.5 px-6 rounded-lg text-sm shadow-md transition-all active:scale-95 whitespace-nowrap flex items-center gap-2"
+                        <a
+                            href="https://wa.me/5548999730106?text=Ol%C3%A1%2C%20envio%20o%20comprovante%20do%20bol%C3%A3o%20G4%20Arena"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold py-2.5 px-6 rounded-lg text-sm shadow-md transition-all active:scale-95 whitespace-nowrap flex items-center gap-2"
                         >
-                            {paymentLoading ? (
-                                <>
-                                    <RefreshCw className="w-4 h-4 animate-spin" />
-                                    {t('paymentRedirecting')}
-                                </>
-                            ) : (
-                                <>
-                                    <Wallet className="w-4 h-4" />
-                                    {t('payWithMercadoPago')}
-                                </>
-                            )}
-                        </button>
-                    )}
-                </div>
+                            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.451 5.403.002 9.803-4.394 9.805-9.799.002-2.618-1.018-5.08-2.872-6.934C16.35 1.94 13.9 1.933 12.01 1.933c-5.402 0-9.802 4.398-9.805 9.801-.001 1.57.48 3.106 1.393 4.468L2.61 21.362l5.228-1.371z"/>
+                                <path d="M12.005 3.018c-4.802 0-8.71 3.908-8.713 8.712-.001 1.396.332 2.757.967 3.973l.163.31L3.456 19.6l3.7-.97.306.183c1.157.692 2.483 1.057 3.843 1.058l.004-.001c4.8 0 8.708-3.907 8.71-8.712.002-2.328-.904-4.516-2.551-6.164-1.648-1.648-3.837-2.556-6.166-2.556v-.02zm4.72 11.53c-.26.732-1.303 1.332-1.802 1.41-.497.078-.997.143-3.193-.767-2.197-.91-3.613-3.137-3.722-3.284-.11-.147-.887-1.182-.887-2.264v.01c0-1.082.55-1.614.747-1.815.197-.2.428-.25.57-.25h.41c.13 0 .285-.01.428.324.156.36.526 1.285.57 1.375.045.09.075.195.015.315-.06.12-.09.195-.18.3-.09.105-.19.233-.27.315-.09.09-.185.187-.08.367.105.18.468.77.994 1.24.68.607 1.25.795 1.43.885.18.09.285.075.39-.045.105-.12.45-.525.57-.705.12-.18.24-.15.39-.09.15.06.953.45 1.118.532.165.083.275.12.315.19.04.07.04.405-.22.845z"/>
+                            </svg>
+                            Enviar Comprovante
+                        </a>
+                    </div>
+                ) : (
+                    <div className="mb-6 p-4 rounded-xl border bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800/50 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-yellow-100 dark:bg-yellow-800 rounded-full">
+                                <DollarSign className="w-5 h-5 text-yellow-700 dark:text-yellow-400" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-yellow-900 dark:text-yellow-200 text-sm">{t('pendingPayment')}</h4>
+                                <p className="text-xs text-yellow-700 dark:text-yellow-400 leading-tight">
+                                    {financials.payment_method === 'ONLINE'
+                                        ? t('payEntryOnline', { 
+                                            total: (financials.entry_fee * 1.05).toFixed(2),
+                                            amount: financials.entry_fee.toFixed(2),
+                                            fee: (financials.entry_fee * 0.05).toFixed(2)
+                                          })
+                                        : t('payEntryOffline', { amount: `R$ ${financials.entry_fee.toFixed(2)}` })}
+                                </p>
+                            </div>
+                        </div>
+                        {financials.payment_method === 'ONLINE' && (
+                            <button
+                                onClick={handlePayWithMercadoPago}
+                                disabled={paymentLoading}
+                                className="bg-[#009EE3] hover:bg-[#007BB5] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-2.5 px-6 rounded-lg text-sm shadow-md transition-all active:scale-95 whitespace-nowrap flex items-center gap-2"
+                            >
+                                {paymentLoading ? (
+                                    <>
+                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                        {t('paymentRedirecting')}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Wallet className="w-4 h-4" />
+                                        {t('payWithMercadoPago')}
+                                    </>
+                                )}
+                            </button>
+                        )}
+                    </div>
+                )
             )}
 
 

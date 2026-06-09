@@ -438,12 +438,28 @@ export function MemberList({ groupId }: { groupId: string }) {
             }
         }
 
-        const textToCopy = `🏆 Quer participar do meu bolão *${groupName}* no JãoBolão?\n\n` +
-            `👉 *Participe pelo link:* ${inviteLink}\n\n` +
-            `*💰 Taxa de Inscrição:* ${feeText}\n\n` +
-            `*📋 Regras de Pontuação:*\n${rulesText}\n\n` +
-            `*⚙️ Como Funciona:*\n${infoText}\n\n` +
-            `Te vejo lá! ⚽🏆`
+        const textToCopy = groupId === 'a2fba08f-a1d7-43e6-867a-653f7e537cf7'
+            ? `🏆 Quer participar do meu bolão *${groupName}* no JãoBolão?\n\n` +
+              `👉 *Participe pelo link:* ${inviteLink}\n\n` +
+              `*💰 Taxa de Inscrição:* R$ 85.00\n\n` +
+              `*🔑 Chave PIX para pagamento:* 4b65a4b7-29f7-4f0c-a94a-e8300f019d09\n` +
+              `*👤 Nome:* Luiz Fernando Gouvea Teixeira\n` +
+              `*💬 Enviar comprovante para o WhatsApp:* https://wa.me/5548999730106\n\n` +
+              `*🏆 PREMIAÇÃO:*\n` +
+              `• CAMPEÃO LEVA R$1500,00 MAIS BRINDES\n` +
+              `• VICE CAMPEÃO LEVA 750,00 MAIS BRINDES\n` +
+              `• CAMPEÃO DE CADA RODADA LEVA BRINDE\n` +
+              `• EM CASO DE EMPATE, PREMIAÇÃO SERÁ DIVIDIDA\n` +
+              `• MÍNIMO 45 PARTICIPANTES. (CASO NÃO ATINJA 45 INSCRITOS, FAREMOS A PREMIAÇÃO PROPORCIONAL A QUANTIDADE DE PARTICIPANTES)\n\n` +
+              `*📋 Regras de Pontuação:*\n${rulesText}\n\n` +
+              `*⚙️ Como Funciona:*\n${infoText}\n\n` +
+              `Te vejo lá! ⚽🏆`
+            : `🏆 Quer participar do meu bolão *${groupName}* no JãoBolão?\n\n` +
+              `👉 *Participe pelo link:* ${inviteLink}\n\n` +
+              `*💰 Taxa de Inscrição:* ${feeText}\n\n` +
+              `*📋 Regras de Pontuação:*\n${rulesText}\n\n` +
+              `*⚙️ Como Funciona:*\n${infoText}\n\n` +
+              `Te vejo lá! ⚽🏆`
 
         navigator.clipboard.writeText(textToCopy)
         setCopying(true)

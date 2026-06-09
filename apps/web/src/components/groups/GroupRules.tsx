@@ -4,6 +4,7 @@ import { Trophy, Award, Zap, ShieldAlert, BadgeDollarSign, ShieldCheck } from 'l
 
 interface GroupRulesProps {
     group: {
+        id?: string
         name: string
         is_paid: boolean
         payment_method: 'ONLINE' | 'OFFLINE'
@@ -109,111 +110,172 @@ export default function GroupRules({ group }: GroupRulesProps) {
             </Card>
 
             {/* Prize and Fees Card */}
-            <Card className="overflow-hidden border-slate-200 dark:border-slate-800 shadow-md">
-                <CardHeader className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-b border-slate-100 dark:border-slate-800/80">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-amber-500 text-white rounded-xl">
-                            <Trophy className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <CardTitle className="text-xl font-black text-slate-900 dark:text-white">Premiação e Valores</CardTitle>
-                            <CardDescription className="text-slate-500 dark:text-slate-400">Entenda os custos e a distribuição dos prêmios</CardDescription>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="pt-6 space-y-6">
-                    {/* Financial Summary Info */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {/* Entry Fee Info */}
-                        <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                            <div className="flex items-center gap-2 mb-3 text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
-                                <BadgeDollarSign className="w-4 h-4 text-emerald-500" />
-                                Taxa de Inscrição
+            {group.id === 'a2fba08f-a1d7-43e6-867a-653f7e537cf7' ? (
+                <Card className="overflow-hidden border-slate-200 dark:border-slate-800 shadow-md">
+                    <CardHeader className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-b border-slate-100 dark:border-slate-800/80">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-amber-500 text-white rounded-xl">
+                                <Trophy className="w-5 h-5" />
                             </div>
-                            {group.is_paid ? (
+                            <div>
+                                <CardTitle className="text-xl font-black text-slate-900 dark:text-white">Premiação e Valores</CardTitle>
+                                <CardDescription className="text-slate-500 dark:text-slate-400">Entenda os custos e a distribuição dos prêmios</CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-6 space-y-6">
+                        {/* Financial Summary Info */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            {/* Entry Fee Info */}
+                            <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                                <div className="flex items-center gap-2 mb-3 text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
+                                    <BadgeDollarSign className="w-4 h-4 text-emerald-500" />
+                                    Taxa de Inscrição
+                                </div>
                                 <div className="space-y-2">
                                     <div className="text-3xl font-black text-slate-900 dark:text-white">
-                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entryFee)}
+                                        R$ 85,00
                                     </div>
                                     <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                                        O valor da inscrição é revertido <strong className="text-emerald-600 dark:text-emerald-400">100% para o pote de prêmio</strong>.
+                                        O pagamento é feito via PIX direto para o organizador. Não há taxas adicionais na plataforma.
                                     </p>
-                                    {group.payment_method === 'ONLINE' && (
-                                        <div className="mt-3 bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-[11px] space-y-1">
-                                            <div className="flex justify-between text-slate-500">
-                                                <span>Inscrição:</span>
-                                                <span className="font-semibold text-slate-700 dark:text-slate-350">R$ {entryFee.toFixed(2)}</span>
-                                            </div>
-                                            <div className="flex justify-between text-slate-500">
-                                                <span>Taxa de pagamento (5%):</span>
-                                                <span className="font-semibold text-slate-700 dark:text-slate-350">R$ {platformFee.toFixed(2)}</span>
-                                            </div>
-                                            <div className="border-t border-dashed my-1.5 pt-1.5 flex justify-between font-bold text-slate-900 dark:text-white">
-                                                <span>Total do participante:</span>
-                                                <span>R$ {totalCost.toFixed(2)}</span>
-                                            </div>
-                                        </div>
-                                    )}
+                                    <div className="mt-3 bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-[11px] space-y-1.5 text-slate-700 dark:text-slate-300">
+                                        <p>🔑 <strong>Chave PIX:</strong> <span className="select-all font-mono">4b65a4b7-29f7-4f0c-a94a-e8300f019d09</span></p>
+                                        <p>👤 <strong>Nome:</strong> Luiz Fernando Gouvea Teixeira</p>
+                                        <p>💬 <strong>WhatsApp:</strong> <a href="https://wa.me/5548999730106" target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline">48 999730106 (Clique para enviar)</a></p>
+                                    </div>
                                 </div>
-                            ) : (
-                                <div>
-                                    <div className="text-2xl font-black text-slate-900 dark:text-white">Bolão Gratuito</div>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                                        Este bolão não possui taxa de inscrição nem premiação em dinheiro vinculada ao app.
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Distribution Strategy Info */}
-                        <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                            <div className="flex items-center gap-2 mb-3 text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
-                                <Award className="w-4 h-4 text-amber-500" />
-                                Regra de Divisão
                             </div>
-                            <div className="space-y-3">
-                                {prizeStrategy.mode === 'WINNER_TAKES_ALL' ? (
-                                    <>
-                                        <div className="text-xl font-extrabold text-slate-900 dark:text-white">
-                                            🏆 O Vencedor Leva Tudo
+
+                            {/* Distribution Strategy Info */}
+                            <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                                <div className="flex items-center gap-2 mb-3 text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
+                                    <Award className="w-4 h-4 text-amber-500" />
+                                    Regras de Premiação
+                                </div>
+                                <div className="space-y-3">
+                                    <div className="text-lg font-bold text-slate-900 dark:text-white">
+                                        🏆 Regras do Bolão G4 Arena
+                                    </div>
+                                    <div className="space-y-1.5 mt-2 bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-[11px] leading-relaxed text-slate-600 dark:text-slate-350">
+                                        <p>🥇 <strong>CAMPEÃO:</strong> R$ 1.500,00 + Brindes</p>
+                                        <p>🥈 <strong>VICE-CAMPEÃO:</strong> R$ 750,00 + Brindes</p>
+                                        <p>🎖️ <strong>RODADA:</strong> Campeão de cada rodada leva brinde</p>
+                                        <p>⚖️ <strong>EMPATE:</strong> A premiação será dividida</p>
+                                        <p>👥 <strong>MÍNIMO:</strong> 45 participantes (caso contrário, prêmio proporcional)</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            ) : (
+                <Card className="overflow-hidden border-slate-200 dark:border-slate-800 shadow-md">
+                    <CardHeader className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-b border-slate-100 dark:border-slate-800/80">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-amber-500 text-white rounded-xl">
+                                <Trophy className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <CardTitle className="text-xl font-black text-slate-900 dark:text-white">Premiação e Valores</CardTitle>
+                                <CardDescription className="text-slate-500 dark:text-slate-400">Entenda os custos e a distribuição dos prêmios</CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-6 space-y-6">
+                        {/* Financial Summary Info */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            {/* Entry Fee Info */}
+                            <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                                <div className="flex items-center gap-2 mb-3 text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
+                                    <BadgeDollarSign className="w-4 h-4 text-emerald-500" />
+                                    Taxa de Inscrição
+                                </div>
+                                {group.is_paid ? (
+                                    <div className="space-y-2">
+                                        <div className="text-3xl font-black text-slate-900 dark:text-white">
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entryFee)}
                                         </div>
                                         <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                                            100% do pote líquido acumulado será pago integralmente ao 1º colocado no ranking final.
+                                            O valor da inscrição é revertido <strong className="text-emerald-600 dark:text-emerald-400">100% para o pote de prêmio</strong>.
                                         </p>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="text-xl font-extrabold text-slate-900 dark:text-white">
-                                            📊 Divisão Percentual
-                                        </div>
-                                        <div className="space-y-1.5 mt-2 bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-                                            {prizeStrategy.tiers?.map((tier: any) => (
-                                                <div key={tier.rank} className="flex justify-between text-xs text-slate-600 dark:text-slate-350">
-                                                    <span className="font-semibold">{tier.rank}º Lugar:</span>
-                                                    <span className="font-extrabold text-amber-600 dark:text-amber-400">{tier.value}% do pote</span>
+                                        {group.payment_method === 'ONLINE' && (
+                                            <div className="mt-3 bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-[11px] space-y-1.5">
+                                                <div className="flex justify-between text-slate-500">
+                                                    <span>Inscrição:</span>
+                                                    <span className="font-semibold text-slate-700 dark:text-slate-350">R$ {entryFee.toFixed(2)}</span>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </>
+                                                <div className="flex justify-between text-slate-500">
+                                                    <span>Taxa de pagamento (5%):</span>
+                                                    <span className="font-semibold text-slate-700 dark:text-slate-350">R$ {platformFee.toFixed(2)}</span>
+                                                </div>
+                                                <div className="border-t border-dashed my-1.5 pt-1.5 flex justify-between font-bold text-slate-900 dark:text-white">
+                                                    <span>Total do participante:</span>
+                                                    <span>R$ {totalCost.toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <div className="text-2xl font-black text-slate-900 dark:text-white">Bolão Gratuito</div>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                                            Este bolão não possui taxa de inscrição nem premiação em dinheiro vinculada ao app.
+                                        </p>
+                                    </div>
                                 )}
                             </div>
-                        </div>
-                    </div>
 
-                    {/* Offline Disclaimer */}
-                    {group.is_paid && group.payment_method === 'OFFLINE' && (
-                        <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/40 dark:border-amber-900/40 flex gap-3 text-amber-800 dark:text-amber-300">
-                            <ShieldAlert className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                            <div className="text-xs space-y-1 leading-relaxed">
-                                <strong className="block font-bold">Aviso de Pagamento Direto (Offline)</strong>
-                                <p>
-                                    Este bolão é gerenciado de forma independente. O administrador é responsável por recolher as taxas e efetuar o pagamento das premiações fora da plataforma.
-                                </p>
+                            {/* Distribution Strategy Info */}
+                            <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                                <div className="flex items-center gap-2 mb-3 text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
+                                    <Award className="w-4 h-4 text-amber-500" />
+                                    Regra de Divisão
+                                </div>
+                                <div className="space-y-3">
+                                    {prizeStrategy.mode === 'WINNER_TAKES_ALL' ? (
+                                        <>
+                                            <div className="text-xl font-extrabold text-slate-900 dark:text-white">
+                                                🏆 O Vencedor Leva Tudo
+                                            </div>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                                                100% do pote líquido acumulado será pago integralmente ao 1º colocado no ranking final.
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="text-xl font-extrabold text-slate-900 dark:text-white">
+                                                📊 Divisão Percentual
+                                            </div>
+                                            <div className="space-y-1.5 mt-2 bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                                {prizeStrategy.tiers?.map((tier: any) => (
+                                                    <div key={tier.rank} className="flex justify-between text-xs text-slate-600 dark:text-slate-350">
+                                                        <span className="font-semibold">{tier.rank}º Lugar:</span>
+                                                        <span className="font-extrabold text-amber-600 dark:text-amber-400">{tier.value}% do pote</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    )}
-                </CardContent>
-            </Card>
+
+                        {/* Offline Disclaimer */}
+                        {group.is_paid && group.payment_method === 'OFFLINE' && (
+                            <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/40 dark:border-amber-900/40 flex gap-3 text-amber-800 dark:text-amber-300">
+                                <ShieldAlert className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                                <div className="text-xs space-y-1 leading-relaxed">
+                                    <strong className="block font-bold">Aviso de Pagamento Direto (Offline)</strong>
+                                    <p>
+                                        Este bolão é gerenciado de forma independente. O administrador é responsável por recolher as taxas e efetuar o pagamento das premiações fora da plataforma.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Funcionamento e Prazos Card */}
             <Card className="overflow-hidden border-slate-200 dark:border-slate-800 shadow-md">
