@@ -132,7 +132,9 @@ export default async function SlugGroupPage(props: {
     }
 
     const { grossPot } = FinancialService.calculatePrizePot(config, paidCount || 0, potArgs)
-    const totalPot = grossPot;
+    const totalPot = groupId === 'a2fba08f-a1d7-43e6-867a-653f7e537cf7'
+        ? ((paidCount || 0) < 45 ? ((paidCount || 0) / 45) * 2250 : 2250)
+        : grossPot;
 
     const potParts = new Intl.NumberFormat(locale, {
         minimumFractionDigits: 2,
@@ -236,19 +238,46 @@ export default async function SlugGroupPage(props: {
                                                     <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
                                                         Distribuição
                                                     </p>
-                                                    {prizeTiers.map((tier) => {
-                                                        const amount = prizeDistribution[tier.rank] || 0;
-                                                        return (
-                                                            <div key={tier.rank} className="flex justify-between items-center">
+                                                    {groupId === 'a2fba08f-a1d7-43e6-867a-653f7e537cf7' ? (
+                                                        <>
+                                                            <div className="flex justify-between items-center">
                                                                 <span className="text-slate-600 dark:text-slate-300">
-                                                                    {tier.rank}º Lugar ({tier.value}%)
+                                                                    1º Lugar (Campeão)
                                                                 </span>
                                                                 <span className="font-bold text-slate-700 dark:text-slate-200">
-                                                                    R$ {formatIntl.number(amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                    R$ {formatIntl.number(
+                                                                        (paidCount || 0) < 45 ? ((paidCount || 0) / 45) * 1500 : 1500,
+                                                                        { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                                                                    )}
                                                                 </span>
                                                             </div>
-                                                        );
-                                                    })}
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-slate-600 dark:text-slate-350">
+                                                                    2º Lugar (Vice-Campeão)
+                                                                </span>
+                                                                <span className="font-bold text-slate-700 dark:text-slate-200">
+                                                                    R$ {formatIntl.number(
+                                                                        (paidCount || 0) < 45 ? ((paidCount || 0) / 45) * 750 : 750,
+                                                                        { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                                                                    )}
+                                                                </span>
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        prizeTiers.map((tier) => {
+                                                            const amount = prizeDistribution[tier.rank] || 0;
+                                                            return (
+                                                                <div key={tier.rank} className="flex justify-between items-center">
+                                                                    <span className="text-slate-600 dark:text-slate-350">
+                                                                        {tier.rank}º Lugar ({tier.value}%)
+                                                                    </span>
+                                                                    <span className="font-bold text-slate-700 dark:text-slate-200">
+                                                                        R$ {formatIntl.number(amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        })
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
