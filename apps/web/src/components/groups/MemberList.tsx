@@ -421,8 +421,8 @@ export function MemberList({ groupId }: { groupId: string }) {
         const oneScore = rules.one_score ?? rules.draw ?? 2
 
         const rulesText = `🎯 Placar Exato (Cravada): ${exact} pts\n` +
-            `📊 Vencedor + Saldo: ${winnerDiff} pts\n` +
-            `✓ Apenas Vencedor: ${winner} pts\n` +
+            `📊 Vencedor/Empate + Saldo: ${winnerDiff} pts (empate sem cravar = ${winnerDiff} pts)\n` +
+            `✓ Apenas Vencedor: ${winner} pts (não se aplica a empates)\n` +
             `⚽ Um Placar Correto: ${oneScore} pts`
 
         const infoText = `🔒 *Palpites Ocultos:* Visíveis apenas após o início do jogo (evita cópias).\n` +

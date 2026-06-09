@@ -64,15 +64,24 @@ export default function GroupRules({ group }: GroupRulesProps) {
                         {/* Vencedor + Saldo */}
                         <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 hover:shadow-sm transition-all">
                             <div className="flex justify-between items-center mb-2">
-                                <span className="font-bold text-slate-900 dark:text-white flex items-center gap-2">📊 Vencedor + Saldo de Gols</span>
+                                <span className="font-bold text-slate-900 dark:text-white flex items-center gap-2">📊 Vencedor / Empate + Saldo</span>
                                 <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 font-extrabold text-sm px-3 py-1 rounded-full">{winnerDiff} pts</span>
                             </div>
                             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-2">
-                                Você acerta o vencedor do jogo e a diferença exata de gols (saldo).
+                                Você acerta o vencedor do jogo (ou que o jogo terminará empatado) e a diferença exata de gols (saldo).
                             </p>
-                            <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 text-[11px]">
-                                <span className="text-slate-400 font-bold">Exemplo: </span>
-                                <span className="text-slate-600 dark:text-slate-350">Seu palpite: <strong className="text-indigo-600 dark:text-indigo-400">3x1</strong> (saldo +2) | Placar do jogo: <strong>2x0</strong> (saldo +2)</span>
+                            <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 text-[11px] space-y-1">
+                                <div>
+                                    <span className="text-slate-400 font-bold">Exemplo Vitória: </span>
+                                    <span className="text-slate-600 dark:text-slate-350">Seu palpite: <strong className="text-indigo-600 dark:text-indigo-400">3x1</strong> (saldo +2) | Placar: <strong>2x0</strong> (saldo +2)</span>
+                                </div>
+                                <div className="border-t border-slate-50 dark:border-slate-800/50 pt-1">
+                                    <span className="text-slate-400 font-bold">Exemplo Empate: </span>
+                                    <span className="text-slate-600 dark:text-slate-350">Seu palpite: <strong className="text-indigo-600 dark:text-indigo-400">1x1</strong> (saldo 0) | Placar: <strong>0x0</strong> (saldo 0)</span>
+                                </div>
+                                <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium pt-1">
+                                    💡 Nota: Em empates, o saldo de gols é sempre 0. Portanto, acertar que o jogo terminará empatado (mas com placar diferente) garante sempre os {winnerDiff} pts.
+                                </div>
                             </div>
                         </div>
 
@@ -83,11 +92,16 @@ export default function GroupRules({ group }: GroupRulesProps) {
                                 <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 font-extrabold text-sm px-3 py-1 rounded-full">{winner} pts</span>
                             </div>
                             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-2">
-                                Você acerta o vencedor ou empate, mas não a diferença nem o placar.
+                                Você acerta qual time vence o jogo, mas erra a diferença de gols (saldo) e o placar.
                             </p>
-                            <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 text-[11px]">
-                                <span className="text-slate-400 font-bold">Exemplo: </span>
-                                <span className="text-slate-600 dark:text-slate-350">Seu palpite: <strong className="text-indigo-600 dark:text-indigo-400">2x1</strong> | Placar do jogo: <strong>1x0</strong> (vitória do mesmo time)</span>
+                            <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 text-[11px] space-y-1">
+                                <div>
+                                    <span className="text-slate-400 font-bold">Exemplo: </span>
+                                    <span className="text-slate-600 dark:text-slate-350">Seu palpite: <strong className="text-indigo-600 dark:text-indigo-400">2x1</strong> | Placar do jogo: <strong>1x0</strong> (vitória do mesmo time)</span>
+                                </div>
+                                <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium pt-1">
+                                    ⚠️ Nota: Esta pontuação não se aplica a empates. Acertar empate com placar diferente sempre garante {winnerDiff} pts (saldo de ambos é 0).
+                                </div>
                             </div>
                         </div>
 
