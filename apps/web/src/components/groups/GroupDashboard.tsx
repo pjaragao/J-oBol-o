@@ -119,6 +119,73 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
     const [paymentLoading, setPaymentLoading] = useState(false)
     const [paymentMessage, setPaymentMessage] = useState<{ type: 'success' | 'pending' | 'failure'; text: string } | null>(null)
 
+    // WhatsApp integration states
+    const [whatsappLinkToken, setWhatsappLinkToken] = useState<string | null>(null)
+    const [whatsappVerified, setWhatsappVerified] = useState<boolean>(false)
+    const [whatsappJid, setWhatsappJid] = useState<string | null>(null)
+    const [loadingWhatsapp, setLoadingWhatsapp] = useState<boolean>(false)
+
+    const handleGenerateWhatsappToken = async () => {
+        setLoadingWhatsapp(true)
+        try {
+            await supabase
+                .from('whatsapp_links')
+                .delete()
+                .eq('group_id', groupId)
+                .eq('user_id', userId)
+                .eq('verified', false)
+
+            const token = Math.floor(100000 + Math.random() * 900000).toString()
+
+            const { data, error } = await supabase
+                .from('whatsapp_links')
+                .insert({
+                    group_id: groupId,
+                    user_id: userId,
+                    link_token: token,
+                    verified: false
+                })
+                .select()
+                .single()
+
+            if (error) throw error
+
+            if (data) {
+                setWhatsappLinkToken(data.link_token)
+                setWhatsappVerified(false)
+            }
+        } catch (err: any) {
+            console.error('Error generating WhatsApp token:', err)
+            alert('Erro ao gerar código de vinculação: ' + err.message)
+        } finally {
+            setLoadingWhatsapp(false)
+        }
+    }
+
+    const handleUnlinkWhatsapp = async () => {
+        if (!confirm('Tem certeza que deseja desvincular seu WhatsApp desta conta?')) return
+        setLoadingWhatsapp(true)
+        try {
+            const { error } = await supabase
+                .from('whatsapp_links')
+                .delete()
+                .eq('group_id', groupId)
+                .eq('user_id', userId)
+
+            if (error) throw error
+
+            setWhatsappLinkToken(null)
+            setWhatsappVerified(false)
+            setWhatsappJid(null)
+        } catch (err: any) {
+            console.error('Error unlinking WhatsApp:', err)
+            alert('Erro ao desvincular: ' + err.message)
+        } finally {
+            setLoadingWhatsapp(false)
+        }
+    }
+
+
     const supabase = createClient()
     const searchParams = useSearchParams()
 
@@ -184,7 +251,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 .from('groups')
                 .select(`
                 is_paid, payment_method, entry_fee, min_members, max_members, prize_distribution_strategy, is_finished,
-                invite_code, created_by,
+                invite_code, created_by, whatsapp_group_jid, whatsapp_invite_link, whatsapp_bot_enabled,
                 events!event_id (online_fee_percent, offline_fee_per_slot, offline_base_fee)
             `)
                 .eq('id', groupId)
@@ -194,6 +261,25 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 setGroupData(groupDataFromDB)
                 setIsFinished(groupDataFromDB.is_finished)
             }
+
+            // Fetch WhatsApp link status for the user
+            const { data: waLink } = await supabase
+                .from('whatsapp_links')
+                .select('link_token, verified, whatsapp_jid')
+                .eq('group_id', groupId)
+                .eq('user_id', userId)
+                .maybeSingle()
+
+            if (waLink) {
+                setWhatsappLinkToken(waLink.link_token)
+                setWhatsappVerified(waLink.verified)
+                setWhatsappJid(waLink.whatsapp_jid)
+            } else {
+                setWhatsappLinkToken(null)
+                setWhatsappVerified(false)
+                setWhatsappJid(null)
+            }
+
 
             const { data: memberData, error: memberError } = await supabase
                 .from('group_members')
@@ -1094,9 +1180,75 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                             </div>
                         )}
                     </div>
+
+                    {/* WhatsApp Bot Card */}
+                    {groupData?.whatsapp_bot_enabled && (
+                        <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 rounded-xl p-4 shadow-sm mt-4 flex flex-col gap-3">
+                            <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-400">
+                                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.451 5.403.002 9.803-4.394 9.805-9.799.002-2.618-1.018-5.08-2.872-6.934C16.35 1.94 13.9 1.933 12.01 1.933c-5.402 0-9.802 4.398-9.805 9.801-.001 1.57.48 3.106 1.393 4.468L2.61 21.362l5.228-1.371z"/>
+                                    <path d="M12.005 3.018c-4.802 0-8.71 3.908-8.713 8.712-.001 1.396.332 2.757.967 3.973l.163.31L3.456 19.6l3.7-.97.306.183c1.157.692 2.483 1.057 3.843 1.058l.004-.001c4.8 0 8.708-3.907 8.71-8.712.002-2.328-.904-4.516-2.551-6.164-1.648-1.648-3.837-2.556-6.166-2.556v-.02zm4.72 11.53c-.26.732-1.303 1.332-1.802 1.41-.497.078-.997.143-3.193-.767-2.197-.91-3.613-3.137-3.722-3.284-.11-.147-.887-1.182-.887-2.264v.01c0-1.082.55-1.614.747-1.815.197-.2.428-.25.57-.25h.41c.13 0 .285-.01.428.324.156.36.526 1.285.57 1.375.045.09.075.195.015.315-.06.12-.09.195-.18.3-.09.105-.19.233-.27.315-.09.09-.185.187-.08.367.105.18.468.77.994 1.24.68.607 1.25.795 1.43.885.18.09.285.075.39-.045.105-.12.45-.525.57-.705.12-.18.24-.15.39-.09.15.06.953.45 1.118.532.165.083.275.12.315.19.04.07.04.405-.22.845z"/>
+                                </svg>
+                                <h4 className="font-bold text-sm">Bot do Bolão no WhatsApp</h4>
+                            </div>
+
+                            <p className="text-[11px] text-emerald-700 dark:text-emerald-400 leading-normal">
+                                Receba notificações de gols e andamento dos jogos ao vivo, consulte o ranking e tire dúvidas sobre a história das Copas no grupo!
+                            </p>
+
+                            {groupData?.whatsapp_invite_link && (
+                                <a
+                                    href={groupData.whatsapp_invite_link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full text-center bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold py-2 px-4 rounded-lg text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                                >
+                                    <span>Entrar no Grupo de WhatsApp</span>
+                                </a>
+                            )}
+
+                            <div className="border-t border-emerald-100 dark:border-emerald-900/30 pt-3 flex flex-col gap-2">
+                                {whatsappVerified ? (
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase">Status de Integração:</span>
+                                        <div className="flex items-center justify-between bg-white/60 dark:bg-black/20 p-2 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
+                                            <span className="text-xs text-emerald-800 dark:text-emerald-300 font-medium">✅ Vinculado ao WhatsApp</span>
+                                            <button
+                                                onClick={handleUnlinkWhatsapp}
+                                                disabled={loadingWhatsapp}
+                                                className="text-[10px] text-red-500 hover:text-red-700 font-bold uppercase transition-colors"
+                                            >
+                                                Desvincular
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : whatsappLinkToken ? (
+                                    <div className="flex flex-col gap-2 bg-white/60 dark:bg-black/20 p-3 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
+                                        <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-bold uppercase text-center">Código de Vinculação</span>
+                                        <div className="text-center font-mono text-xl font-black text-emerald-700 dark:text-emerald-400 select-all tracking-wider">
+                                            {whatsappLinkToken}
+                                        </div>
+                                        <p className="text-[10px] text-emerald-700 dark:text-emerald-400 text-center leading-normal">
+                                            Envie no grupo do WhatsApp: <br />
+                                            <code className="bg-emerald-100/50 dark:bg-emerald-950/50 px-1 py-0.5 rounded font-mono font-bold">!vincular {whatsappLinkToken}</code>
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={handleGenerateWhatsappToken}
+                                        disabled={loadingWhatsapp}
+                                        className="w-full text-center bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-bold py-2 px-4 rounded-lg text-xs transition-all hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95"
+                                    >
+                                        {loadingWhatsapp ? 'Gerando...' : 'Vincular meu WhatsApp'}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Col 2: Jogos (Unificado) */}
+
                 <div className="space-y-6">
                     {/* Próximos Jogos */}
                     <div className="bg-[#FDFDF7] dark:bg-slate-800 border border-green-100 dark:border-slate-700 rounded-xl p-5 shadow-sm">

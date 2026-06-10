@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  evolution-api:
+    image: atendai/evolution-api:latest
+    container_name: jaobolao-evolution
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file: .env.evolution
+    volumes:
+      - ./evolution_instances:/evolution/instances
+    depends_on:
+      - evolution-postgres
+      - evolution-redis
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+  evolution-postgres:
+    image: postgres:15-alpine
+    container_name: evolution-postgres
+    environment:
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: ${EVO_DB_PASSWORD:-evolution_secret}
+      POSTGRES_DB: evolution
+    volumes:
+      - ./evo_pgdata:/var/lib/postgresql/data
+
+  evolution-redis:
+    image: redis:7-alpine
+    container_name: evolution-redis
+
+  wa-chatbot:
+    build: .
+    container_name: jaobolao-wa-chatbot
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "3500:3500"
+    depends_on:
+      - evolution-api
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
