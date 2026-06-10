@@ -310,20 +310,61 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
         }
     }
 
+    const [loadingWhatsapp, setLoadingWhatsapp] = useState(false)
+
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
 
         try {
+            // Check if tournament has started, block scoring rules if rules have changed
+            if (hasStarted) {
+                const rulesChanged = JSON.stringify(rules) !== JSON.stringify(group.scoring_rules)
+                if (rulesChanged) {
+                    alert(t('rulesCannotBeChanged') || 'As regras de pontuação não podem ser alteradas pois o campeonato já começou.')
+                    // Reset rules state back to original group rules
+                    setRules({ ...defaultRules, ...group.scoring_rules })
+                    setLoading(false)
+                    return
+                }
+            }
+
+            const updateData: any = {
+                name,
+                description,
+                is_public: isPublic,
+                allow_member_invites: allowMemberInvites,
+                join_requires_approval: joinRequiresApproval
+            }
+
+            // Only update scoring_rules if tournament has not started
+            if (!hasStarted) {
+                updateData.scoring_rules = rules
+            }
+
+            const { error } = await supabase
+                .from('groups')
+                .update(updateData)
+                .eq('id', group.id)
+
+            if (error) throw error
+
+            alert(t('saved'))
+        } catch (error: any) {
+            alert((t('errorSaving') || 'Erro ao atualizar: ') + error.message)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleUpdateWhatsapp = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setLoadingWhatsapp(true)
+
+        try {
             const { error } = await supabase
                 .from('groups')
                 .update({
-                    name,
-                    description,
-                    is_public: isPublic,
-                    allow_member_invites: allowMemberInvites,
-                    join_requires_approval: joinRequiresApproval,
-                    scoring_rules: rules,
                     whatsapp_bot_enabled: whatsappBotEnabled,
                     whatsapp_group_jid: whatsappGroupJid ? whatsappGroupJid.trim() : null,
                     whatsapp_invite_link: whatsappInviteLink ? whatsappInviteLink.trim() : null
@@ -336,7 +377,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
         } catch (error: any) {
             alert((t('errorSaving') || 'Erro ao atualizar: ') + error.message)
         } finally {
-            setLoading(false)
+            setLoadingWhatsapp(false)
         }
     }
 
@@ -488,74 +529,7 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                         </div>
                     </div>
 
-                    {/* WhatsApp Bot Integration Section */}
-                    <div className="col-span-6 pt-6 border-t dark:border-slate-800">
-                        <h4 className="text-md font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                            💬 Integração com WhatsApp
-                        </h4>
-                        <p className="text-sm text-gray-500 dark:text-slate-400 mb-6">
-                            Configure o bot do bolão para enviar notícias, placares em tempo real e responder dúvidas no seu grupo de WhatsApp.
-                        </p>
-                        
-                        <div className="space-y-6 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-gray-200 dark:border-slate-800">
-                            <div className="flex items-start">
-                                <div className="flex h-5 items-center">
-                                    <input
-                                        id="whatsapp_bot_enabled"
-                                        name="whatsapp_bot_enabled"
-                                        type="checkbox"
-                                        checked={whatsappBotEnabled}
-                                        onChange={e => setWhatsappBotEnabled(e.target.checked)}
-                                        className="h-4 w-4 rounded border-gray-300 dark:border-slate-700 text-green-600 focus:ring-green-500 dark:bg-slate-800"
-                                    />
-                                </div>
-                                <div className="ml-3 text-sm">
-                                    <label htmlFor="whatsapp_bot_enabled" className="font-bold text-gray-900 dark:text-white">Ativar Bot do WhatsApp</label>
-                                    <p className="text-gray-500 dark:text-slate-500">Habilita o robô de inteligência artificial e atualizações automáticas de placares neste bolão.</p>
-                                </div>
-                            </div>
 
-                            {whatsappBotEnabled && (
-                                <div className="grid grid-cols-1 gap-y-4 sm:grid-cols-2 gap-x-4 animate-in fade-in duration-200">
-                                    <div>
-                                        <label htmlFor="whatsapp_group_jid" className="block text-sm font-medium text-gray-750 dark:text-slate-300">
-                                            JID do Grupo de WhatsApp
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="whatsapp_group_jid"
-                                            id="whatsapp_group_jid"
-                                            value={whatsappGroupJid}
-                                            onChange={e => setWhatsappGroupJid(e.target.value)}
-                                            placeholder="Ex: 120363024837298@g.us"
-                                            className="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-850 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm p-2 border transition-colors"
-                                        />
-                                        <p className="mt-1.5 text-xs text-gray-500 dark:text-slate-500">
-                                            Identificador exclusivo do grupo no WhatsApp (ex: 120363...`@g.us`).
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="whatsapp_invite_link" className="block text-sm font-medium text-gray-750 dark:text-slate-300">
-                                            Link de Convite do WhatsApp
-                                        </label>
-                                        <input
-                                            type="url"
-                                            name="whatsapp_invite_link"
-                                            id="whatsapp_invite_link"
-                                            value={whatsappInviteLink}
-                                            onChange={e => setWhatsappInviteLink(e.target.value)}
-                                            placeholder="Ex: https://chat.whatsapp.com/..."
-                                            className="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-850 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm p-2 border transition-colors"
-                                        />
-                                        <p className="mt-1.5 text-xs text-gray-500 dark:text-slate-500">
-                                            Link para que os participantes do bolão possam entrar no grupo.
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
 
                     <div className="col-span-6 pt-6 border-t dark:border-slate-800">
                         <div className="flex justify-between items-center mb-4">
@@ -688,6 +662,87 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
                     </button>
                 </div>
             </form >
+
+            {/* WhatsApp Bot Integration Section */}
+            <form onSubmit={handleUpdateWhatsapp} className="mt-10 pt-6 border-t dark:border-slate-800 space-y-6">
+                <div>
+                    <h4 className="text-md font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                        💬 Integração com WhatsApp
+                    </h4>
+                    <p className="text-sm text-gray-500 dark:text-slate-400 mb-6">
+                        Configure o bot do bolão para enviar notícias, placares em tempo real e responder dúvidas no seu grupo de WhatsApp.
+                    </p>
+                    
+                    <div className="space-y-6 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-gray-200 dark:border-slate-800">
+                        <div className="flex items-start">
+                            <div className="flex h-5 items-center">
+                                <input
+                                    id="whatsapp_bot_enabled"
+                                    name="whatsapp_bot_enabled"
+                                    type="checkbox"
+                                    checked={whatsappBotEnabled}
+                                    onChange={e => setWhatsappBotEnabled(e.target.checked)}
+                                    className="h-4 w-4 rounded border-gray-300 dark:border-slate-700 text-green-600 focus:ring-green-500 dark:bg-slate-800"
+                                />
+                            </div>
+                            <div className="ml-3 text-sm">
+                                <label htmlFor="whatsapp_bot_enabled" className="font-bold text-gray-900 dark:text-white">Ativar Bot do WhatsApp</label>
+                                <p className="text-gray-500 dark:text-slate-500">Habilita o robô de inteligência artificial e atualizações automáticas de placares neste bolão.</p>
+                            </div>
+                        </div>
+
+                        {whatsappBotEnabled && (
+                            <div className="grid grid-cols-1 gap-y-4 sm:grid-cols-2 gap-x-4 animate-in fade-in duration-200">
+                                <div>
+                                    <label htmlFor="whatsapp_group_jid" className="block text-sm font-medium text-gray-750 dark:text-slate-350">
+                                        JID do Grupo de WhatsApp
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="whatsapp_group_jid"
+                                        id="whatsapp_group_jid"
+                                        value={whatsappGroupJid}
+                                        onChange={e => setWhatsappGroupJid(e.target.value)}
+                                        placeholder="Ex: 120363024837298@g.us"
+                                        className="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-850 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm p-2 border transition-colors"
+                                    />
+                                    <p className="mt-1.5 text-xs text-gray-500 dark:text-slate-500">
+                                        Identificador exclusivo do grupo no WhatsApp (ex: 120363...`@g.us`).
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label htmlFor="whatsapp_invite_link" className="block text-sm font-medium text-gray-750 dark:text-slate-350">
+                                        Link de Convite do WhatsApp
+                                    </label>
+                                    <input
+                                        type="url"
+                                        name="whatsapp_invite_link"
+                                        id="whatsapp_invite_link"
+                                        value={whatsappInviteLink}
+                                        onChange={e => setWhatsappInviteLink(e.target.value)}
+                                        placeholder="Ex: https://chat.whatsapp.com/..."
+                                        className="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-850 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm p-2 border transition-colors"
+                                    />
+                                    <p className="mt-1.5 text-xs text-gray-500 dark:text-slate-500">
+                                        Link para que os participantes do bolão possam entrar no grupo.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="flex justify-end">
+                    <button
+                        type="submit"
+                        disabled={loadingWhatsapp}
+                        className="inline-flex justify-center rounded-md border border-transparent bg-emerald-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 transition-colors shadow-emerald-200 dark:shadow-none"
+                    >
+                        {loadingWhatsapp ? 'Salvando...' : 'Salvar Configurações do WhatsApp'}
+                    </button>
+                </div>
+            </form>
 
             {/* Offline Group Limits Upgrade */}
             {offlineConfig && offlineConfig.payment_method === 'OFFLINE' && (
