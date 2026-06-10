@@ -72,15 +72,15 @@ export async function fetchAndArchiveNews(): Promise<void> {
   }
 }
 
-// Schedule news fetch job every 6 hours
+// Schedule news fetch job every 5 minutes
 export function startNewsScheduler() {
   // Run once immediately on startup
   fetchAndArchiveNews().catch(err => logger.error('Initial news fetch failed', { error: err.message }));
 
-  const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+  const FIVE_MINUTES_MS = 5 * 60 * 1000;
   setInterval(() => {
     logger.info('Running scheduled news fetch job...');
     fetchAndArchiveNews().catch(err => logger.error('Scheduled news fetch failed', { error: err.message }));
-  }, SIX_HOURS_MS);
+  }, FIVE_MINUTES_MS);
 }
 export type { Parser };

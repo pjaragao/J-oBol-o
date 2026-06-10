@@ -2,6 +2,9 @@ import { supabase } from './client.js';
 import { logger } from '../utils/logger.js';
 import { evolutionClient } from '../evolution/client.js';
 import { rateLimiter } from '../utils/rate-limiter.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Cache for team names to prevent DB spam
 const teamCache = new Map<string, { name: string; flag: string }>();
@@ -35,6 +38,82 @@ async function getTeamDetails(teamId: string): Promise<{ name: string; flag: str
   const details = { name, flag };
   teamCache.set(teamId, details);
   return details;
+}
+
+// Helper to update the Cup knowledge base file dynamically
+async function updateCupKnowledgeBase(eventId: string, matchDateStr: string) {
+  try {
+    const year = new Date(matchDateStr).getFullYear();
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    
+    // Base dir for copas knowledge data
+    const copasDir = path.join(__dirname, '..', 'data', 'copas');
+    const filePath = path.join(copasDir, `${year}.md`);
+
+    // 1. Fetch matches of this event
+    const { data: matches, error } = await supabase
+      .from('matches')
+      .select('id, match_date, status, home_score, away_score, round, home_team_id, away_team_id')
+      .eq('event_id', eventId)
+      .order('match_date', { ascending: true });
+
+    if (error || !matches) {
+      logger.error('Failed to fetch matches for cup knowledge base update', { error });
+      return;
+    }
+
+    // 2. Resolve team names for all matches
+    const matchesWithNames = [];
+    for (const match of matches) {
+      const homeInfo = await getTeamDetails(match.home_team_id);
+      const awayInfo = await getTeamDetails(match.away_team_id);
+      matchesWithNames.push({
+        ...match,
+        homeName: homeInfo.name,
+        homeFlag: homeInfo.flag,
+        awayName: awayInfo.name,
+        awayFlag: awayInfo.flag
+      });
+    }
+
+    // 3. Construct the dynamic markdown table/section
+    let resultsSection = `\n\n## Resultados e Jogos da Copa de ${year} (Atualizado em tempo real):\n`;
+    resultsSection += `| Rodada | Data/Hora | Jogo | Placar | Status |\n`;
+    resultsSection += `| --- | --- | --- | --- | --- |\n`;
+
+    for (const match of matchesWithNames) {
+      const dateStr = new Date(match.match_date).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      const scoreStr = match.status === 'finished' || match.status === 'live'
+        ? `**${match.home_score} x ${match.away_score}**`
+        : 'vs';
+      const statusStr = match.status === 'finished' ? '🔴 Finalizado' : match.status === 'live' ? '🟢 Ao Vivo' : '⚪ Agendado';
+      
+      resultsSection += `| ${match.round || 'N/A'} | ${dateStr} | ${match.homeFlag} ${match.homeName} vs ${match.awayName} ${match.awayFlag} | ${scoreStr} | ${statusStr} |\n`;
+    }
+
+    // 4. Read existing file or create a basic outline
+    let baseContent = '';
+    if (fs.existsSync(filePath)) {
+      const currentContent = fs.readFileSync(filePath, 'utf-8');
+      // Remove any existing "Resultados e Jogos" section to avoid duplication
+      const splitIndex = currentContent.indexOf('## Resultados e Jogos');
+      if (splitIndex !== -1) {
+        baseContent = currentContent.substring(0, splitIndex).trim();
+      } else {
+        baseContent = currentContent.trim();
+      }
+    } else {
+      baseContent = `# Copa do Mundo de ${year}\nDados e estatísticas oficiais da edição de ${year}.`;
+    }
+
+    // 5. Write back to file
+    const newContent = `${baseContent}\n\n${resultsSection.trim()}\n`;
+    fs.writeFileSync(filePath, newContent, 'utf-8');
+    logger.info(`Updated cup knowledge base file dynamically`, { file: `${year}.md`, matchCount: matches.length });
+  } catch (err: any) {
+    logger.error('Error updating cup knowledge base dynamically', { error: err.message });
+  }
 }
 
 export function startRealtimeListener() {
@@ -88,6 +167,11 @@ export function startRealtimeListener() {
                       `━━━━━━━━━━━━━━━\n` +
                       `🏆 Jogo finalizado! Os pontos foram calculados.\n` +
                       `Digite *!ranking* para ver a classificação atualizada! 🥇`;
+
+            // Auto-update the cup's knowledge base markdown file at the end of the game
+            updateCupKnowledgeBase(newMatch.event_id, newMatch.match_date).catch(err =>
+              logger.error('Failed to trigger auto-update for cup knowledge base', { error: err.message })
+            );
           }
           // GOL
           else if (scoreChanged && newMatch.status === 'live') {
