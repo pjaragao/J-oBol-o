@@ -1,6 +1,8 @@
 # Instruções de Implantação do Bot de WhatsApp no Homelab
 
-Este guia destina-se ao agente de IA (ou administrador) encarregado de implantar e configurar o microsserviço de chatbot do **JãoBolão** e a **Evolution API** no homelab local.
+> [!WARNING]
+> **ESTA ARQUITETURA FOI DESCONTINUADA.** O bot do JãoBolão agora utiliza o **Hermes Agent** como cérebro de IA conversacional.
+> Para instruções atualizadas de implantação, consulte: [INSTRUCTIONS_HERMES.md](file:///c:/Users/paulojr/Documents/JaoBolao/J-oBol-o/services/whatsapp-bot/INSTRUCTIONS_HERMES.md)
 
 ---
 

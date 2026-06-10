@@ -16,9 +16,9 @@ export const config = {
   evolutionApiKey: process.env.EVOLUTION_API_KEY || '',
   evolutionInstance: process.env.EVOLUTION_INSTANCE || 'jaobolao',
   webhookSecret: process.env.WEBHOOK_SECRET || '',
-  geminiApiKey: process.env.GEMINI_API_KEY || '',
-  openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
-  botPrefix: process.env.BOT_PREFIX || '!',
+  hermesApiUrl: process.env.HERMES_API_URL || 'http://localhost:8644',
+  hermesWebhookSecret: process.env.HERMES_WEBHOOK_SECRET || '',
+  botWhatsappJid: process.env.BOT_WHATSAPP_JID || '', // Ex: 5511999999999@s.whatsapp.net
   rateLimitMaxPerHour: parseInt(process.env.RATE_LIMIT_MAX_PER_HOUR || '25', 10),
   silentHoursStart: parseInt(process.env.SILENT_HOURS_START || '23', 10),
   silentHoursEnd: parseInt(process.env.SILENT_HOURS_END || '7', 10),
@@ -32,3 +32,4 @@ if (!config.supabaseUrl || !config.supabaseServiceKey) {
 if (!config.evolutionApiKey) {
   console.warn('⚠️ Warning: EVOLUTION_API_KEY is not configured.');
 }
+

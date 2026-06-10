@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, X, Mail, Loader2, UserPlus, Link as LinkIcon, Check, UserMinus, DollarSign, Ban, XCircle, Clock, ShieldCheck, CircleDollarSign } from 'lucide-react'
+import { Plus, X, Mail, Loader2, UserPlus, Link as LinkIcon, Check, UserMinus, DollarSign, Ban, XCircle, Clock, ShieldCheck, CircleDollarSign, Unlink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
 import { notifyUserOfInvite } from '@/actions/groups'
@@ -76,6 +76,8 @@ export function MemberList({ groupId }: { groupId: string }) {
     const [scoringRules, setScoringRules] = useState<any>(null)
     const [entryFee, setEntryFee] = useState<number>(0)
     const [paymentMethod, setPaymentMethod] = useState<'ONLINE' | 'OFFLINE'>('OFFLINE')
+    const [whatsappBotEnabled, setWhatsappBotEnabled] = useState(false)
+    const [whatsappLinks, setWhatsappLinks] = useState<Record<string, { verified: boolean; whatsapp_jid: string | null }>>({})
 
     const fetchMembers = async () => {
         try {
@@ -85,7 +87,7 @@ export function MemberList({ groupId }: { groupId: string }) {
             // 1. Fetch group settings
             const { data: group } = await supabase
                 .from('groups')
-                .select('name, allow_member_invites, is_paid, entry_fee, payment_method, scoring_rules')
+                .select('name, allow_member_invites, is_paid, entry_fee, payment_method, scoring_rules, whatsapp_bot_enabled')
                 .eq('id', groupId)
                 .single()
 
@@ -95,6 +97,7 @@ export function MemberList({ groupId }: { groupId: string }) {
             setScoringRules(group?.scoring_rules || null)
             setEntryFee(Number(group?.entry_fee) || 0)
             setPaymentMethod(group?.payment_method || 'OFFLINE')
+            setWhatsappBotEnabled(group?.whatsapp_bot_enabled || false)
 
             // 2. Fetch members
             const { data: membersData, error: membersError } = await supabase
@@ -176,6 +179,22 @@ export function MemberList({ groupId }: { groupId: string }) {
                 setPendingJoinRequests([])
             }
 
+            // 5. Fetch WhatsApp links for all members (if bot is enabled)
+            if (group?.whatsapp_bot_enabled) {
+                const { data: waLinks } = await supabase
+                    .from('whatsapp_links')
+                    .select('user_id, verified, whatsapp_jid')
+                    .eq('group_id', groupId)
+
+                if (waLinks) {
+                    const linksMap: Record<string, { verified: boolean; whatsapp_jid: string | null }> = {}
+                    waLinks.forEach(link => {
+                        linksMap[link.user_id] = { verified: link.verified, whatsapp_jid: link.whatsapp_jid }
+                    })
+                    setWhatsappLinks(linksMap)
+                }
+            }
+
         } catch (error) {
             console.error('Error fetching members:', error)
         } finally {
@@ -233,6 +252,28 @@ export function MemberList({ groupId }: { groupId: string }) {
             fetchMembers() // Refresh list
         } catch (error: any) {
             alert('Erro ao remover membro: ' + error.message)
+        }
+    }
+
+    const handleUnlinkWhatsapp = async (memberUserId: string, memberName: string) => {
+        if (!confirm(`Desvincular o WhatsApp de ${memberName}?`)) return
+        try {
+            const { error } = await supabase
+                .from('whatsapp_links')
+                .delete()
+                .eq('group_id', groupId)
+                .eq('user_id', memberUserId)
+
+            if (error) throw error
+
+            setWhatsappLinks(prev => {
+                const next = { ...prev }
+                delete next[memberUserId]
+                return next
+            })
+            alert('WhatsApp desvinculado com sucesso')
+        } catch (error: any) {
+            alert('Erro ao desvincular WhatsApp: ' + error.message)
         }
     }
 
@@ -621,6 +662,23 @@ export function MemberList({ groupId }: { groupId: string }) {
                                             </div>
                                         )}
 
+                                        {/* WhatsApp Link Status */}
+                                        {whatsappBotEnabled && (
+                                            <div className="flex items-center gap-1.5">
+                                                {whatsappLinks[member.user_id]?.verified ? (
+                                                    <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                                        <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24z"/></svg>
+                                                        Vinculado
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase bg-slate-100 text-slate-500 dark:bg-slate-800/50 dark:text-slate-500">
+                                                        <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24z"/></svg>
+                                                        Sem vínculo
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+
                                         {/* Admin Actions - separated by border */}
                                         {isAdmin && (
                                             <div className="flex items-center gap-1.5 pl-3 border-l border-slate-200 dark:border-slate-800">
@@ -647,6 +705,18 @@ export function MemberList({ groupId }: { groupId: string }) {
                                                                 <span className="hidden lg:inline text-[11px]">Confirmar Pgto</span>
                                                             </>
                                                         )}
+                                                    </button>
+                                                )}
+
+                                                {/* Unlink WhatsApp Button (admin only) */}
+                                                {whatsappBotEnabled && whatsappLinks[member.user_id]?.verified && (
+                                                    <button
+                                                        onClick={() => handleUnlinkWhatsapp(member.user_id, member.profiles?.display_name)}
+                                                        className="inline-flex items-center justify-center p-1.5 sm:px-2.5 sm:py-1.5 rounded-md text-xs font-semibold text-orange-600 border border-orange-200 hover:bg-orange-50 hover:border-orange-300 dark:text-orange-400 dark:border-orange-900/30 dark:hover:bg-orange-900/20 transition-all gap-1.5"
+                                                        title="Desvincular WhatsApp"
+                                                    >
+                                                        <Unlink className="h-4 w-4" />
+                                                        <span className="hidden lg:inline text-[11px]">Desvincular WA</span>
                                                     </button>
                                                 )}
 

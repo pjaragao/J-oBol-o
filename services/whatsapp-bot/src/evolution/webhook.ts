@@ -11,6 +11,7 @@ export interface ParsedWebhookMessage {
   text: string;        // Text message content
   fromMe: boolean;     // Whether message was sent by the bot itself
   messageId: string;
+  mentionedJids?: string[]; // JIDs of users mentioned in the message
 }
 
 // Validate webhook signature
@@ -57,13 +58,17 @@ export function parseWebhookPayload(body: any): ParsedWebhookMessage | null {
 
     // Extract text content from different message shapes
     let text = '';
+    let mentionedJids: string[] = [];
     const message = data.message;
     
     if (message) {
       if (message.conversation) {
         text = message.conversation;
-      } else if (message.extendedTextMessage && message.extendedTextMessage.text) {
-        text = message.extendedTextMessage.text;
+      } else if (message.extendedTextMessage) {
+        text = message.extendedTextMessage.text || '';
+        if (message.extendedTextMessage.contextInfo?.mentionedJid) {
+          mentionedJids = message.extendedTextMessage.contextInfo.mentionedJid;
+        }
       } else if (message.imageMessage && message.imageMessage.caption) {
         text = message.imageMessage.caption;
       } else if (message.videoMessage && message.videoMessage.caption) {
@@ -80,6 +85,7 @@ export function parseWebhookPayload(body: any): ParsedWebhookMessage | null {
       text: text.trim(),
       fromMe,
       messageId,
+      mentionedJids,
     };
   } catch (error: any) {
     logger.error('Error parsing webhook payload', { error: error.message, body });

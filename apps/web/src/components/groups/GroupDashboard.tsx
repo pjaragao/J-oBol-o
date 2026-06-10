@@ -1042,8 +1042,8 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 )
             )}
 
-            {/* WhatsApp Integration Top Banner - Hidden for verified non-admin users */}
-            {groupData?.whatsapp_bot_enabled && (!groupData.is_paid || userPaymentStatus === 'PAID') && (!whatsappVerified || userId === groupData?.created_by) && (
+            {/* WhatsApp Integration Top Banner - Hidden once user is verified */}
+            {groupData?.whatsapp_bot_enabled && (!groupData.is_paid || userPaymentStatus === 'PAID') && !whatsappVerified && (
                 <div className="mb-6 p-4 rounded-xl border bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 animate-in fade-in slide-in-from-top-4">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-emerald-100 dark:bg-emerald-900/35 rounded-full shrink-0">
@@ -1060,21 +1060,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                         </div>
                     </div>
 
-                    {whatsappVerified ? (
-                        /* Admin-only: verified status with unlink */
-                        <div className="flex items-center gap-3 ml-11">
-                            <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-bold bg-white/40 dark:bg-black/20 py-1 px-2.5 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
-                                ✅ Seu WhatsApp está vinculado
-                            </span>
-                            <button
-                                onClick={handleUnlinkWhatsapp}
-                                disabled={loadingWhatsapp}
-                                className="text-[10px] text-red-500 hover:text-red-700 font-bold uppercase transition-colors"
-                            >
-                                Desvincular
-                            </button>
-                        </div>
-                    ) : whatsappLinkToken ? (
+                    {whatsappLinkToken ? (
                         /* Step-by-step linking flow with token already generated */
                         <div className="ml-11 space-y-2.5">
                             <p className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wide">📋 Siga os passos para vincular:</p>
