@@ -120,76 +120,24 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
     const [paymentMessage, setPaymentMessage] = useState<{ type: 'success' | 'pending' | 'failure'; text: string } | null>(null)
 
     // WhatsApp integration states
-    const [whatsappLinkToken, setWhatsappLinkToken] = useState<string | null>(null)
-    const [whatsappVerified, setWhatsappVerified] = useState<boolean>(false)
-    const [whatsappJid, setWhatsappJid] = useState<string | null>(null)
-    const [loadingWhatsapp, setLoadingWhatsapp] = useState<boolean>(false)
-    const [copiedCommand, setCopiedCommand] = useState<boolean>(false)
+    const [waJoined, setWaJoined] = useState<boolean>(false)
+    const [waBottomDismissed, setWaBottomDismissed] = useState<boolean>(false)
 
-    const handleGenerateWhatsappToken = async () => {
-        setLoadingWhatsapp(true)
-        try {
-            await supabase
-                .from('whatsapp_links')
-                .delete()
-                .eq('group_id', groupId)
-                .eq('user_id', userId)
-                .eq('verified', false)
-
-            const token = Math.floor(100000 + Math.random() * 900000).toString()
-
-            const { data, error } = await supabase
-                .from('whatsapp_links')
-                .insert({
-                    group_id: groupId,
-                    user_id: userId,
-                    link_token: token,
-                    verified: false
-                })
-                .select()
-                .single()
-
-            if (error) throw error
-
-            if (data) {
-                setWhatsappLinkToken(data.link_token)
-                setWhatsappVerified(false)
-            }
-        } catch (err: any) {
-            console.error('Error generating WhatsApp token:', err)
-            alert('Erro ao gerar código de vinculação: ' + err.message)
-        } finally {
-            setLoadingWhatsapp(false)
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setWaJoined(localStorage.getItem(`wa_joined_${groupId}`) === 'true')
+            setWaBottomDismissed(localStorage.getItem(`wa_dismissed_${groupId}`) === 'true')
         }
+    }, [groupId])
+
+    const handleJoinWhatsappGroup = () => {
+        localStorage.setItem(`wa_joined_${groupId}`, 'true')
+        setWaJoined(true)
     }
 
-    const handleUnlinkWhatsapp = async () => {
-        if (!confirm('Tem certeza que deseja desvincular seu WhatsApp desta conta?')) return
-        setLoadingWhatsapp(true)
-        try {
-            const { error } = await supabase
-                .from('whatsapp_links')
-                .delete()
-                .eq('group_id', groupId)
-                .eq('user_id', userId)
-
-            if (error) throw error
-
-            setWhatsappLinkToken(null)
-            setWhatsappVerified(false)
-            setWhatsappJid(null)
-        } catch (err: any) {
-            console.error('Error unlinking WhatsApp:', err)
-            alert('Erro ao desvincular: ' + err.message)
-        } finally {
-            setLoadingWhatsapp(false)
-        }
-    }
-
-    const handleCopyCommand = (text: string) => {
-        navigator.clipboard.writeText(text)
-        setCopiedCommand(true)
-        setTimeout(() => setCopiedCommand(false), 2000)
+    const handleDismissBottomBanner = () => {
+        localStorage.setItem(`wa_dismissed_${groupId}`, 'true')
+        setWaBottomDismissed(true)
     }
 
 
@@ -269,23 +217,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 setIsFinished(groupDataFromDB.is_finished)
             }
 
-            // Fetch WhatsApp link status for the user
-            const { data: waLink } = await supabase
-                .from('whatsapp_links')
-                .select('link_token, verified, whatsapp_jid')
-                .eq('group_id', groupId)
-                .eq('user_id', userId)
-                .maybeSingle()
 
-            if (waLink) {
-                setWhatsappLinkToken(waLink.link_token)
-                setWhatsappVerified(waLink.verified)
-                setWhatsappJid(waLink.whatsapp_jid)
-            } else {
-                setWhatsappLinkToken(null)
-                setWhatsappVerified(false)
-                setWhatsappJid(null)
-            }
 
 
             const { data: memberData, error: memberError } = await supabase
@@ -1042,81 +974,66 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 )
             )}
 
-            {/* WhatsApp Integration Top Banner - Hidden once user is verified */}
-            {groupData?.whatsapp_bot_enabled && (!groupData.is_paid || userPaymentStatus === 'PAID') && !whatsappVerified && (
-                <div className="mb-6 p-4 rounded-xl border bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 animate-in fade-in slide-in-from-top-4">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-emerald-100 dark:bg-emerald-900/35 rounded-full shrink-0">
-                            <svg className="w-5 h-5 fill-current text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            {/* WhatsApp Integration Top Banner */}
+            {groupData?.whatsapp_bot_enabled && groupData?.whatsapp_invite_link && (!groupData.is_paid || userPaymentStatus === 'PAID') && !waJoined && (
+                <div className="mb-6 p-4 rounded-xl border bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 animate-in fade-in slide-in-from-top-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-emerald-100 dark:bg-emerald-900/35 rounded-full shrink-0 text-emerald-600 dark:text-emerald-400">
+                            <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.451 5.403.002 9.803-4.394 9.805-9.799.002-2.618-1.018-5.08-2.872-6.934C16.35 1.94 13.9 1.933 12.01 1.933c-5.402 0-9.802 4.398-9.805 9.801-.001 1.57.48 3.106 1.393 4.468L2.61 21.362l5.228-1.371z"/>
                                 <path d="M12.005 3.018c-4.802 0-8.71 3.908-8.713 8.712-.001 1.396.332 2.757.967 3.973l.163.31L3.456 19.6l3.7-.97.306.183c1.157.692 2.483 1.057 3.843 1.058l.004-.001c4.8 0 8.708-3.907 8.71-8.712.002-2.328-.904-4.516-2.551-6.164-1.648-1.648-3.837-2.556-6.166-2.556v-.02zm4.72 11.53c-.26.732-1.303 1.332-1.802 1.41-.497.078-.997.143-3.193-.767-2.197-.91-3.613-3.137-3.722-3.284-.11-.147-.887-1.182-.887-2.264v.01c0-1.082.55-1.614.747-1.815.197-.2.428-.25.57-.25h.41c.13 0 .285-.01.428.324.156.36.526 1.285.57 1.375.045.09.075.195.015.315-.06.12-.09.195-.18.3-.09.105-.19.233-.27.315-.09.09-.185.187-.08.367.105.18.468.77.994 1.24.68.607 1.25.795 1.43.885.18.09.285.075.39-.045.105-.12.45-.525.57-.705.12-.18.24-.15.39-.09.15.06.953.45 1.118.532.165.083.275.12.315.19.04.07.04.405-.22.845z"/>
                             </svg>
                         </div>
                         <div>
-                            <h4 className="font-bold text-emerald-900 dark:text-emerald-200 text-sm">Bot do Bolão no WhatsApp</h4>
-                            <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5 max-w-2xl leading-normal">
-                                Receba notificações de gols ao vivo, consulte o ranking e tire dúvidas sobre a história das Copas!
+                            <h4 className="font-bold text-emerald-900 dark:text-emerald-200 text-sm">Grupo do Bolão no WhatsApp</h4>
+                            <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5 max-w-xl leading-normal">
+                                Entre no grupo oficial do WhatsApp para receber notificações de gols ao vivo, consultar o ranking e interagir com o bot do bolão!
                             </p>
                         </div>
                     </div>
+                    <a
+                        href={groupData.whatsapp_invite_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={handleJoinWhatsappGroup}
+                        className="bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold py-2.5 px-6 rounded-xl text-sm shadow-md transition-all active:scale-95 whitespace-nowrap flex items-center gap-2"
+                    >
+                        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.451 5.403.002 9.803-4.394 9.805-9.799.002-2.618-1.018-5.08-2.872-6.934C16.35 1.94 13.9 1.933 12.01 1.933c-5.402 0-9.802 4.398-9.805 9.801-.001 1.57.48 3.106 1.393 4.468L2.61 21.362l5.228-1.371z"/></svg>
+                        Entrar no Grupo
+                    </a>
+                </div>
+            )}
 
-                    {whatsappLinkToken ? (
-                        /* Step-by-step linking flow with token already generated */
-                        <div className="ml-11 space-y-2.5">
-                            <p className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wide">📋 Siga os passos para vincular:</p>
-                            <div className="flex flex-col gap-2">
-                                {groupData?.whatsapp_invite_link && (
-                                    <div className="flex items-center gap-2.5">
-                                        <span className="w-5 h-5 rounded-full bg-emerald-200 dark:bg-emerald-800 flex items-center justify-center text-[10px] font-black text-emerald-800 dark:text-emerald-200 shrink-0">1</span>
-                                        <a
-                                            href={groupData.whatsapp_invite_link}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold py-2 px-4 rounded-lg text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5"
-                                        >
-                                            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.451 5.403.002 9.803-4.394 9.805-9.799.002-2.618-1.018-5.08-2.872-6.934C16.35 1.94 13.9 1.933 12.01 1.933c-5.402 0-9.802 4.398-9.805 9.801-.001 1.57.48 3.106 1.393 4.468L2.61 21.362l5.228-1.371z"/></svg>
-                                            Entrar no Grupo do WhatsApp
-                                        </a>
-                                    </div>
-                                )}
-                                <div className="flex items-center gap-2.5">
-                                    <span className="w-5 h-5 rounded-full bg-emerald-200 dark:bg-emerald-800 flex items-center justify-center text-[10px] font-black text-emerald-800 dark:text-emerald-200 shrink-0">{groupData?.whatsapp_invite_link ? '2' : '1'}</span>
-                                    <div className="flex flex-wrap items-center gap-1.5">
-                                        <span className="text-xs text-emerald-800 dark:text-emerald-300 font-medium">Envie no grupo:</span>
-                                        <div className="inline-flex items-center gap-1.5 bg-white/60 dark:bg-black/30 rounded-lg border border-emerald-200 dark:border-emerald-800 px-2.5 py-1.5">
-                                            <code className="font-mono font-bold text-sm text-emerald-900 dark:text-emerald-200 select-all">!vincular {whatsappLinkToken}</code>
-                                            <button
-                                                onClick={() => handleCopyCommand(`!vincular ${whatsappLinkToken}`)}
-                                                className="p-1 rounded hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
-                                                title="Copiar comando"
-                                            >
-                                                {copiedCommand ? (
-                                                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                                                ) : (
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                                                )}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        /* Initial state: generate token */
-                        <div className="ml-11">
-                            <button
-                                onClick={handleGenerateWhatsappToken}
-                                disabled={loadingWhatsapp}
-                                className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold py-2.5 px-5 rounded-lg text-xs shadow-md transition-all active:scale-95 flex items-center gap-2"
-                            >
-                                {loadingWhatsapp ? (
-                                    <><RefreshCw className="w-4 h-4 animate-spin" /> Gerando código...</>
-                                ) : (
-                                    '👉 Vincular meu WhatsApp'
-                                )}
-                            </button>
-                        </div>
-                    )}
+            {/* WhatsApp Integration Sticky Bottom Banner */}
+            {groupData?.whatsapp_bot_enabled && groupData?.whatsapp_invite_link && (!groupData.is_paid || userPaymentStatus === 'PAID') && waJoined && !waBottomDismissed && (
+                <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:max-w-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-2xl p-4 z-50 animate-in slide-in-from-bottom-6 duration-300 flex items-start gap-3.5">
+                    <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5">
+                        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.451 5.403.002 9.803-4.394 9.805-9.799.002-2.618-1.018-5.08-2.872-6.934C16.35 1.94 13.9 1.933 12.01 1.933c-5.402 0-9.802 4.398-9.805 9.801-.001 1.57.48 3.106 1.393 4.468L2.61 21.362l5.228-1.371z"/>
+                        </svg>
+                    </div>
+                    <div className="flex-1 min-w-0 pr-2">
+                        <h5 className="font-bold text-slate-900 dark:text-white text-xs">Acesse o WhatsApp</h5>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-normal">
+                            Esqueceu de entrar? Participe do grupo oficial para receber atualizações do bolão.
+                        </p>
+                        <a
+                            href={groupData.whatsapp_invite_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 mt-2 transition-colors"
+                        >
+                            Clique para entrar no grupo
+                            <ChevronRight className="w-3.5 h-3.5" />
+                        </a>
+                    </div>
+                    <button
+                        onClick={handleDismissBottomBanner}
+                        className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0"
+                        title="Fechar"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
                 </div>
             )}
 

@@ -4,7 +4,6 @@ import { logger } from '../utils/logger.js';
 import { config } from '../config.js';
 import {
   getGroupDetailsByJid,
-  linkUserWhatsapp,
   logChatbotAction,
 } from '../supabase/queries.js';
 import { generateAiReply } from '../ai/responder.js';
@@ -83,15 +82,7 @@ export async function handleIncomingMessage(msg: ParsedWebhookMessage): Promise<
     return;
   }
 
-  // 3. Intercept Account Linking (Vincular) directly in the bridge for security & UX
-  const vincularMatch = cleanText.match(/vincular\s+([a-zA-Z0-9]{6,8})/i);
-  if (vincularMatch) {
-    const token = vincularMatch[1];
-    logger.info('Intercepted account linking attempt', { jid, sender: msg.senderName });
-    await handleVincular(jid, msg.senderJid, token, msg.senderName);
-    await logChatbotAction(jid, msg.senderJid, 'vincular_bridge', 'text');
-    return;
-  }
+
 
   // 4. Delegate conversational requests to Hermes AI Agent
   logger.info('Processing conversational message via Hermes Agent', { 
@@ -122,23 +113,5 @@ export async function handleIncomingMessage(msg: ParsedWebhookMessage): Promise<
   }
 }
 
-// Handler: Account Linking
-async function handleVincular(jid: string, senderJid: string, token: string, senderName: string): Promise<void> {
-  await evolutionClient.sendPresence(jid, 'composing');
-  const groupName = await linkUserWhatsapp(token, senderJid, senderName);
 
-  if (groupName === 'ALREADY_VERIFIED') {
-    await evolutionClient.sendText(jid, `✅ *NeyBot*: Seu número já está vinculado a uma conta para este grupo!`);
-  } else if (groupName) {
-    await evolutionClient.sendText(
-      jid,
-      `🎉 *Sucesso!* \n\n*${senderName}*, seu WhatsApp foi vinculado ao grupo *${groupName}* com sucesso.\n\nAgora você pode perguntar sobre seus palpites diretamente para mim! Exemplo: _"Quais são meus palpites de hoje?"_ 🎯`
-    );
-  } else {
-    await evolutionClient.sendText(
-      jid,
-      `❌ *Token Inválido ou Expirado.* \n\nVerifique a chave copiada no painel do grupo no site e tente novamente.`
-    );
-  }
-}
 

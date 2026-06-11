@@ -179,21 +179,7 @@ export function MemberList({ groupId }: { groupId: string }) {
                 setPendingJoinRequests([])
             }
 
-            // 5. Fetch WhatsApp links for all members (if bot is enabled)
-            if (group?.whatsapp_bot_enabled) {
-                const { data: waLinks } = await supabase
-                    .from('whatsapp_links')
-                    .select('user_id, verified, whatsapp_jid')
-                    .eq('group_id', groupId)
 
-                if (waLinks) {
-                    const linksMap: Record<string, { verified: boolean; whatsapp_jid: string | null }> = {}
-                    waLinks.forEach(link => {
-                        linksMap[link.user_id] = { verified: link.verified, whatsapp_jid: link.whatsapp_jid }
-                    })
-                    setWhatsappLinks(linksMap)
-                }
-            }
 
         } catch (error) {
             console.error('Error fetching members:', error)
@@ -255,27 +241,7 @@ export function MemberList({ groupId }: { groupId: string }) {
         }
     }
 
-    const handleUnlinkWhatsapp = async (memberUserId: string, memberName: string) => {
-        if (!confirm(`Desvincular o WhatsApp de ${memberName}?`)) return
-        try {
-            const { error } = await supabase
-                .from('whatsapp_links')
-                .delete()
-                .eq('group_id', groupId)
-                .eq('user_id', memberUserId)
 
-            if (error) throw error
-
-            setWhatsappLinks(prev => {
-                const next = { ...prev }
-                delete next[memberUserId]
-                return next
-            })
-            alert('WhatsApp desvinculado com sucesso')
-        } catch (error: any) {
-            alert('Erro ao desvincular WhatsApp: ' + error.message)
-        }
-    }
 
     const handleProcessJoinRequest = async (requestId: string, action: 'approve' | 'reject') => {
         try {
@@ -662,22 +628,7 @@ export function MemberList({ groupId }: { groupId: string }) {
                                             </div>
                                         )}
 
-                                        {/* WhatsApp Link Status */}
-                                        {whatsappBotEnabled && (
-                                            <div className="flex items-center gap-1.5">
-                                                {whatsappLinks[member.user_id]?.verified ? (
-                                                    <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-                                                        <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24z"/></svg>
-                                                        Vinculado
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase bg-slate-100 text-slate-500 dark:bg-slate-800/50 dark:text-slate-500">
-                                                        <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24z"/></svg>
-                                                        Sem vínculo
-                                                    </span>
-                                                )}
-                                            </div>
-                                        )}
+
 
                                         {/* Admin Actions - separated by border */}
                                         {isAdmin && (
@@ -708,17 +659,7 @@ export function MemberList({ groupId }: { groupId: string }) {
                                                     </button>
                                                 )}
 
-                                                {/* Unlink WhatsApp Button (admin only) */}
-                                                {whatsappBotEnabled && whatsappLinks[member.user_id]?.verified && (
-                                                    <button
-                                                        onClick={() => handleUnlinkWhatsapp(member.user_id, member.profiles?.display_name)}
-                                                        className="inline-flex items-center justify-center p-1.5 sm:px-2.5 sm:py-1.5 rounded-md text-xs font-semibold text-orange-600 border border-orange-200 hover:bg-orange-50 hover:border-orange-300 dark:text-orange-400 dark:border-orange-900/30 dark:hover:bg-orange-900/20 transition-all gap-1.5"
-                                                        title="Desvincular WhatsApp"
-                                                    >
-                                                        <Unlink className="h-4 w-4" />
-                                                        <span className="hidden lg:inline text-[11px]">Desvincular WA</span>
-                                                    </button>
-                                                )}
+
 
                                                 {/* Remove Member Button */}
                                                 {member.role !== 'admin' && (

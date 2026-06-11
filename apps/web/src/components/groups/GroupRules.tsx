@@ -97,7 +97,7 @@ export default function GroupRules({ group }: GroupRulesProps) {
                             <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 text-[11px] space-y-1">
                                 <div>
                                     <span className="text-slate-400 font-bold">Exemplo: </span>
-                                    <span className="text-slate-600 dark:text-slate-350">Seu palpite: <strong className="text-indigo-600 dark:text-indigo-400">2x1</strong> | Placar do jogo: <strong>1x0</strong> (vitória do mesmo time)</span>
+                                    <span className="text-slate-600 dark:text-slate-350">Seu palpite: <strong className="text-indigo-600 dark:text-indigo-400">2x1</strong> | Placar do jogo: <strong>3x0</strong> (vitória do mesmo time)</span>
                                 </div>
                                 <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium pt-1">
                                     ⚠️ Nota: Esta pontuação não se aplica a empates. Acertar empate com placar diferente sempre garante {winnerDiff} pts (saldo de ambos é 0).
