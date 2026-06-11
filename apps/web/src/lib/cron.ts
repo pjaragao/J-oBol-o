@@ -1,5 +1,6 @@
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createDefaultClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { footballData } from '@/lib/api-football/client'
 import { syncLogger } from '@/lib/sync-logger'
 import { localizeExternalImage } from '@/lib/supabase/storage-utils'
@@ -7,6 +8,13 @@ import { localizeExternalImage } from '@/lib/supabase/storage-utils'
 // Send push notification via Edge Function
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+async function getSupabaseClient() {
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+        return createAdminClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    }
+    return await createDefaultClient()
+}
 
 async function sendPushNotification(userId: string, title: string, body: string, url: string = '/') {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -44,7 +52,7 @@ function mapStatus(apiStatus: string): string {
 }
 
 export async function updateMatches(isLive: boolean = false) {
-    const supabase = await createClient()
+    const supabase = await getSupabaseClient()
 
     // 0. THROTTLING CHECK
     // Prevent updates if a successful one happened less than 2 minutes ago
@@ -93,7 +101,7 @@ export async function updateMatches(isLive: boolean = false) {
 
 async function performUpdate(onlyLive: boolean = false) {
     try {
-        const supabase = await createClient()
+        const supabase = await getSupabaseClient()
 
         // 1. Get Active Events
         const { data: events } = await supabase
@@ -227,6 +235,46 @@ async function performUpdate(onlyLive: boolean = false) {
                     }))
 
                 if (matchesToUpsert.length > 0) {
+                    // Compare scores before upserting to detect changes
+                    const apiIds = matchesToUpsert.map(m => m.api_id)
+                    const { data: existingMatches } = await supabase
+                        .from('matches')
+                        .select('api_id, home_score, away_score, status')
+                        .in('api_id', apiIds)
+
+                    const existingMap = new Map(existingMatches?.map(m => [m.api_id, m]) || [])
+                    const scoreChanges: any[] = []
+                    const statusChanges: any[] = []
+
+                    for (const m of matchesToUpsert) {
+                        const existing = existingMap.get(m.api_id)
+                        if (existing) {
+                            const scoreChanged = existing.home_score !== m.home_score || existing.away_score !== m.away_score
+                            const statusChanged = existing.status !== m.status
+
+                            // Find team name from API matches list
+                            const apiMatch = matches.find(am => am.id === m.api_id)
+                            const teams = apiMatch ? `${apiMatch.homeTeam.name} vs ${apiMatch.awayTeam.name}` : `Match ${m.api_id}`
+
+                            if (scoreChanged) {
+                                scoreChanges.push({
+                                    match_id: m.api_id,
+                                    teams,
+                                    old_score: `${existing.home_score}x${existing.away_score}`,
+                                    new_score: `${m.home_score}x${m.away_score}`
+                                })
+                            }
+                            if (statusChanged) {
+                                statusChanges.push({
+                                    match_id: m.api_id,
+                                    teams,
+                                    old_status: existing.status,
+                                    new_status: m.status
+                                })
+                            }
+                        }
+                    }
+
                     const { data: upsertedMatches } = await supabase
                         .from('matches')
                         .upsert(matchesToUpsert, { onConflict: 'api_id' })
@@ -252,7 +300,15 @@ async function performUpdate(onlyLive: boolean = false) {
                     await syncLogger.log({
                         resourceType: 'cron_matches',
                         status: 'success',
-                        details: { event: event.name, count: matchesToUpsert.length, onlyLive, pointsRecalculated }
+                        details: { 
+                            event: event.name, 
+                            count: matchesToUpsert.length, 
+                            onlyLive, 
+                            pointsRecalculated,
+                            score_changes: scoreChanges.length > 0 ? scoreChanges : undefined,
+                            status_changes: statusChanges.length > 0 ? statusChanges : undefined,
+                            has_score_changes: scoreChanges.length > 0
+                        }
                     })
                 }
             } catch (err: any) {
@@ -267,7 +323,7 @@ async function performUpdate(onlyLive: boolean = false) {
 
 export async function sendReminders() {
     try {
-        const supabase = await createClient()
+        const supabase = await getSupabaseClient()
 
         // 2. Find users who haven't bet on matches starting in the next 2 hours
         const now = new Date()

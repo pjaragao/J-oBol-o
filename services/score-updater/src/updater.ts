@@ -46,6 +46,8 @@ export interface SyncResult {
   upserted: number
   newTeams: number
   errors: string[]
+  score_changes?: any[]
+  status_changes?: any[]
 }
 
 // ---------- State ----------
@@ -283,6 +285,45 @@ async function syncEventMatches(
 
     // Batch upsert
     if (matchRows.length > 0) {
+      // Compare scores before upserting to detect changes
+      const apiIds = matchRows.map(m => m.api_id)
+      const { data: existingMatches } = await supabase
+        .from('matches')
+        .select('api_id, home_score, away_score, status')
+        .in('api_id', apiIds)
+
+      const existingMap = new Map(existingMatches?.map(m => [m.api_id, m]) || [])
+      const scoreChanges: any[] = []
+      const statusChanges: any[] = []
+
+      for (const m of matchRows) {
+        const existing = existingMap.get(m.api_id)
+        if (existing) {
+          const scoreChanged = existing.home_score !== m.home_score || existing.away_score !== m.away_score
+          const statusChanged = existing.status !== m.status
+
+          const apiMatch = apiMatches.find(am => am.id === m.api_id)
+          const teams = apiMatch ? `${apiMatch.homeTeam.name} vs ${apiMatch.awayTeam.name}` : `Match ${m.api_id}`
+
+          if (scoreChanged) {
+            scoreChanges.push({
+              match_id: m.api_id,
+              teams,
+              old_score: `${existing.home_score}x${existing.away_score}`,
+              new_score: `${m.home_score}x${m.away_score}`
+            })
+          }
+          if (statusChanged) {
+            statusChanges.push({
+              match_id: m.api_id,
+              teams,
+              old_status: existing.status,
+              new_status: m.status
+            })
+          }
+        }
+      }
+
       const { error: upsertErr } = await supabase
         .from('matches')
         .upsert(matchRows, { onConflict: 'api_id' })
@@ -292,6 +333,12 @@ async function syncEventMatches(
         logger.error('Upsert failed', { event: event.name, error: upsertErr.message })
       } else {
         result.upserted = matchRows.length
+        if (scoreChanges.length > 0) {
+          result.score_changes = scoreChanges
+        }
+        if (statusChanges.length > 0) {
+          result.status_changes = statusChanges
+        }
       }
     }
 
@@ -312,12 +359,14 @@ async function syncEventMatches(
 
 async function logSync(status: string, results: SyncResult[], errorMessage?: string) {
   try {
+    const hasScoreChanges = results.some(r => r.score_changes && r.score_changes.length > 0)
     await supabase.from('sync_logs').insert({
       reosurce_type: 'cron_matches', // Keeping legacy typo from existing schema
       status,
       details: {
         source: 'score-updater-docker',
         results,
+        has_score_changes: hasScoreChanges
       },
       error_message: errorMessage || null,
     })
