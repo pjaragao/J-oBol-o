@@ -26,20 +26,18 @@ SELECT id, name, event_id FROM public.groups WHERE whatsapp_group_jid = '1203630
 ```
 
 ### Exemplo 2: Classificação/Ranking do Grupo
-Para montar a classificação geral de um grupo (ex: ID `group_id`):
+Para obter a classificação geral de um grupo (ex: ID `group_id`), incluindo pontos live/parciais de jogos em andamento:
 ```sql
 SELECT 
-  p.display_name,
-  COALESCE(SUM(b.points_earned), 0) as total_points,
-  COUNT(CASE WHEN b.points_earned = 10 THEN 1 END) as exact_matches,
-  COUNT(CASE WHEN b.points_earned = 7 THEN 1 END) as winner_diff,
-  COUNT(CASE WHEN b.points_earned = 5 THEN 1 END) as winner_only
-FROM public.group_members gm
-JOIN public.profiles p ON p.id = gm.user_id
-LEFT JOIN public.bets b ON b.user_id = gm.user_id AND b.group_id = gm.group_id
-WHERE gm.group_id = 'ID_DO_GRUPO'
-GROUP BY p.id, p.display_name
-ORDER BY total_points DESC, exact_matches DESC, winner_diff DESC;
+  user_id,
+  display_name,
+  total_points,
+  live_points,
+  exact_scores,
+  winner_diff_scores,
+  winner_scores,
+  consolation_scores
+FROM public.get_group_ranking('ID_DO_GRUPO');
 ```
 
 ### Exemplo 3: Jogos de Hoje

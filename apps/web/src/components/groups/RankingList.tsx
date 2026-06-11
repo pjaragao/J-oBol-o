@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 
 import { ArrowUp, ArrowDown } from 'lucide-react'
-import { calculateLivePoints } from '@/lib/utils/points'
 import { useTranslations } from 'next-intl'
 
 interface RankingItem {
@@ -30,107 +29,44 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
 
     useEffect(() => {
         async function fetchRanking() {
-            const { data: members, error } = await supabase
-                .from('group_members')
-                .select(`
-                    user_id,
-                    profiles (
-                        id,
-                        display_name,
-                        avatar_url
-                    )
-                `)
-                .eq('group_id', groupId)
+            const { data, error } = await supabase
+                .rpc('get_group_ranking', { p_group_id: groupId })
 
             if (error) {
-                console.error('Error fetching members:', error)
+                console.error('Error fetching ranking:', error)
                 setLoading(false)
                 return
             }
 
-            if (!members) {
+            if (!data) {
                 setLoading(false)
                 return
             }
 
-            // Fetch live matches and all bets
-            const now = new Date().toISOString()
-            const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
-
-            const { data: liveMatches } = await supabase
-                .from('matches')
-                .select('id, home_score, away_score')
-                .eq('event_id', eventId)
-                .not('status', 'in', '("finished", "FT", "AET", "PEN")')
-                .lt('match_date', now)
-                .gt('match_date', threeHoursAgo)
-
-            const liveMatchesMap = new Map(liveMatches?.map(m => [m.id, m]) || [])
-
-            const { data: bets } = await supabase
-                .from('bets')
-                .select('user_id, match_id, points, home_score_bet, away_score_bet')
-                .eq('group_id', groupId)
-
-            // Aggregate points and positions
-            const statsMap = new Map<string, { exact: number; winnerDiff: number; winner: number; consolation: number }>()
-            const pointsMapBase = new Map<string, number>()
-            const pointsMapLiveTotal = new Map<string, number>()
-            const livePointsOnlyMap = new Map<string, number>()
-
-            bets?.forEach(bet => {
-                const userId = bet.user_id
-                const basePoints = bet.points || 0
-
-                // Sum base points
-                pointsMapBase.set(userId, (pointsMapBase.get(userId) || 0) + basePoints)
-                pointsMapLiveTotal.set(userId, (pointsMapLiveTotal.get(userId) || 0) + basePoints)
-
-                // Sum live points if applicable
-                if (bet.points === null && liveMatchesMap.has(bet.match_id)) {
-                    const match = liveMatchesMap.get(bet.match_id)!
-                    const lp = calculateLivePoints(bet.home_score_bet, bet.away_score_bet, match.home_score || 0, match.away_score || 0)
-                    if (lp > 0) {
-                        pointsMapLiveTotal.set(userId, pointsMapLiveTotal.get(userId)! + lp)
-                        livePointsOnlyMap.set(userId, (livePointsOnlyMap.get(userId) || 0) + lp)
-                    }
-                }
-
-                // Stats calculation (only for finished games)
-                if (bet.points !== null) {
-                    if (!statsMap.has(userId)) {
-                        statsMap.set(userId, { exact: 0, winnerDiff: 0, winner: 0, consolation: 0 })
-                    }
-                    const stats = statsMap.get(userId)!
-                    if (basePoints === 10) stats.exact++
-                    else if (basePoints === 7) stats.winnerDiff++
-                    else if (basePoints === 5) stats.winner++
-                    else if (basePoints === 2) stats.consolation++
-                }
-            })
-
-            // Calculate ranks
-            const rankingWithoutLive = members.map(m => {
-                const userId = m.user_id
-                return { userId, points: pointsMapBase.get(userId) || 0 }
-            }).sort((a, b) => b.points - a.points)
+            // Calculate rank variations based on points without live matches
+            const rankingWithoutLive = (data as any[]).map(item => ({
+                userId: item.user_id,
+                points: item.total_points - (item.live_points || 0)
+            })).sort((a, b) => b.points - a.points)
 
             const initialPosMap = new Map(rankingWithoutLive.map((item, idx) => [item.userId, idx]))
 
-            const leaderboard: RankingItem[] = members.map(m => {
-                const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
-                const userId = m.user_id
-                const totalWithLive = pointsMapLiveTotal.get(userId) || 0
+            const leaderboard: RankingItem[] = (data as any[]).map(item => {
                 return {
-                    id: userId,
-                    display_name: profile?.display_name || 'Usuário',
-                    avatar_url: profile?.avatar_url,
-                    total_points: totalWithLive,
-                    live_points: livePointsOnlyMap.get(userId) || 0,
+                    id: item.user_id,
+                    display_name: item.display_name || 'Usuário',
+                    avatar_url: item.avatar_url,
+                    total_points: item.total_points,
+                    live_points: item.live_points || 0,
                     rank_variation: 0,
-                    stats: statsMap.get(userId) || { exact: 0, winnerDiff: 0, winner: 0, consolation: 0 }
+                    stats: {
+                        exact: item.exact_scores || 0,
+                        winnerDiff: item.winner_diff_scores || 0,
+                        winner: item.winner_scores || 0,
+                        consolation: item.consolation_scores || 0
+                    }
                 }
-            }).sort((a, b) => b.total_points - a.total_points)
+            })
 
             leaderboard.forEach((user, currentIdx) => {
                 const initialIdx = initialPosMap.get(user.id) ?? currentIdx

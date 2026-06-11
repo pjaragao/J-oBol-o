@@ -358,98 +358,40 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 .order('match_date', { ascending: false })
                 .limit(3)
 
-            // Fetch user data and all bets for ranking
-            const { data: members } = await supabase
-                .from('group_members')
-                .select('user_id, profiles(display_name, avatar_url)')
-                .eq('group_id', groupId)
-                .limit(5000)
+            // Fetch ranking from RPC
+            const { data: rpcRanking, error: rpcError } = await supabase
+                .rpc('get_group_ranking', { p_group_id: groupId })
 
-            const { data: allBets } = await supabase
-                .from('bets')
-                .select('user_id, match_id, points, home_score_bet, away_score_bet')
-                .eq('group_id', groupId)
-                .limit(5000)
+            if (rpcError) {
+                console.error('Error fetching ranking from RPC:', rpcError)
+            }
 
-            if (members) {
-                // Aggregate Ranking (both without and with live points)
-                const pointsMapBase = new Map<string, number>()
-                const pointsMapLiveTotal = new Map<string, number>()
-                const livePointsOnlyMap = new Map<string, number>()
-                const exactScoresMap = new Map<string, number>()
-                const statsMap = new Map<string, { exact: number; winnerDiff: number; winner: number; consolation: number }>()
-
-                const liveMatchesMap = new Map(live?.map(m => [m.id, m]) || [])
-
-                allBets?.forEach(bet => {
-                    const basePoints = bet.points || 0
-                    const userId = bet.user_id
-
-                    pointsMapBase.set(userId, (pointsMapBase.get(userId) || 0) + basePoints)
-                    pointsMapLiveTotal.set(userId, (pointsMapLiveTotal.get(userId) || 0) + basePoints)
-
-                    // Stats calculation (only for finished games)
-                    if (bet.points !== null) {
-                        if (!statsMap.has(userId)) {
-                            statsMap.set(userId, { exact: 0, winnerDiff: 0, winner: 0, consolation: 0 })
-                        }
-                        const stats = statsMap.get(userId)!
-                        if (basePoints === 10) stats.exact++
-                        else if (basePoints === 7) stats.winnerDiff++
-                        else if (basePoints === 5) stats.winner++
-                        else if (basePoints === 2) stats.consolation++
-                    }
-
-                    // Track exact scores (tie-breaker)
-                    if (bet.points === 10) {
-                        exactScoresMap.set(userId, (exactScoresMap.get(userId) || 0) + 1)
-                    }
-
-                    // Calculate live points if this match is currently live
-                    // Note: we check for null OR 0 to be safe before the DB migration propagates
-                    if ((bet.points === null || bet.points === 0) && liveMatchesMap.has(bet.match_id)) {
-                        const match = liveMatchesMap.get(bet.match_id)!
-                        const lp = calculateLivePoints(bet.home_score_bet, bet.away_score_bet, match.home_score || 0, match.away_score || 0)
-                        if (lp > 0) {
-                            pointsMapLiveTotal.set(userId, pointsMapLiveTotal.get(userId)! + lp)
-                            livePointsOnlyMap.set(userId, (livePointsOnlyMap.get(userId) || 0) + lp)
-
-                            // Also count live exact scores for live ranking tie-breaker
-                            if (lp === 10) {
-                                exactScoresMap.set(userId, (exactScoresMap.get(userId) || 0) + 1)
-                            }
-                        }
-                    }
-                })
-
-                // Calculate Initial Positions (Without Live)
-                const rankingWithoutLive = members.map(m => {
-                    const userId = m.user_id
-                    return {
-                        userId,
-                        points: pointsMapBase.get(userId) || 0,
-                        exacts: exactScoresMap.get(userId) || 0
-                    }
-                }).sort((a, b) => b.points - a.points || b.exacts - a.exacts)
+            if (rpcRanking) {
+                // Calculate Initial Positions (Without Live) to calculate rank variations
+                const rankingWithoutLive = (rpcRanking as any[]).map(item => ({
+                    userId: item.user_id,
+                    points: item.total_points - (item.live_points || 0),
+                    exacts: item.exact_scores - (item.live_points === 10 ? 1 : 0) // Exacts from finished games
+                })).sort((a, b) => b.points - a.points || b.exacts - a.exacts)
 
                 const initialPosMap = new Map(rankingWithoutLive.map((item, idx) => [item.userId, idx]))
 
                 // Calculate Final Positions (With Live)
-                const fullRanking: RankingItem[] = members.map(m => {
-                    const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
-                    const userId = m.user_id
-                    const totalWithLive = pointsMapLiveTotal.get(userId) || 0
-                    return {
-                        user_id: userId,
-                        display_name: profile?.display_name || 'Usuário',
-                        avatar_url: profile?.avatar_url,
-                        total_points: totalWithLive,
-                        live_points: livePointsOnlyMap.get(userId) || 0,
-                        exact_scores: exactScoresMap.get(userId) || 0,
-                        rank_variation: 0,
-                        stats: statsMap.get(userId) || { exact: 0, winnerDiff: 0, winner: 0, consolation: 0 }
+                const fullRanking: RankingItem[] = (rpcRanking as any[]).map(item => ({
+                    user_id: item.user_id,
+                    display_name: item.display_name || 'Usuário',
+                    avatar_url: item.avatar_url,
+                    total_points: item.total_points,
+                    live_points: item.live_points || 0,
+                    exact_scores: item.exact_scores || 0,
+                    rank_variation: 0,
+                    stats: {
+                        exact: item.exact_scores || 0,
+                        winnerDiff: item.winner_diff_scores || 0,
+                        winner: item.winner_scores || 0,
+                        consolation: item.consolation_scores || 0
                     }
-                }).sort((a, b) => b.total_points - a.total_points || (b.exact_scores || 0) - (a.exact_scores || 0))
+                }))
 
                 // Add rank variation and Estimated Prize
                 // Note: Distribution depends on rank, so we calculate after sorting
@@ -473,9 +415,18 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
 
                 // Bet Counts for Upcoming
                 const counts: Record<string, number> = {}
-                upcoming?.forEach(m => {
-                    counts[m.id] = allBets?.filter(b => b.match_id === m.id).length || 0
-                })
+                const upcomingIds = upcoming?.map(m => m.id) || []
+                if (upcomingIds.length > 0) {
+                    const { data: upcomingBets } = await supabase
+                        .from('bets')
+                        .select('match_id')
+                        .eq('group_id', groupId)
+                        .in('match_id', upcomingIds)
+
+                    upcomingBets?.forEach(b => {
+                        counts[b.match_id] = (counts[b.match_id] || 0) + 1
+                    })
+                }
                 setBetCounts(counts)
             }
 

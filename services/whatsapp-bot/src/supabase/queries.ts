@@ -169,17 +169,12 @@ export interface LeaderboardUser {
 
 // Fetch and calculate full leaderboard for a group
 export async function getGroupRanking(groupId: string, eventId: string, userJid?: string): Promise<LeaderboardUser[]> {
-  // 1. Fetch group members
-  const { data: members, error: membersErr } = await supabase
-    .from('group_members')
-    .select(`
-      user_id,
-      profiles(display_name, nickname)
-    `)
-    .eq('group_id', groupId);
+  // 1. Call the Supabase RPC
+  const { data: rankingData, error: rankingErr } = await supabase
+    .rpc('get_group_ranking', { p_group_id: groupId });
 
-  if (membersErr || !members) {
-    logger.error('Error fetching group members for ranking', { error: membersErr?.message });
+  if (rankingErr || !rankingData) {
+    logger.error('Error fetching group ranking from RPC', { error: rankingErr?.message });
     return [];
   }
 
@@ -194,94 +189,20 @@ export async function getGroupRanking(groupId: string, eventId: string, userJid?
   linkedJids?.forEach(lk => jidToUserMap.set(lk.whatsapp_jid, lk.user_id));
   const currentUserId = userJid ? jidToUserMap.get(userJid) : undefined;
 
-  // 3. Fetch live matches to add temporary live points
-  const now = new Date().toISOString();
-  const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
-
-  const { data: liveMatches } = await supabase
-    .from('matches')
-    .select('id, home_score, away_score')
-    .eq('event_id', eventId)
-    .not('status', 'in', '("finished", "FT", "AET", "PEN")')
-    .lt('match_date', now)
-    .gt('match_date', threeHoursAgo);
-
-  const liveMatchesMap = new Map(liveMatches?.map(m => [m.id, m]) || []);
-
-  // 4. Fetch all bets of the group
-  const { data: bets } = await supabase
-    .from('bets')
-    .select('user_id, match_id, points, home_score_bet, away_score_bet')
-    .eq('group_id', groupId);
-
-  const statsMap = new Map<string, { exact: number; winnerDiff: number; winner: number; consolation: number }>();
-  const pointsMapLiveTotal = new Map<string, number>();
-  const livePointsOnlyMap = new Map<string, number>();
-
-  bets?.forEach(bet => {
-    const userId = bet.user_id;
-    const basePoints = bet.points || 0;
-
-    pointsMapLiveTotal.set(userId, (pointsMapLiveTotal.get(userId) || 0) + basePoints);
-
-    // If match is live (points column not calculated yet)
-    if (bet.points === null && liveMatchesMap.has(bet.match_id)) {
-      const match = liveMatchesMap.get(bet.match_id)!;
-      const lp = calculateLivePoints(
-        bet.home_score_bet,
-        bet.away_score_bet,
-        match.home_score ?? 0,
-        match.away_score ?? 0
-      );
-      if (lp > 0) {
-        pointsMapLiveTotal.set(userId, (pointsMapLiveTotal.get(userId) || 0) + lp);
-        livePointsOnlyMap.set(userId, (livePointsOnlyMap.get(userId) || 0) + lp);
-      }
-    }
-
-    // Finished stats
-    if (bet.points !== null) {
-      if (!statsMap.has(userId)) {
-        statsMap.set(userId, { exact: 0, winnerDiff: 0, winner: 0, consolation: 0 });
-      }
-      const stats = statsMap.get(userId)!;
-      if (basePoints === 10) stats.exact++;
-      else if (basePoints === 7) stats.winnerDiff++;
-      else if (basePoints === 5) stats.winner++;
-      else if (basePoints === 2) stats.consolation++;
-    }
-  });
-
-  // Assemble ranking
-  const leaderboard: LeaderboardUser[] = members.map(m => {
-    const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
-    const userId = m.user_id;
-    const total = pointsMapLiveTotal.get(userId) || 0;
-    const live = livePointsOnlyMap.get(userId) || 0;
-    const stats = statsMap.get(userId) || { exact: 0, winnerDiff: 0, winner: 0, consolation: 0 };
-
+  // 3. Map results to LeaderboardUser format
+  return (rankingData as any[]).map((item, index) => {
     return {
-      rank: 0,
-      displayName: profile?.display_name || profile?.nickname || 'Participante',
-      totalPoints: total,
-      livePoints: live,
-      exact: stats.exact,
-      winnerDiff: stats.winnerDiff,
-      winner: stats.winner,
-      consolation: stats.consolation,
-      isMe: userId === currentUserId,
+      rank: index + 1,
+      displayName: item.display_name || 'Participante',
+      totalPoints: item.total_points || 0,
+      livePoints: item.live_points || 0,
+      exact: item.exact_scores || 0,
+      winnerDiff: item.winner_diff_scores || 0,
+      winner: item.winner_scores || 0,
+      consolation: item.consolation_scores || 0,
+      isMe: item.user_id === currentUserId,
     };
   });
-
-  // Sort descending
-  leaderboard.sort((a, b) => b.totalPoints - a.totalPoints);
-
-  // Add rank numbers
-  leaderboard.forEach((item, index) => {
-    item.rank = index + 1;
-  });
-
-  return leaderboard;
 }
 
 // Fetch user bets for today's matches
