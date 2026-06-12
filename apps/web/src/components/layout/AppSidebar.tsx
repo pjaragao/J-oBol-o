@@ -29,6 +29,9 @@ export function AppSidebar({ className, isOpen, setIsOpen, isAdmin, userId }: Si
 
     const adminItems = [
         { title: t('adminHome'), icon: LayoutDashboard, href: '/admin' },
+        ...(userId === '4ccadc6a-7c98-422e-b930-8f11313db2f1' ? [
+            { title: t('manageGroups'), icon: Trophy, href: '/admin/groups' }
+        ] : []),
         { title: t('manageEvents'), icon: Settings, href: '/admin/events' },
         { title: t('manageTeams'), icon: Crown, href: '/admin/teams' },
         { title: t('marketing'), icon: Megaphone, href: '/admin/marketing' },

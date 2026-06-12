@@ -53,6 +53,7 @@ interface RankingItem {
     avatar_url: string | null
     total_points: number
     live_points?: number
+    rank?: number
     rank_variation?: number
     exact_scores?: number
     estimated_prize?: number
@@ -70,6 +71,7 @@ interface RankingItem {
     avatar_url: string | null
     total_points: number
     live_points?: number
+    rank?: number
     rank_variation?: number
     exact_scores?: number
     stats: {
@@ -371,27 +373,48 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 const rankingWithoutLive = (rpcRanking as any[]).map(item => ({
                     userId: item.user_id,
                     points: item.total_points - (item.live_points || 0),
-                    exacts: item.exact_scores - (item.live_points === 10 ? 1 : 0) // Exacts from finished games
-                })).sort((a, b) => b.points - a.points || b.exacts - a.exacts)
+                    exacts: (item.exact_scores || 0) - (item.live_points === 10 ? 1 : 0), // Exacts from finished games
+                    winnerDiff: (item.winner_diff_scores || 0) - (item.live_points === 7 ? 1 : 0),
+                    winner: (item.winner_scores || 0) - (item.live_points === 5 ? 1 : 0),
+                    consolation: (item.consolation_scores || 0) - (item.live_points === 2 ? 1 : 0)
+                })).sort((a, b) => b.points - a.points || b.exacts - a.exacts || b.winnerDiff - a.winnerDiff || b.winner - a.winner || b.consolation - a.consolation)
 
-                const initialPosMap = new Map(rankingWithoutLive.map((item, idx) => [item.userId, idx]))
+                let prevPointsNoLive = -1
+                let currentRankNoLive = 1
+                const rankNoLiveMap = new Map<string, number>()
+                rankingWithoutLive.forEach((item, idx) => {
+                    if (item.points !== prevPointsNoLive) {
+                        currentRankNoLive = idx + 1
+                        prevPointsNoLive = item.points
+                    }
+                    rankNoLiveMap.set(item.userId, currentRankNoLive)
+                })
 
                 // Calculate Final Positions (With Live)
-                const fullRanking: RankingItem[] = (rpcRanking as any[]).map(item => ({
-                    user_id: item.user_id,
-                    display_name: item.display_name || 'Usuário',
-                    avatar_url: item.avatar_url,
-                    total_points: item.total_points,
-                    live_points: item.live_points || 0,
-                    exact_scores: item.exact_scores || 0,
-                    rank_variation: 0,
-                    stats: {
-                        exact: item.exact_scores || 0,
-                        winnerDiff: item.winner_diff_scores || 0,
-                        winner: item.winner_scores || 0,
-                        consolation: item.consolation_scores || 0
+                let prevPointsLive = -1
+                let currentRankLive = 1
+                const fullRanking: RankingItem[] = (rpcRanking as any[]).map((item, idx) => {
+                    if (item.total_points !== prevPointsLive) {
+                        currentRankLive = idx + 1
+                        prevPointsLive = item.total_points
                     }
-                }))
+                    return {
+                        user_id: item.user_id,
+                        display_name: item.display_name || 'Usuário',
+                        avatar_url: item.avatar_url,
+                        total_points: item.total_points,
+                        live_points: item.live_points || 0,
+                        exact_scores: item.exact_scores || 0,
+                        rank: currentRankLive,
+                        rank_variation: 0,
+                        stats: {
+                            exact: item.exact_scores || 0,
+                            winnerDiff: item.winner_diff_scores || 0,
+                            winner: item.winner_scores || 0,
+                            consolation: item.consolation_scores || 0
+                        }
+                    }
+                })
 
                 // Add rank variation and Estimated Prize
                 // Note: Distribution depends on rank, so we calculate after sorting
@@ -405,8 +428,8 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 }
 
                 fullRanking.forEach((user, currentIdx) => {
-                    const initialIdx = initialPosMap.get(user.user_id) ?? currentIdx
-                    user.rank_variation = initialIdx - currentIdx
+                    const initialRank = rankNoLiveMap.get(user.user_id) ?? user.rank!
+                    user.rank_variation = initialRank - user.rank!
                     // Assign Prize if available for this rank (1-indexed)
                     user.estimated_prize = prizeDistribution[currentIdx + 1] || 0
                 })
@@ -1031,6 +1054,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                     return itemsToDisplay.map((user) => {
                                         const globalIdx = topRanking.findIndex(r => r.user_id === user.user_id)
                                         const isCurrentUser = user.user_id === userId
+                                        const rank = user.rank || (globalIdx + 1)
 
                                         return (
                                             <div key={user.user_id} className={`flex items-center justify-between border-b border-green-50 dark:border-slate-700 py-1 last:border-0 last:pb-0 ${isCurrentUser ? 'bg-green-50/50 dark:bg-green-900/10 -mx-1 px-1 rounded-md' : ''}`}>
@@ -1038,9 +1062,9 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                                                     <div className="relative">
                                                         <div className={`
                                                               w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white
-                                                              ${globalIdx === 0 ? 'bg-yellow-400' : globalIdx === 1 ? 'bg-gray-400' : globalIdx === 2 ? 'bg-orange-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}
-                                                          `}>
-                                                            {globalIdx + 1}
+                                                              ${rank === 1 ? 'bg-yellow-400' : rank === 2 ? 'bg-gray-400' : rank === 3 ? 'bg-orange-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}
+                                                           `}>
+                                                            {rank}
                                                         </div>
                                                         {user.rank_variation !== 0 && (
                                                             <div className={`absolute -top-1 -left-1 w-3 h-3 rounded-full flex items-center justify-center text-[8px] border border-white dark:border-slate-800 ${user.rank_variation! > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>

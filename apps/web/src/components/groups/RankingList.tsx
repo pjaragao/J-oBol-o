@@ -12,6 +12,7 @@ interface RankingItem {
     avatar_url: string | null
     total_points: number
     live_points?: number
+    rank?: number
     rank_variation?: number
     stats: {
         exact: number          // 10 pts - Cravadas
@@ -46,18 +47,38 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
             // Calculate rank variations based on points without live matches
             const rankingWithoutLive = (data as any[]).map(item => ({
                 userId: item.user_id,
-                points: item.total_points - (item.live_points || 0)
-            })).sort((a, b) => b.points - a.points)
+                points: item.total_points - (item.live_points || 0),
+                exact: (item.exact_scores || 0) - (item.live_points === 10 ? 1 : 0),
+                winnerDiff: (item.winner_diff_scores || 0) - (item.live_points === 7 ? 1 : 0),
+                winner: (item.winner_scores || 0) - (item.live_points === 5 ? 1 : 0),
+                consolation: (item.consolation_scores || 0) - (item.live_points === 2 ? 1 : 0)
+            })).sort((a, b) => b.points - a.points || b.exact - a.exact || b.winnerDiff - a.winnerDiff || b.winner - a.winner || b.consolation - a.consolation)
 
-            const initialPosMap = new Map(rankingWithoutLive.map((item, idx) => [item.userId, idx]))
+            let prevPointsNoLive = -1
+            let currentRankNoLive = 1
+            const rankNoLiveMap = new Map<string, number>()
+            rankingWithoutLive.forEach((item, idx) => {
+                if (item.points !== prevPointsNoLive) {
+                    currentRankNoLive = idx + 1
+                    prevPointsNoLive = item.points
+                }
+                rankNoLiveMap.set(item.userId, currentRankNoLive)
+            })
 
-            const leaderboard: RankingItem[] = (data as any[]).map(item => {
+            let prevPointsLive = -1
+            let currentRankLive = 1
+            const leaderboard: RankingItem[] = (data as any[]).map((item, idx) => {
+                if (item.total_points !== prevPointsLive) {
+                    currentRankLive = idx + 1
+                    prevPointsLive = item.total_points
+                }
                 return {
                     id: item.user_id,
                     display_name: item.display_name || 'Usuário',
                     avatar_url: item.avatar_url,
                     total_points: item.total_points,
                     live_points: item.live_points || 0,
+                    rank: currentRankLive,
                     rank_variation: 0,
                     stats: {
                         exact: item.exact_scores || 0,
@@ -68,9 +89,9 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
                 }
             })
 
-            leaderboard.forEach((user, currentIdx) => {
-                const initialIdx = initialPosMap.get(user.id) ?? currentIdx
-                user.rank_variation = initialIdx - currentIdx
+            leaderboard.forEach((user) => {
+                const initialRank = rankNoLiveMap.get(user.id) ?? user.rank!
+                user.rank_variation = initialRank - user.rank!
             })
 
             setRanking(leaderboard)
@@ -138,12 +159,12 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
                                     {/* Position */}
                                     <td className="px-4 py-4 whitespace-nowrap">
                                         <div className="flex flex-col items-center justify-center">
-                                            <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full font-bold text-sm ${index === 0 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-400' :
-                                                index === 1 ? 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-300' :
-                                                    index === 2 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-400' :
+                                            <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full font-bold text-sm ${user.rank === 1 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-400' :
+                                                user.rank === 2 ? 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-300' :
+                                                    user.rank === 3 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-400' :
                                                         'text-gray-500 dark:text-slate-500'
                                                 }`}>
-                                                {index + 1}
+                                                {user.rank}
                                             </span>
                                             {user.rank_variation !== 0 && (
                                                 <div className={`mt-1 flex items-center gap-0.5 text-[10px] font-bold ${user.rank_variation! > 0 ? 'text-green-500' : 'text-red-500'}`}>
@@ -246,12 +267,12 @@ export function RankingList({ groupId, eventId, currentUserId }: { groupId: stri
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2.5">
                                     <div className="flex flex-col items-center">
-                                        <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full font-bold text-xs ${index === 0 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-400' :
-                                            index === 1 ? 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-300' :
-                                                index === 2 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-400' :
+                                        <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full font-bold text-xs ${user.rank === 1 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-400' :
+                                            user.rank === 2 ? 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-300' :
+                                                user.rank === 3 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-400' :
                                                     'text-gray-500 dark:text-slate-500'
                                             }`}>
-                                            {index + 1}
+                                            {user.rank}
                                         </span>
                                         {user.rank_variation !== 0 && (
                                             <div className={`mt-0.5 flex items-center gap-0.5 text-[8px] font-bold ${user.rank_variation! > 0 ? 'text-green-500' : 'text-red-500'}`}>

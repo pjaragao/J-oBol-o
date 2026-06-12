@@ -190,11 +190,18 @@ export async function getGroupRanking(groupId: string, eventId: string, userJid?
   const currentUserId = userJid ? jidToUserMap.get(userJid) : undefined;
 
   // 3. Map results to LeaderboardUser format
+  let prevPoints = -1;
+  let currentRank = 1;
   return (rankingData as any[]).map((item, index) => {
+    const totalPoints = item.total_points || 0;
+    if (totalPoints !== prevPoints) {
+      currentRank = index + 1;
+      prevPoints = totalPoints;
+    }
     return {
-      rank: index + 1,
+      rank: currentRank,
       displayName: item.display_name || 'Participante',
-      totalPoints: item.total_points || 0,
+      totalPoints: totalPoints,
       livePoints: item.live_points || 0,
       exact: item.exact_scores || 0,
       winnerDiff: item.winner_diff_scores || 0,
