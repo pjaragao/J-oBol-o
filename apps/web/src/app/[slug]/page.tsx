@@ -106,11 +106,19 @@ export default async function SlugGroupPage(props: {
     }
 
     // Fetch matches
-    const { data: matches } = await supabase
+    let matchesQuery = supabase
         .from('matches')
         .select('*, home_team:teams!home_team_id(name, short_name, logo_url), away_team:teams!away_team_id(name, short_name, logo_url)')
         .eq('event_id', group.event_id)
-        .order('match_date', { ascending: true })
+
+    if (group.knockout_only) {
+        matchesQuery = matchesQuery
+            .not('round', 'ilike', 'Rodada%')
+            .not('round', 'ilike', '%GROUP%')
+            .is('group_name', null)
+    }
+
+    const { data: matches } = await matchesQuery.order('match_date', { ascending: true })
 
     // Financial calculations for header
     const { count: paidCount } = await supabase

@@ -208,7 +208,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 .from('groups')
                 .select(`
                 is_paid, payment_method, entry_fee, min_members, max_members, prize_distribution_strategy, is_finished,
-                invite_code, created_by, whatsapp_group_jid, whatsapp_invite_link, whatsapp_bot_enabled,
+                invite_code, created_by, whatsapp_group_jid, whatsapp_invite_link, whatsapp_bot_enabled, knockout_only,
                 events!event_id (online_fee_percent, offline_fee_per_slot, offline_base_fee)
             `)
                 .eq('id', groupId)
@@ -278,7 +278,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
             }
 
             // 1. Fetch Upcoming Matches (Next 3 strictly in future)
-            const { data: upcoming } = await supabase
+            let upcomingQuery = supabase
                 .from('matches')
                 .select(`
                 id,
@@ -293,12 +293,21 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 .eq('event_id', eventId)
                 .in('status', ['scheduled', 'timed'])
                 .gte('match_date', now)
+
+            if (groupDataFromDB?.knockout_only) {
+                upcomingQuery = upcomingQuery
+                    .not('round', 'ilike', 'Rodada%')
+                    .not('round', 'ilike', '%GROUP%')
+                    .is('group_name', null)
+            }
+
+            const { data: upcoming } = await upcomingQuery
                 .order('match_date', { ascending: true })
                 .limit(3)
 
             // 2. Fetch Live/InProgress Matches
             // Criteria: status is 'live' OR (status is not finished AND date is in the last 3 hours or slightly future which started)
-            const { data: live } = await supabase
+            let liveQuery = supabase
                 .from('matches')
                 .select(`
                 id,
@@ -315,6 +324,15 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
                 .not('status', 'in', '("finished", "FT", "AET", "PEN")')
                 .lt('match_date', now)
                 .gt('match_date', threeHoursAgo)
+
+            if (groupDataFromDB?.knockout_only) {
+                liveQuery = liveQuery
+                    .not('round', 'ilike', 'Rodada%')
+                    .not('round', 'ilike', '%GROUP%')
+                    .is('group_name', null)
+            }
+
+            const { data: live } = await liveQuery
                 .order('match_date', { ascending: true })
 
             // 3. SMART SYNC CHECK (Client trigger)
@@ -343,7 +361,7 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
             }
 
             // 3. Fetch Recent Matches (Last 3 Finished)
-            const { data: recent } = await supabase
+            let recentQuery = supabase
                 .from('matches')
                 .select(`
                 id,
@@ -357,6 +375,15 @@ export default function GroupDashboard({ groupId, eventId, userId }: GroupDashbo
             `)
                 .eq('event_id', eventId)
                 .in('status', ['finished', 'FT', 'AET', 'PEN'])
+
+            if (groupDataFromDB?.knockout_only) {
+                recentQuery = recentQuery
+                    .not('round', 'ilike', 'Rodada%')
+                    .not('round', 'ilike', '%GROUP%')
+                    .is('group_name', null)
+            }
+
+            const { data: recent } = await recentQuery
                 .order('match_date', { ascending: false })
                 .limit(3)
 

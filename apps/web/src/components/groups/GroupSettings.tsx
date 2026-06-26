@@ -28,6 +28,7 @@ interface GroupSettingsProps {
         whatsapp_bot_enabled?: boolean
         whatsapp_group_jid?: string | null
         whatsapp_invite_link?: string | null
+        knockout_only?: boolean
     }
     matches: any[]
     userId: string
@@ -105,13 +106,22 @@ export function GroupSettings({ group, matches, userId }: GroupSettingsProps) {
             // Fetch live matches
             const now = new Date().toISOString()
             const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
-            const { data: liveMatches } = await supabase
+            let liveMatchesQuery = supabase
                 .from('matches')
                 .select('id, home_score, away_score')
                 .eq('event_id', group.event_id)
                 .not('status', 'in', '("finished", "FT", "AET", "PEN")')
                 .lt('match_date', now)
                 .gt('match_date', threeHoursAgo)
+
+            if (group.knockout_only) {
+                liveMatchesQuery = liveMatchesQuery
+                    .not('round', 'ilike', 'Rodada%')
+                    .not('round', 'ilike', '%GROUP%')
+                    .is('group_name', null)
+            }
+
+            const { data: liveMatches } = await liveMatchesQuery
 
             const liveMatchesMap = new Map(liveMatches?.map(m => [m.id, m]) || [])
 

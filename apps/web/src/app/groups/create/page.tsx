@@ -31,6 +31,7 @@ const createGroupSchema = z.object({
     is_public: z.boolean().default(true),
     allow_member_invites: z.boolean().default(true),
     join_requires_approval: z.boolean().default(false),
+    knockout_only: z.boolean().default(false),
     // Scoring Rules
     score_exact: z.number().min(1),
     score_winner_goals: z.number().min(1),
@@ -61,6 +62,7 @@ export default function CreateGroupPage() {
             is_public: true,
             allow_member_invites: true,
             join_requires_approval: false,
+            knockout_only: false,
             score_exact: 10,
             score_winner_goals: 7,
             score_winner: 5,
@@ -177,6 +179,7 @@ export default function CreateGroupPage() {
                     is_public: data.is_public,
                     allow_member_invites: data.allow_member_invites,
                     join_requires_approval: data.join_requires_approval,
+                    knockout_only: data.knockout_only,
                     scoring_rules: scoringRules,
                     prize_distribution_strategy: prizeStrategy
                 })
@@ -330,6 +333,21 @@ export default function CreateGroupPage() {
                                                     </label>
                                                     <p className="text-xs text-muted-foreground">
                                                         Administradores devem aprovar cada novo membro.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start space-x-3 space-y-0 rounded-xl border p-4 bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800">
+                                                <Checkbox
+                                                    id="knockout_only"
+                                                    checked={watch('knockout_only')}
+                                                    onCheckedChange={(v: boolean) => setValue('knockout_only', v)}
+                                                />
+                                                <div className="grid gap-1.5 leading-none">
+                                                    <label htmlFor="knockout_only" className="text-sm font-bold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
+                                                        Apenas Mata-Mata
+                                                    </label>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        O bolão terá apenas jogos das fases eliminatórias (sem fase de grupos).
                                                     </p>
                                                 </div>
                                             </div>
@@ -639,7 +657,7 @@ export default function CreateGroupPage() {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                                         <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-center">
                                             <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase">Entrada</p>
                                             <p className="font-bold text-lg">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(watch('entry_fee') || 0)}</p>
@@ -655,6 +673,10 @@ export default function CreateGroupPage() {
                                         <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-center">
                                             <p className="text-[10px] font-black text-slate-500 uppercase">Aprovação</p>
                                             <p className="font-bold text-sm">{watch('join_requires_approval') ? 'Manual' : 'Livre'}</p>
+                                        </div>
+                                        <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-center">
+                                            <p className="text-[10px] font-black text-purple-600 dark:text-purple-400 uppercase">Filtro Jogos</p>
+                                            <p className="font-bold text-sm">{watch('knockout_only') ? 'Mata-Mata' : 'Completo'}</p>
                                         </div>
                                     </div>
 

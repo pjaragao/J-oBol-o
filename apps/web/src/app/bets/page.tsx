@@ -30,6 +30,7 @@ export default async function MyBetsPage() {
                 id,
                 name,
                 event_id,
+                knockout_only,
                 events (
                     id,
                     name,
@@ -43,6 +44,7 @@ export default async function MyBetsPage() {
         id: m.groups.id,
         name: m.groups.name,
         event_id: m.groups.event_id,
+        knockout_only: m.groups.knockout_only,
         event: m.groups.events
     })) || []
 

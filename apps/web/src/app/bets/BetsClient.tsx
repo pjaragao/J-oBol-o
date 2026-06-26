@@ -9,6 +9,7 @@ interface Group {
     id: string
     name: string
     event_id: string
+    knockout_only?: boolean
     event: {
         id: string
         name: string
@@ -88,6 +89,23 @@ export default function BetsClient({ initialGroups, userId }: BetsClientProps) {
         fetchMatches()
     }, [selectedEventId, supabase])
 
+    // Dynamic filtering for knockout-only groups
+    const displayedMatches = useMemo(() => {
+        const selectedGroup = initialGroups.find(g => g.id === selectedGroupId)
+        if (selectedGroup?.knockout_only) {
+            return matches.filter(match => {
+                const round = match.round || ''
+                const groupName = match.group_name
+                const isGroupStage = 
+                    round.toLowerCase().startsWith('rodada') || 
+                    round.toUpperCase().includes('GROUP') || 
+                    groupName !== null
+                return !isGroupStage
+            })
+        }
+        return matches
+    }, [matches, selectedGroupId, initialGroups])
+
     if (initialGroups.length === 0) {
         return (
             <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
@@ -159,7 +177,7 @@ export default function BetsClient({ initialGroups, userId }: BetsClientProps) {
                     </div>
                 ) : (
                     <MatchList
-                        matches={matches}
+                        matches={displayedMatches}
                         groupId={selectedGroupId}
                         userId={userId}
                     />
