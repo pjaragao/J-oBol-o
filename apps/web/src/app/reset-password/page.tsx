@@ -21,23 +21,57 @@ export default function ResetPasswordPage() {
     const supabase = createClient()
 
     useEffect(() => {
+        let mounted = true
+
         async function checkSession() {
+            // First check if a session is already present
             try {
                 const { data: { session } } = await supabase.auth.getSession()
                 if (session) {
-                    setIsSessionValid(true)
-                } else {
-                    setIsSessionValid(false)
-                    setError(t('error') || 'Sessão inválida ou link expirado.')
+                    if (mounted) {
+                        setIsSessionValid(true)
+                        setCheckingSession(false)
+                    }
+                    return
                 }
+
+                // If not found, subscribe to auth state changes to capture it once parsed
+                const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+                    if (session && mounted) {
+                        setIsSessionValid(true)
+                        setCheckingSession(false)
+                        subscription.unsubscribe()
+                    }
+                })
+
+                // If after 4 seconds we still don't have a session, show error
+                setTimeout(() => {
+                    if (mounted) {
+                        supabase.auth.getSession().then(({ data: { session: finalSession } }) => {
+                            if (!finalSession && mounted) {
+                                setIsSessionValid(false)
+                                setError(t('error') || 'Sessão inválida ou link expirado.')
+                                setCheckingSession(false)
+                                subscription.unsubscribe()
+                            }
+                        })
+                    }
+                }, 4000)
+
             } catch (err) {
-                setIsSessionValid(false)
-                setError(t('error') || 'Erro ao validar a sessão.')
-            } finally {
-                setCheckingSession(false)
+                if (mounted) {
+                    setIsSessionValid(false)
+                    setError(t('error') || 'Erro ao validar a sessão.')
+                    setCheckingSession(false)
+                }
             }
         }
+
         checkSession()
+
+        return () => {
+            mounted = false
+        }
     }, [supabase, t])
 
     const handleSubmit = async (e: React.FormEvent) => {

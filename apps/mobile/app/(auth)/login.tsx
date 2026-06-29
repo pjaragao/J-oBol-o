@@ -35,7 +35,7 @@ export default function LoginScreen() {
         setLoading(true);
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-                redirectTo: 'https://jaobolao.com.br/auth/callback?next=/reset-password',
+                redirectTo: 'https://jaobolao.com.br/reset-password',
             });
 
             if (error) {
