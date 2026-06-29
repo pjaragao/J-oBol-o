@@ -56,6 +56,28 @@
             "passwordTooShort": "Password must be at least 6 characters.",
             "errorCreating": "An error occurred while creating your account.",
             "selectLanguage": "Select your language"
+        },
+        "forgotPassword": {
+            "title": "Reset Password",
+            "subtitle": "Enter your email to receive a recovery link",
+            "email": "Email",
+            "emailPlaceholder": "your@email.com",
+            "submit": "Send Link",
+            "backToLogin": "Back to Login",
+            "success": "Link sent successfully! Check your email.",
+            "error": "Error sending recovery link."
+        },
+        "resetPassword": {
+            "title": "New Password",
+            "subtitle": "Choose your new access password",
+            "password": "New Password",
+            "passwordPlaceholder": "••••••",
+            "confirmPassword": "Confirm New Password",
+            "submit": "Update Password",
+            "success": "Password updated successfully! Redirecting...",
+            "error": "Error updating password.",
+            "passwordMismatch": "Passwords don't match.",
+            "passwordTooShort": "Password must be at least 6 characters."
         }
     },
     "home": {

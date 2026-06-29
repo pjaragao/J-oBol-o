@@ -26,6 +26,30 @@ export default function LoginScreen() {
         setLoading(false);
     }
 
+    async function handleForgotPassword() {
+        if (!email.trim()) {
+            Alert.alert('E-mail necessário', 'Por favor, digite seu e-mail no campo de email acima.');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+                redirectTo: 'https://jaobolao.com.br/auth/callback?next=/reset-password',
+            });
+
+            if (error) {
+                Alert.alert('Erro', error.message);
+            } else {
+                Alert.alert('Sucesso', 'Um link de recuperação de senha foi enviado para o seu e-mail.');
+            }
+        } catch (err: any) {
+            Alert.alert('Erro', err.message || 'Erro ao solicitar recuperação de senha.');
+        } finally {
+            setLoading(false);
+        }
+    }
+
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -41,7 +65,7 @@ export default function LoginScreen() {
                         JãoBolão
                     </Text>
                     <Text className="text-slate-500 dark:text-slate-400 mt-2 text-center">
-                        Entre para gerenciar seus bolões e palpites.
+                        Entre para gerenciar seus bolões and palpites.
                     </Text>
                 </View>
 
@@ -83,7 +107,7 @@ export default function LoginScreen() {
                         title="Esqueci minha senha"
                         variant="ghost"
                         className="mt-2"
-                        onPress={() => Alert.alert('Em breve', 'Funcionalidade de recuperação de senha será implementada em breve.')}
+                        onPress={handleForgotPassword}
                     />
                 </View>
             </ScrollView>

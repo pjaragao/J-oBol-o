@@ -2,49 +2,38 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Mail, Lock as LockIcon, ChevronRight, AlertCircle } from 'lucide-react'
+import { Mail, ChevronRight, AlertCircle, CheckCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 
-export default function LoginPage() {
-    const t = useTranslations('auth.login');
+export default function ForgotPasswordPage() {
+    const t = useTranslations('auth.forgotPassword')
     const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const router = useRouter()
+    const [message, setMessage] = useState<string | null>(null)
     const supabase = createClient()
 
-    const redirectParam = typeof window !== 'undefined' 
-        ? new URLSearchParams(window.location.search).get('redirect') 
-        : null
-
-    const handleLogin = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
         setError(null)
+        setMessage(null)
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
             })
 
             if (error) {
-                if (error.message === 'Invalid login credentials') {
-                    throw new Error(t('invalidCredentials'))
-                }
                 throw error
             }
 
-            const searchParams = new URLSearchParams(window.location.search)
-            const redirect = searchParams.get('redirect')
-            router.push(redirect || '/dashboard')
-            router.refresh()
+            setMessage(t('success'))
         } catch (err: any) {
-            setError(err.message)
+            setError(err.message || t('error'))
+        } finally {
             setLoading(false)
         }
     }
@@ -73,11 +62,18 @@ export default function LoginPage() {
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white dark:bg-slate-800 py-8 px-4 shadow-sm sm:rounded-2xl border border-slate-200 dark:border-slate-700 sm:px-10">
-                    <form className="space-y-6" onSubmit={handleLogin}>
+                    <form className="space-y-6" onSubmit={handleSubmit}>
                         {error && (
                             <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/30 rounded-xl p-4 flex gap-3 animate-shake">
                                 <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
                                 <p className="text-sm text-red-700 dark:text-red-400 font-medium">{error}</p>
+                            </div>
+                        )}
+
+                        {message && (
+                            <div className="bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/30 rounded-xl p-4 flex gap-3">
+                                <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                                <p className="text-sm text-green-700 dark:text-green-400 font-medium">{message}</p>
                             </div>
                         )}
 
@@ -103,42 +99,12 @@ export default function LoginPage() {
                                     />
                                 </div>
                             </div>
-
-                            <div>
-                                <div className="flex justify-between items-center mb-1">
-                                    <label htmlFor="password" className="block text-sm font-bold text-slate-700 dark:text-slate-300">
-                                        {t('password')}
-                                    </label>
-                                    <Link
-                                        href={`/forgot-password${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ''}`}
-                                        className="text-xs font-bold text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-colors"
-                                    >
-                                        {t('forgotPassword')}
-                                    </Link>
-                                </div>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <LockIcon className="h-5 w-5 text-slate-400" />
-                                    </div>
-                                    <input
-                                        id="password"
-                                        type="password"
-                                        autoComplete="current-password"
-                                        required
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className="block w-full pl-10 pr-3 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all sm:text-sm"
-                                        placeholder={t('passwordPlaceholder')}
-                                        suppressHydrationWarning
-                                    />
-                                </div>
-                            </div>
                         </div>
 
                         <div>
                             <button
                                 type="submit"
-                                disabled={loading}
+                                disabled={loading || !!message}
                                 className="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-2xl shadow-lg text-sm font-black uppercase tracking-widest text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all disabled:opacity-50 shadow-green-200 dark:shadow-none"
                             >
                                 {loading ? (
@@ -157,16 +123,18 @@ export default function LoginPage() {
                                 <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
                             </div>
                             <div className="relative flex justify-center text-sm uppercase">
-                                <span className="px-2 bg-white dark:bg-slate-800 text-slate-500 font-bold tracking-widest">{t('or') || 'Ou'}</span>
+                                <span className="px-2 bg-white dark:bg-slate-800 text-slate-500 font-bold tracking-widest">
+                                    {useTranslations('auth.login')('or')}
+                                </span>
                             </div>
                         </div>
 
                         <div>
                             <Link
-                                href={`/register${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ''}`}
+                                href="/login"
                                 className="w-full flex justify-center items-center py-4 px-4 border-2 border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-black uppercase tracking-widest text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all"
                             >
-                                {t('createAccount')}
+                                {t('backToLogin')}
                             </Link>
                         </div>
                     </form>

@@ -55,6 +55,28 @@
             "passwordTooShort": "A senha deve ter pelo menos 6 caracteres.",
             "errorCreating": "Ocorreu um erro ao criar sua conta.",
             "selectLanguage": "Selecione seu idioma"
+        },
+        "forgotPassword": {
+            "title": "Recuperar Senha",
+            "subtitle": "Digite seu e-mail para receber um link de recuperação",
+            "email": "E-mail",
+            "emailPlaceholder": "seu@email.com",
+            "submit": "Enviar Link",
+            "backToLogin": "Voltar para o Login",
+            "success": "Link enviado com sucesso! Verifique seu e-mail.",
+            "error": "Erro ao enviar link de recuperação."
+        },
+        "resetPassword": {
+            "title": "Nova Senha",
+            "subtitle": "Escolha sua nova senha de acesso",
+            "password": "Nova Senha",
+            "passwordPlaceholder": "••••••",
+            "confirmPassword": "Confirmar Nova Senha",
+            "submit": "Atualizar Senha",
+            "success": "Senha atualizada com sucesso! Redirecionando...",
+            "error": "Erro ao atualizar a senha.",
+            "passwordMismatch": "As senhas não coincidem.",
+            "passwordTooShort": "A senha deve ter pelo menos 6 caracteres."
         }
     },
     "home": {
