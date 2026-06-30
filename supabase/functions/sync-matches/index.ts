@@ -28,7 +28,16 @@ interface FootballDataMatch {
         crest: string;
     };
     score: {
+        duration?: string;
         fullTime: {
+            home: number | null;
+            away: number | null;
+        };
+        regularTime?: {
+            home: number | null;
+            away: number | null;
+        };
+        extraTime?: {
             home: number | null;
             away: number | null;
         };
@@ -160,8 +169,12 @@ serve(async (req) => {
                     home_team_id: homeTeam.id,
                     away_team_id: awayTeam.id,
                     match_date: match.utcDate,
-                    home_score: match.score.fullTime.home,
-                    away_score: match.score.fullTime.away,
+                    home_score: match.score.duration === 'PENALTY_SHOOTOUT'
+                        ? (match.score.regularTime?.home ?? 0) + (match.score.extraTime?.home ?? 0)
+                        : match.score.fullTime.home,
+                    away_score: match.score.duration === 'PENALTY_SHOOTOUT'
+                        ? (match.score.regularTime?.away ?? 0) + (match.score.extraTime?.away ?? 0)
+                        : match.score.fullTime.away,
                     status: mapStatus(match.status),
                     api_id: match.id,
                     round: match.stage === 'REGULAR_SEASON' ? `Rodada ${match.matchday}` : match.stage,

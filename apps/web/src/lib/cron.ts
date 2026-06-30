@@ -227,8 +227,12 @@ async function performUpdate(onlyLive: boolean = false) {
                         round: m.matchday ? `Rodada ${m.matchday}` : m.stage,
                         group_name: m.group || null,
                         status: mapStatus(m.status),
-                        home_score: m.score?.fullTime?.home ?? null,
-                        away_score: m.score?.fullTime?.away ?? null,
+                        home_score: m.score?.duration === 'PENALTY_SHOOTOUT'
+                            ? (m.score.regularTime?.home ?? 0) + (m.score.extraTime?.home ?? 0)
+                            : (m.score?.fullTime?.home ?? null),
+                        away_score: m.score?.duration === 'PENALTY_SHOOTOUT'
+                            ? (m.score.regularTime?.away ?? 0) + (m.score.extraTime?.away ?? 0)
+                            : (m.score?.fullTime?.away ?? null),
                         score_detailed: m.score, // Store full score JSON
                         api_id: m.id,
                         updated_at: new Date().toISOString()

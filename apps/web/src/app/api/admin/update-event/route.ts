@@ -104,8 +104,12 @@ export async function POST(req: NextRequest) {
             away_team_id: teamMap.get(m.awayTeam.id),
             match_date: m.utcDate,
             status: mapStatus(m.status),
-            home_score: m.score?.fullTime?.home ?? null,
-            away_score: m.score?.fullTime?.away ?? null,
+            home_score: m.score?.duration === 'PENALTY_SHOOTOUT'
+                ? (m.score.regularTime?.home ?? 0) + (m.score.extraTime?.home ?? 0)
+                : (m.score?.fullTime?.home ?? null),
+            away_score: m.score?.duration === 'PENALTY_SHOOTOUT'
+                ? (m.score.regularTime?.away ?? 0) + (m.score.extraTime?.away ?? 0)
+                : (m.score?.fullTime?.away ?? null),
             api_id: m.id,
             round: m.matchday ? `Rodada ${m.matchday}` : m.stage,
             group_name: m.group,
