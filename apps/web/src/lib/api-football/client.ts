@@ -86,17 +86,15 @@ interface Match {
 }
 
 class FootballDataClient {
-    private apiKey: string
-    private requestCount = 0
-    private lastResetTime = Date.now()
-
-    constructor() {
+    private get apiKey(): string {
         const key = process.env.FOOTBALL_DATA_API_KEY
         if (!key) {
             throw new Error('FOOTBALL_DATA_API_KEY not set in environment')
         }
-        this.apiKey = key
+        return key
     }
+    private requestCount = 0
+    private lastResetTime = Date.now()
 
     private async fetch<T>(endpoint: string): Promise<T> {
         // Rate limiting: 10 requests per minute for free tier
