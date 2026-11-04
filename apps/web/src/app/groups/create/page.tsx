@@ -262,19 +262,16 @@ export default function CreateGroupPage() {
                                     </div>
                                     <div>
                                         <Label>Campeonato</Label>
-                                        {(() => {
-                                            const selectedEvent = events.find(e => e.id === selectedEventId) || events.find(e => 
-                                                e.name?.toLowerCase().includes('world cup') || 
-                                                e.name?.toLowerCase().includes('copa do mundo') ||
-                                                e.display_name?.toLowerCase().includes('world cup') || 
-                                                e.display_name?.toLowerCase().includes('copa do mundo')
-                                            )
-                                            return (
-                                                <div className="bg-slate-50 dark:bg-slate-900 border-none h-12 rounded-lg flex items-center px-4 font-bold text-slate-700 dark:text-slate-200 opacity-80 cursor-not-allowed">
-                                                    {selectedEvent ? `🏆 ${selectedEvent.display_name || selectedEvent.name}` : 'Carregando...'}
-                                                </div>
-                                            )
-                                        })()}
+                                        <Select value={selectedEventId || ''} onValueChange={(v) => setValue('event_id', v, { shouldValidate: true })}>
+                                            <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-none h-12 font-bold">
+                                                <SelectValue placeholder={events.length ? 'Selecione o campeonato' : 'Carregando...'} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {events.map(e => (
+                                                    <SelectItem key={e.id} value={e.id}>🏆 {e.display_name || e.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                         <input type="hidden" {...register('event_id')} value={selectedEventId || ''} />
                                         {errors.event_id && <p className="text-sm text-red-500">{errors.event_id.message}</p>}
                                     </div>
