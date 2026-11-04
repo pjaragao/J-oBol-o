@@ -54,6 +54,7 @@ interface Competition {
     area: Area
     plan: string
     currentSeason: Season
+    seasons?: Season[]
     lastUpdated: string
 }
 
@@ -138,10 +139,27 @@ class FootballDataClient {
     }
 
     /**
-     * Get all teams for a competition
+     * Pick the season that is actually current: the API's currentSeason can lag
+     * behind (still the finished season), so prefer a season that has not ended,
+     * falling back to the most recent one by start date.
      */
-    async getTeams(competitionCode: string): Promise<Team[]> {
-        const data = await this.fetch<{ teams: Team[] }>(`/competitions/${competitionCode}/teams`)
+    pickCurrentSeason(competition: Competition, now = new Date()): Season {
+        const candidates = [competition.currentSeason, ...(competition.seasons ?? [])].filter(Boolean)
+        const today = now.toISOString().slice(0, 10)
+        const open = candidates
+            .filter(s => s.endDate >= today)
+            .sort((a, b) => a.startDate.localeCompare(b.startDate))
+        // Earliest season that hasn't ended yet = the one in progress (or next to start)
+        if (open.length) return open[0]
+        return candidates.sort((a, b) => b.startDate.localeCompare(a.startDate))[0]
+    }
+
+    /**
+     * Get all teams for a competition (optionally for a specific season)
+     */
+    async getTeams(competitionCode: string, season?: number): Promise<Team[]> {
+        const qs = season ? `?season=${season}` : ''
+        const data = await this.fetch<{ teams: Team[] }>(`/competitions/${competitionCode}/teams${qs}`)
         return data.teams
     }
 

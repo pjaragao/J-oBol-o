@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
         // 1. Fetch Competition
         const competition = await footballData.getCompetition(competitionCode)
-        season = new Date(competition.currentSeason.startDate).getFullYear()
+        season = new Date(footballData.pickCurrentSeason(competition).startDate).getFullYear()
 
         // Upsert Event
         const { data: event, error: eventError } = await (await supabase)
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
         if (eventError) throw eventError
 
         // 2. Fetch Teams
-        const teams = await footballData.getTeams(competitionCode)
+        const teams = await footballData.getTeams(competitionCode, season)
 
         // Batch upsert all teams
         const teamsToUpsert = teams.map(team => ({

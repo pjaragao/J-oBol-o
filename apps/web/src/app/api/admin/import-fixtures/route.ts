@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Fetch matches from API
-        const matches = await footballData.getMatches(competitionCode)
+        const matches = await footballData.getMatches(competitionCode, event.season || undefined)
 
         console.log(`[Import Fixtures] Got ${matches.length} matches from API`)
 

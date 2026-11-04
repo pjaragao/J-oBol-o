@@ -38,7 +38,8 @@ export async function POST(req: NextRequest) {
         // 1. Fetch Competition
         console.log(`[Import Championship] Fetching competition: ${competitionCode}`)
         const competition = await footballData.getCompetition(competitionCode)
-        season = new Date(competition.currentSeason.startDate).getFullYear()
+        const currentSeason = footballData.pickCurrentSeason(competition)
+        season = new Date(currentSeason.startDate).getFullYear()
 
         // Upsert Event
         // description format: "TYPE - CODE" (needed for parsing in updates)
@@ -52,9 +53,9 @@ export async function POST(req: NextRequest) {
                 description: eventDescription,
                 season: season,
                 is_active: true,
-                start_date: competition.currentSeason.startDate,
-                end_date: competition.currentSeason.endDate,
-                current_matchday: competition.currentSeason.currentMatchday,
+                start_date: currentSeason.startDate,
+                end_date: currentSeason.endDate,
+                current_matchday: currentSeason.currentMatchday,
                 logo_url: competition.emblem
             }, { onConflict: 'api_id' })
             .select()
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
 
         // 2. Fetch Teams
         console.log(`[Import Championship] Fetching teams for ${competitionCode}`)
-        const apiTeams = await footballData.getTeams(competitionCode)
+        const apiTeams = await footballData.getTeams(competitionCode, season)
         console.log(`[Import Championship] Got ${apiTeams.length} teams from API`)
 
         // Batch upsert all teams at once (more reliable than individual upserts)
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
 
         // 3. Fetch Matches (Fixtures)
         console.log(`[Import Championship] Fetching matches for ${competitionCode}`)
-        const apiMatches = await footballData.getMatches(competitionCode)
+        const apiMatches = await footballData.getMatches(competitionCode, season)
         console.log(`[Import Championship] Got ${apiMatches.length} matches from API`)
 
         // Map teams to local IDs - handle both string and number api_id for backwards compatibility
