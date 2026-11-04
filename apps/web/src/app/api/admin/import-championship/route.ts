@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { footballData } from '@/lib/api-football/client'
 import { syncLogger } from '@/lib/sync-logger'
 
+import { pruneStaleMatches } from '@/lib/prune-stale-matches'
+
 export async function POST(req: NextRequest) {
     let competitionCode: string | undefined
     let season: number | undefined
@@ -143,6 +145,9 @@ export async function POST(req: NextRequest) {
                 .upsert(matchesToUpsert, { onConflict: 'api_id' })
 
             if (matchesError) throw matchesError
+
+            const pruned = await pruneStaleMatches(supabase, event.id, matchesToUpsert.map(m => m.api_id))
+            console.log(`[Import Championship] Pruned ${pruned} stale matches from previous seasons`)
         }
 
         await syncLogger.log({

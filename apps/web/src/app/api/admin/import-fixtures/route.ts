@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { footballData } from '@/lib/api-football/client'
 import { syncLogger } from '@/lib/sync-logger'
 
+import { pruneStaleMatches } from '@/lib/prune-stale-matches'
+
 export async function POST(request: NextRequest) {
     let competitionCode: string | undefined
     let eventId: string | undefined
@@ -102,6 +104,8 @@ export async function POST(request: NextRequest) {
         if (matchesError) {
             throw matchesError
         }
+
+        await pruneStaleMatches(supabase, event.id, matchesToUpsert.map((m: any) => m.api_id))
 
         await syncLogger.log({
             resourceType: 'fixtures',
