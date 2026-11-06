@@ -12,7 +12,8 @@
 ![React Native](https://img.shields.io/badge/React%20Native-Expo-61DAFB?logo=react&logoColor=black)
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%C2%B7%20Auth%20%C2%B7%20Edge-3ECF8E?logo=supabase&logoColor=white)
 ![Turborepo](https://img.shields.io/badge/Turborepo-monorepo-EF4444?logo=turborepo&logoColor=white)
-![Stripe](https://img.shields.io/badge/Stripe%20%C2%B7%20RevenueCat-billing-635BFF)
+![Mercado Pago](https://img.shields.io/badge/Mercado%20Pago-payments-00B1EA?logo=mercadopago&logoColor=white)
+![NeyBot](https://img.shields.io/badge/NeyBot-WhatsApp%20AI%20agent-25D366?logo=whatsapp&logoColor=white)
 
 </div>
 
@@ -21,27 +22,37 @@
 ## What is it?
 
 **JãoBolão** modernizes and gamifies football prediction pools among friends and communities. It is a full SaaS/B2C product:
-web app, mobile app, real-time rankings, subscription plans, a WhatsApp bot and an admin/marketing console, all sharing one
+web app, mobile app, real-time rankings, paid pools, an AI WhatsApp chatbot (**NeyBot**) and an admin/marketing console, all sharing one
 monorepo and one Supabase backend.
-
-> 🎨 The images below are **UI design mockups** used for the product pages, not live screenshots.
-
-<p align="center">
-  <img src="apps/web/public/render-dashboard.png" width="31%" alt="Groups dashboard mockup" />
-  <img src="apps/web/public/render-matches.png" width="31%" alt="Match predictions mockup" />
-  <img src="apps/web/public/render-ranking.png" width="31%" alt="Ranking mockup" />
-</p>
 
 ## ✨ Features
 
 - 🔐 **Authentication**: email, social login (Google/Apple) and magic link.
 - ⚽ **Pool management**: private or public groups, custom scoring rules, invite links with friendly slugs, knockout-only pools.
 - 📊 **Predictions and rankings**: predict before kickoff, predictions become visible after kickoff, ranking computed in SQL (`get_group_ranking` RPC).
-- 🔄 **Auto sync**: matches and results updated from [football-data.org](https://www.football-data.org/) by Edge Functions and a score-updater service, including corrections such as penalty-shootout scores.
-- 💳 **Subscriptions**: Free / Premium / Pro with different limits; Stripe and Mercado Pago on web, RevenueCat for in-app purchases.
+- 💰 **Paid pools**: pools can have an entry fee, paid online through **Mercado Pago** (checkout preferences + signature-validated webhooks) or tracked offline. A financial service computes the prize pot, the platform fee and the net amount to distribute. Subscription tiers are also supported (Stripe checkout on web, RevenueCat on mobile).
+- 🔄 **Two data sources**: match fixtures and results come from the [football-data.org](https://www.football-data.org/) API (Edge Function `sync-matches` + a `score-updater` service, including corrections such as penalty-shootout scores), and football news comes from ESPN Brasil RSS feeds for the chatbot.
 - 🔔 **Notifications**: web push and mobile push tokens.
-- 💬 **WhatsApp integration**: a bot service that posts results and rankings to a pool's group.
 - 🛡️ **Security by default**: Row-Level Security on every table, with explicit migrations for missing policies.
+
+## 🤖 NeyBot, the WhatsApp chatbot
+
+**NeyBot** is the pool's AI assistant: cheerful, football-obsessed, and an expert on World Cup history. Tag `@NeyBot` in a pool's
+WhatsApp group (or DM it) to ask about rankings, matches, rules or trivia. It also posts automatic goal and match notifications.
+
+```mermaid
+flowchart LR
+    G[WhatsApp group] <--> EV[Evolution API]
+    EV -- webhook --> BR[NeyBot bridge<br/>Node.js / TypeScript]
+    BR -- chat --> H[Hermes Agent<br/>persona + memory + skills]
+    H -- MCP, read-only SQL --> DB[(Supabase Postgres<br/>schema neybot)]
+    SB[Supabase Realtime] --> BR
+    RSS[ESPN RSS news] --> BR
+```
+
+- **Bridge service** (`services/whatsapp-bot`): receives Evolution webhooks, detects mentions/DMs, handles account linking (`vincular <token>`), rate-limits, and forwards the conversation to the agent. It listens to Supabase Realtime to push goal and match alerts.
+- **Hermes Agent** (`services/whatsapp-bot/hermes`): the LLM brain with persistent memory and two skills, `copas-history` (World Cup history) and `bolao-rules` (pool rules).
+- **Safe data access**: the agent reads the database through MCP tools over a dedicated **read-only `neybot` schema**. Views expose only what is needed and **hide predictions for matches that have not started**, so nobody can copy another player's picks through the bot. It never invents scores: if a tool returns nothing, it says so.
 
 ## 🏗️ Architecture
 
@@ -54,14 +65,15 @@ flowchart LR
       AU[Auth] --- RT[Realtime] --- ED[Edge Functions]
     end
     FD[football-data.org] --> SU[score-updater service] --> PG
-    ED <--> PAY[Stripe · Mercado Pago · RevenueCat]
-    BOT[WhatsApp bot service] --> PG
+    FD --> ED
+    ED <--> PAY[Mercado Pago · Stripe · RevenueCat]
+    BOT[NeyBot service] --> PG
 ```
 
 ```text
 apps/web          Next.js 15 web app (+ admin and marketing console)
 apps/mobile       Expo / React Native app
-services/         score-updater, WhatsApp bot
+services/         score-updater, whatsapp-bot (NeyBot bridge + Hermes agent config)
 supabase/         migrations (schema, logic, RLS, payments, WhatsApp), seed, scripts
 ```
 
