@@ -95,7 +95,7 @@ LEFT JOIN public.whatsapp_links wl ON wl.user_id = b.user_id AND wl.group_id = b
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'neybot_reader') THEN
-    CREATE ROLE neybot_reader WITH LOGIN PASSWORD 'UmaSenhaMuitoSegura123!';
+    CREATE ROLE neybot_reader WITH LOGIN PASSWORD 'CHANGE_ME';
   END IF;
 END
 $$;
